@@ -15,6 +15,7 @@ import { Color } from '@molstar/core/util/color/color';
 import { fillSerial } from '@molstar/core/util/array';
 import { type NumberArray, assertUnreachable } from '@molstar/core/util/type-helpers';
 import { MeshExporter, type AddMeshInput, type MeshGeoData } from '@molstar/geo-export-extension/mesh-exporter';
+import { getInstanceMatricesById } from '@molstar/graphics/geo/geometry/transform-data';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -227,7 +228,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
     const overpaintType = values.overpaintType.ref.value;
     const transparencyType = values.transparencyType.ref.value;
     const dTransparency = values.dTransparency.ref.value;
-    const aTransform = values.aTransform.ref.value;
+    const aTransform = getInstanceMatricesById(values);
     const instanceCount = values.uInstanceCount.ref.value;
     const metalness = values.uMetalness.ref.value;
     const roughness = values.uRoughness.ref.value;

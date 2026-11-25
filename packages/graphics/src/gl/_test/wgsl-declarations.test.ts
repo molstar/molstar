@@ -121,7 +121,7 @@ describe('wgsl declarations', () => {
     expect(code).toContain('@builtin(vertex_index) vertexIndex: u32,');
     expect(code).toContain('@builtin(instance_index) instanceIndex: u32,');
     expect(code).toContain(`@location(${byName.aPosition.location}) aPosition: vec3<f32>,`);
-    expect(code).toContain(`@location(${byName.aGroup.location}) aGroup: f32,`);
+    expect(code).toContain(`@location(${byName.aGroup.location}) aGroup: u32,`);
     // the transform's three rows (affine)
     for (let i = 0; i < 3; ++i) {
       expect(code).toContain(`@location(${byName.aTransform.location + i}) aTransform${i}: vec4<f32>,`);

@@ -1,0 +1,123 @@
+{
+  "name": "@molstar/seqx-core",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "description": "Seq* (next): the SeqViewSpec language, the coordinate model, the source protocol and the pure passes from a spec to draw lists",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./context": {
+      "molstar-src": "./src/context/index.ts",
+      "types": "./lib/context/index.d.ts",
+      "import": "./lib/context/index.js"
+    },
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./lang": {
+      "molstar-src": "./src/lang/index.ts",
+      "types": "./lib/lang/index.d.ts",
+      "import": "./lib/lang/index.js"
+    },
+    "./theme": {
+      "molstar-src": "./src/theme/index.ts",
+      "types": "./lib/theme/index.d.ts",
+      "import": "./lib/theme/index.js"
+    },
+    "./lang/changes": {
+      "molstar-src": "./src/lang/check-changes.ts",
+      "types": "./lib/lang/check-changes.d.ts",
+      "import": "./lib/lang/check-changes.js"
+    },
+    "./query": {
+      "molstar-src": "./src/query/index.ts",
+      "types": "./lib/query/index.d.ts",
+      "import": "./lib/query/index.js"
+    },
+    "./structure": {
+      "molstar-src": "./src/structure/index.ts",
+      "types": "./lib/structure/index.d.ts",
+      "import": "./lib/structure/index.js"
+    },
+    "./data": {
+      "molstar-src": "./src/data/index.ts",
+      "types": "./lib/data/index.d.ts",
+      "import": "./lib/data/index.js"
+    },
+    "./resolve": {
+      "molstar-src": "./src/resolve/index.ts",
+      "types": "./lib/resolve/index.d.ts",
+      "import": "./lib/resolve/index.js"
+    },
+    "./view": {
+      "molstar-src": "./src/view/index.ts",
+      "types": "./lib/view/index.d.ts",
+      "import": "./lib/view/index.js"
+    },
+    "./render": {
+      "molstar-src": "./src/render/index.ts",
+      "types": "./lib/render/index.d.ts",
+      "import": "./lib/render/index.js"
+    },
+    "./story": {
+      "molstar-src": "./src/story/index.ts",
+      "types": "./lib/story/index.d.ts",
+      "import": "./lib/story/index.js"
+    },
+    "./search": {
+      "molstar-src": "./src/search/index.ts",
+      "types": "./lib/search/index.d.ts",
+      "import": "./lib/search/index.js"
+    },
+    "./_test/*": null,
+    "./search/_test/*": null,
+    "./lang/_test/*": null,
+    "./query/_test/*": null,
+    "./data/_test/*": null,
+    "./structure/_test/*": null,
+    "./resolve/_test/*": null,
+    "./view/_test/*": null,
+    "./render/_test/*": null,
+    "./theme/_test/*": null,
+    "./context/_test/*": null,
+    "./story/_test/*": null,
+    "./io/_test/*": null,
+    "./runtimes/_test/*": null,
+    "./runtimes/internal/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "typecheck:test": "tsc -p tsconfig.test.json",
+    "test:perf": "vitest run -c vitest.perf.config.ts",
+    "size": "node ../_measure/sizes.mjs"
+  },
+  "dependencies": {
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "@molstar/test-harness": "workspace:*"
+  }
+}

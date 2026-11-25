@@ -33,3 +33,6 @@ packages/sequences/core/src/algorithms/biomsa/
 packages/prism/viewer/_spec/operations.md
 packages/extensions/command-language/_spec/pymol.md
 packages/extensions/command-language/_spec/vmd.md
+
+# Seq* (next): the development scaffold is agent context, never formatted.
+.scaffolds/

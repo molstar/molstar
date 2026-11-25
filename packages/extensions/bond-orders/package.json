@@ -1,0 +1,44 @@
+{
+  "name": "@molstar/bond-orders-extension",
+  "version": "6.0.0-dev.0",
+  "type": "module",
+  "description": "Mol* bond-orders-extension: bond-order perception from 3D coordinates, as a bond provider",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./*": {
+      "molstar-src": "./src/*.ts",
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.js"
+    },
+    "./_test/*": null
+  },
+  "files": [
+    "lib",
+    "src",
+    "!**/_test/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "tslib": "catalog:",
+    "@molstar/core": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/plugin": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@molstar/io": "workspace:*",
+    "@types/node": "catalog:"
+  }
+}

@@ -16,11 +16,11 @@ import { RenderState } from '@molstar/graphics/gl/render-state';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { ValueCell } from '@molstar/core/util';
-import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import type { Renderbuffer } from '@molstar/graphics/gl/renderbuffer';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { isDebugMode } from '@molstar/core/util/debug';
 import type { PassTargets } from './pass-targets.js';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 
 export const BlendBackDpoitSchema = {
   ...QuadSchema,
@@ -78,8 +78,9 @@ export class DpoitPass {
   private readonly blendBackRenderable: BlendBackDpoitRenderable;
   private readonly renderable: EvaluateDpoitRenderable;
 
-  private readonly depthFramebuffers: Framebuffer[];
-  private readonly colorFramebuffers: Framebuffer[];
+  /** per ping-pong side: the depth peel (front, back color and depth, with the stencil) and the color blend targets */
+  private readonly depthTargets: RenderPassAttachments[];
+  private readonly colorTargets: RenderPassAttachments[];
 
   private readonly depthTextures: Texture[];
   private readonly colorFrontTextures: Texture[];
@@ -109,21 +110,21 @@ export class DpoitPass {
     // initialize
     this.passCount = 0;
 
-    b.begin(this.depthFramebuffers[0], {
+    b.begin(this.depthTargets[0], {
       label: 'dpoit clear',
       clear: { color: [this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0] },
     });
 
-    b.begin(this.depthFramebuffers[1], {
+    b.begin(this.depthTargets[1], {
       label: 'dpoit clear',
       clear: { color: [-this.MIN_DEPTH, this.MAX_DEPTH, 0, 0] },
     });
 
-    b.begin(this.colorFramebuffers[0], { label: 'dpoit clear', clear: { color: [0, 0, 0, 0] } });
+    b.begin(this.colorTargets[0], { label: 'dpoit clear', clear: { color: [0, 0, 0, 0] } });
 
-    b.begin(this.colorFramebuffers[1], { label: 'dpoit clear', clear: { color: [0, 0, 0, 0] } });
+    b.begin(this.colorTargets[1], { label: 'dpoit clear', clear: { color: [0, 0, 0, 0] } });
 
-    b.begin(this.depthFramebuffers[0], { label: 'dpoit transparent' });
+    b.begin(this.depthTargets[0], { label: 'dpoit transparent' });
 
     return {
       depth: this.depthTextures[1],
@@ -137,17 +138,17 @@ export class DpoitPass {
 
     this.passCount += 1; // increment for next pass
 
-    b.begin(this.depthFramebuffers[this.writeId], {
+    b.begin(this.depthTargets[this.writeId], {
       label: 'dpoit clear',
       clear: { color: [this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0] },
     });
 
-    b.begin(this.colorFramebuffers[this.writeId], {
+    b.begin(this.colorTargets[this.writeId], {
       label: 'dpoit clear',
       clear: { color: [0, 0, 0, 0] },
     });
 
-    b.begin(this.depthFramebuffers[this.writeId], { label: 'dpoit transparent' });
+    b.begin(this.depthTargets[this.writeId], { label: 'dpoit transparent' });
 
     return {
       depth: this.depthTextures[this.readId],
@@ -182,24 +183,6 @@ export class DpoitPass {
         this.blendBackRenderable.values.uTexSize,
         Vec2.set(this.blendBackRenderable.values.uTexSize.ref.value, width, height),
       );
-    }
-  }
-
-  private _init() {
-    for (let i = 0; i < 2; i++) {
-      // depth
-      this.depthFramebuffers[i].setDrawBuffers(3);
-
-      this.colorFrontTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color0');
-      this.colorBackTexture.attachFramebuffer(this.depthFramebuffers[i], 'color1');
-      this.depthTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color2');
-      this.stencil?.attachFramebuffer(this.depthFramebuffers[i]);
-
-      // color
-      this.colorFramebuffers[i].setDrawBuffers(2);
-
-      this.colorFrontTextures[i].attachFramebuffer(this.colorFramebuffers[i], 'color0');
-      this.colorBackTexture.attachFramebuffer(this.colorFramebuffers[i], 'color1');
     }
   }
 
@@ -280,10 +263,22 @@ export class DpoitPass {
 
     this.colorBackTexture.define(width, height);
 
-    // framebuffers
+    // render pass attachments
 
-    this.depthFramebuffers = [resources.framebuffer(), resources.framebuffer()];
-    this.colorFramebuffers = [resources.framebuffer(), resources.framebuffer()];
+    const side = (i: number) => {
+      const front = this.colorFrontTextures[i];
+      return {
+        depth: createRenderPassAttachments(
+          resources,
+          [front, this.colorBackTexture, this.depthTextures[i]],
+          this.stencil ?? undefined,
+        ),
+        color: createRenderPassAttachments(resources, [front, this.colorBackTexture]),
+      };
+    };
+    const sides = [side(0), side(1)];
+    this.depthTargets = sides.map((t) => t.depth);
+    this.colorTargets = sides.map((t) => t.color);
 
     // renderables
 
@@ -291,6 +286,5 @@ export class DpoitPass {
     this.renderable = getEvaluateDpoitRenderable(graphics, this.colorFrontTextures[0]);
 
     this._supported = true;
-    this._init();
   }
 }

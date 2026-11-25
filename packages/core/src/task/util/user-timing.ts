@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -25,5 +25,20 @@ export namespace UserTiming {
   }
   export function measure(task: Task<any>) {
     if (timingEnabled) performance.measure(`✳️ ${task.name}`, startMarkName(task), endMarkName(task));
+  }
+
+  /**
+   * `f` run as a measure `name` in timing mode (`setTimingMode`, read each call: set after this module loads): a stage
+   * of work in a browser's profile (its Timings track) and in `performance.getEntriesByType('measure')` for benchmarks;
+   * `f` alone otherwise
+   */
+  export function span<T>(name: string, f: () => T): T {
+    if (!hasPerformance || !isTimingMode) return f();
+    const start = performance.now();
+    try {
+      return f();
+    } finally {
+      performance.measure(name, { start, end: performance.now() });
+    }
   }
 }

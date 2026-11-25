@@ -4,8 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { Framebuffer } from './framebuffer.js';
-
 /** depth precision is a preference, backends fall back to the best supported depth format */
 export type RenderbufferFormat =
   | 'depth16'
@@ -24,8 +22,6 @@ export interface Renderbuffer {
   getByteCount: () => number;
 
   bind: () => void;
-  attachFramebuffer: (framebuffer: Framebuffer) => void;
-  detachFramebuffer: (framebuffer: Framebuffer) => void;
   setSize: (width: number, height: number) => void;
   /** Frees the GPU storage, keeping the size: the next use allocates it again, see `Texture.releaseStorage` */
   releaseStorage: () => void;

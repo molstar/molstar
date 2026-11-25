@@ -14,7 +14,7 @@
 // are query-qr2a-cases.ts's, shared with the quick twin (query-qr2a.quick.ts).
 
 import { describe, expect, it } from 'vitest';
-import { controlCaught, heapGrowth, LIMIT } from './heap.js';
+import { controlCaught, heapGrowth, LIMIT } from '@molstar/test-harness/heap';
 import { prepare, QUERIES } from './query-qr2a-cases.js';
 
 /** The least of three measured runs after ten warm-ups (a loaded machine's late compiles can box in one run). */

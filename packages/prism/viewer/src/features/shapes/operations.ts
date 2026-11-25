@@ -4,9 +4,14 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { StateObjectCell } from '@molstar/core/state';
+import type { ShapeProvider } from '@molstar/graphics/geo/shape/provider';
+import { getTransformFromParams, type TransformParam } from '@molstar/plugin/state/transforms/helpers';
+import { TransformShapeProvider } from '@molstar/plugin/state/transforms/shape/transform';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { setSubtreeVisibility } from '@molstar/plugin/behavior/static/state';
 import type { Loci as ModelLoci } from '@molstar/model/model/loci';
@@ -15,6 +20,8 @@ import { selectNodes, updateEach } from '../../api/nodes.js';
 import { NodeParam } from '../../api/params.js';
 import { entryRoot, isFailure } from '../../api/scope.js';
 import { type ShapeEntry, shapeEntries } from '../../sources/shapes.js';
+import { currentShapeTransform, shapePivot, shapeMatrixOf, shapeTransformCell } from '../../sources/shape-transform.js';
+import { IdentityTransform, rigidTransformParams, wantedTransform } from '../../api/rigid-transform.js';
 
 // `shape` (api.md §2): the shapes loaded on their own (a mesh file, a primitives node: `sources/shapes.ts`), as the
 // Structure panel's Shapes group shows them: `list`, `visibility`, `update` (the inspector's form), `remove`, `focus`.
@@ -61,6 +68,19 @@ function pickShapes(ctx: ApiContext, node: string): ShapePick | ApiFailure {
     );
   }
   return { shapes, representations, shapeOf };
+}
+
+/** The one shape a node names (a shape, or a representation's shape), or the only one loaded when empty */
+function oneShape(ctx: ApiContext, node: string): ShapeEntry | ApiFailure {
+  const p = pickShapes(ctx, node);
+  if (isFailure(p)) return p;
+  const shapes = new Set([...p.shapes, ...p.representations.map((r) => p.shapeOf.get(r)!)]);
+  if (shapes.size === 1) return [...shapes][0];
+  return ApiResult.fail(
+    'ambiguous',
+    `${shapes.size} shapes are loaded.`,
+    `Pick one with node: ${[...shapes].map((e) => `${e.label} (#${e.cell.transform.ref})`).join(', ')}.`,
+  );
 }
 
 /** "tetra.obj", "Mesh of tetra.obj", "3 shapes". */
@@ -188,6 +208,71 @@ export class ShapeApi extends ApiArea {
       if (!loci.length) return ApiResult.fail('not-found', `${pickText(p)} shows nothing to focus.`);
       ctx.plugin.managers.camera.focusLoci(loci);
       return ApiResult.ok(`Focused ${pickText(p)}.`, { view: true });
+    },
+  });
+
+  // A shape moved or turned as a whole (`TransformShapeProvider`), as `structure.transform` does a structure: its
+  // values are the transform from where the shape was loaded; `compose` applies them on top of the current one.
+  readonly transform = this.operation({
+    id: 'shape.transform',
+    title: 'Move or rotate a shape',
+    params: {
+      ...rigidTransformParams('shape'),
+      node: ShapeNodeParam('A shape by selector or ref; empty: the only one'),
+    },
+    async run(v, ctx) {
+      const { compose, node } = v;
+      const e = oneShape(ctx, node);
+      if (isFailure(e)) return e;
+      const provider = e.cell.obj?.data as ShapeProvider<any, any, any> | undefined;
+      if (!provider) return ApiResult.fail('blocked', `${e.label} is not loaded yet.`);
+      const wanted = wantedTransform(v, 'shape.transform-reset');
+      if (isFailure(wanted)) return wanted;
+      const { plugin } = ctx;
+      const state = plugin.state.data;
+      const ref = e.cell.transform.ref;
+      const existing = shapeTransformCell(state, ref);
+      const now = await currentShapeTransform(plugin, ref, provider);
+      // stored as a matrix: a turn about the shape's center needs the shape made, the handles read it at once; the
+      // center the handles turn it about (as drawn), so a turn by the API and one by hand agree
+      const pivot = await shapePivot(plugin, e, provider, now);
+      let matrix = await shapeMatrixOf(plugin, wanted, provider, pivot);
+      if (compose) {
+        // turned about the center where it is now
+        const center = Vec3.transformMat4(Vec3(), pivot, now);
+        matrix = Mat4.mul(Mat4(), getTransformFromParams(wanted, center), now);
+      }
+      const next: TransformParam = { name: 'matrix', params: { data: matrix, transpose: false } };
+      if (Mat4.areEqual(matrix, now, 1e-3)) {
+        return ApiResult.already(
+          existing ? `${e.label} is already placed so.` : `${e.label} is already where it was loaded.`,
+        );
+      }
+      const build = state.build();
+      if (existing) build.to(existing).update({ transform: next });
+      else build.to(e.cell).insert(TransformShapeProvider, { transform: next });
+      await plugin.runTask(state.updateTree(build));
+      return ApiResult.ok(`Moved ${e.label}.`, { nodes: [ref] });
+    },
+  });
+
+  readonly transformReset = this.operation({
+    id: 'shape.transform-reset',
+    title: 'Reset the shape’s transform',
+    params: { node: ShapeNodeParam('A shape by selector or ref; empty: the only one') },
+    async run({ node }, ctx) {
+      const e = oneShape(ctx, node);
+      if (isFailure(e)) return e;
+      const provider = e.cell.obj?.data as ShapeProvider<any, any, any> | undefined;
+      const state = ctx.plugin.state.data;
+      const ref = e.cell.transform.ref;
+      const existing = shapeTransformCell(state, ref);
+      if (!existing || !provider || Mat4.isIdentity(await currentShapeTransform(ctx.plugin, ref, provider), 1e-6)) {
+        return ApiResult.already(`${e.label} is already where it was loaded.`);
+      }
+      // removing the decorator would take its subtree (the representations) with it: it is set to identity instead
+      await ctx.plugin.runTask(state.updateTree(state.build().to(existing).update({ transform: IdentityTransform })));
+      return ApiResult.ok(`${e.label} is back where it was loaded.`, { nodes: [ref] });
     },
   });
 }

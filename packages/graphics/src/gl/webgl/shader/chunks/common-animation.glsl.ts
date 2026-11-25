@@ -10,12 +10,13 @@
  * compile time
  */
 export const common_animation = `
-vec3 applyWiggle(vec3 pos, float groupId, float instanceId) {
+vec3 applyWiggle(vec3 pos, float groupId, int instanceId) {
     #if defined(dWiggleAnimation) || defined(dWiggle)
     if (!uEnableAnimation) return pos;
     float amplitude = uWiggleAmplitude;
     #ifdef dWiggle
-        amplitude += read_tWiggle(granularityIndex(instanceId, groupId)).r * uWiggleStrength;
+        // an expanded instance's copy's own, where it has one (\`copyLayerOr\`)
+        amplitude += copyLayerOr1(5, read_tWiggle(granularityIndex(instanceId, groupId)).r) * uWiggleStrength;
     #endif
     if (amplitude > 0.0 && uWiggleSpeed > 0.0 && uWiggleFrequency > 0.0) {
         float t = uTime * uWiggleSpeed;

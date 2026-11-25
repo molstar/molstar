@@ -7,7 +7,7 @@
 import { Canvas3D, Canvas3DContext, type PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { type GraphicsContext } from '@molstar/graphics/gl/context';
-import { type WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { type WebGLContext } from '@molstar/graphics/gl/contexts/webgl';
 import { Representation } from '@molstar/graphics/repr/representation';
 import { type CapabilityKey } from './capabilities.js';
 import type { BackendProfile } from './backend.js';
@@ -65,6 +65,11 @@ export interface VisualTestCase {
    * drawing buffer, for what only Canvas3D draws (viewports other than the canvas, stereo, Hi-Z culling)
    */
   readonly capture?: 'image-pass' | 'canvas';
+  /**
+   * The image pass's size as a multiple of the canvas's (`size`, default 1): an export larger than the canvas, whose
+   * screen layer is drawn as large as the canvas shows it
+   */
+  readonly imageScale?: number;
   /** Images an image pass renders before the capture, for what compiles for its target in the background */
   readonly imagePassRepeats?: number;
   /** Errors of the captured image itself, for what comparing with the reference cannot see (both alike wrong) */

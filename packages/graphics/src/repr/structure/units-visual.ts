@@ -27,7 +27,7 @@ import type { IntMap } from '@molstar/core/data/int/map';
 import { type LocationCallback, VisualUpdateState } from '../util.js';
 import { ColorTheme } from '@molstar/graphics/theme/color';
 import { createMarkers } from '@molstar/graphics/geo/geometry/marker-data';
-import { resolveInstanceGranularity } from '@molstar/graphics/geo/geometry/base';
+import { type BaseGeometry, resolveInstanceGranularity } from '@molstar/graphics/geo/geometry/base';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { ValueCell, deepEqual } from '@molstar/core/util';
 import { createSizes } from '@molstar/graphics/geo/geometry/size-data';
@@ -65,7 +65,10 @@ import type { Emissive } from '@molstar/graphics/theme/emissive';
 import type { Wiggle } from '@molstar/graphics/theme/wiggle';
 import { getGeometrySignatures, type SignatureContext, type SignatureDefines } from '@molstar/graphics/repr/signatures';
 
-export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> {}
+export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> {
+  /** the builder it is made of: a visual over many groups made of it alike (`UnitsMergedVisual`) */
+  readonly builder?: UnitsVisualGeometryBuilder<any, any>;
+}
 
 function createUnitsRenderObject<G extends Geometry>(
   structureGroup: StructureGroup,
@@ -134,8 +137,291 @@ interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
   dispose?: (geometry: G) => void;
 }
 
-interface UnitsVisualGeometryBuilder<P extends StructureParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
+export interface UnitsVisualGeometryBuilder<P extends StructureParams, G extends Geometry>
+  extends UnitsVisualBuilder<P, G> {
   geometryUtils: GeometryUtils<G>;
+}
+
+/**
+ * The update state of a units visual's values `values` (of its geometry `geometry`) from the current props, theme and
+ * group to the new: the builder's (`setUpdateState`) and what the theme, transforms, conformations and hierarchy
+ * change. `foreign`: its values hold resources of another context than `graphics`
+ */
+export function setUnitsUpdateState<P extends StructureParams & Geometry.Params<G>, G extends Geometry>(
+  updateState: VisualUpdateState,
+  builder: UnitsVisualGeometryBuilder<P, G>,
+  values: RenderObjectValues<G['kind']>,
+  geometry: G | undefined,
+  newProps: PD.Values<P>,
+  currentProps: PD.Values<P>,
+  newTheme: Theme,
+  currentTheme: Theme,
+  newStructureGroup: StructureGroup,
+  currentStructureGroup: StructureGroup,
+  graphics: GraphicsContext | undefined,
+  foreign: boolean,
+) {
+  builder.setUpdateState(
+    updateState,
+    newProps,
+    currentProps,
+    newTheme,
+    currentTheme,
+    newStructureGroup,
+    currentStructureGroup,
+  );
+
+  // after a backend switch or restore: textures and buffers of the previous context are rendered or computed again,
+  // geometry relying on what the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
+  if (foreign) updateState.createGeometry = true;
+  if (graphics && geometry && builder.geometryUtils.isCompatible?.(geometry, graphics) === false) {
+    updateState.createGeometry = true;
+  }
+
+  if (!Structure.areHierarchiesEqual(currentStructureGroup.structure, newStructureGroup.structure)) {
+    updateState.updateTransform = true;
+    updateState.updateColor = true;
+    updateState.updateSize = true;
+  }
+
+  if (!ColorTheme.areEqual(newTheme.color, currentTheme.color)) {
+    updateState.updateColor = true;
+  }
+
+  if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) {
+    updateState.updateSize = true;
+  }
+
+  if (currentStructureGroup.structure.child !== newStructureGroup.structure.child) {
+    updateState.createGeometry = true;
+    updateState.updateTransform = true;
+  }
+
+  // the representation keeps its props object while no prop changes (`shallowMerge2`): the same props, no prop changed
+  const propsChanged = newProps !== currentProps;
+  if (
+    propsChanged &&
+    (newProps.instanceGranularity !== currentProps.instanceGranularity ||
+      newProps.cellSize !== currentProps.cellSize ||
+      newProps.batchSize !== currentProps.batchSize)
+  ) {
+    updateState.updateTransform = true;
+  }
+
+  if (propsChanged && !deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
+    updateState.createGeometry = true;
+  }
+
+  if (newStructureGroup.group.transformHash !== currentStructureGroup.group.transformHash) {
+    if (newStructureGroup.group.units.length !== currentStructureGroup.group.units.length || updateState.updateColor) {
+      updateState.updateTransform = true;
+    } else {
+      updateState.updateMatrix = true;
+    }
+  }
+
+  // check if the operator or conformation of unit has changed
+  const newUnit = newStructureGroup.group.units[0];
+  const currentUnit = currentStructureGroup.group.units[0];
+  if (!Unit.areOperatorsEqual(newUnit, currentUnit)) {
+    updateState.updateTransform = true;
+  }
+  if (!Unit.areConformationsEqual(newUnit, currentUnit)) {
+    updateState.createGeometry = true;
+  }
+
+  if (updateState.updateTransform) {
+    updateState.updateMatrix = true;
+  }
+
+  if (updateState.updateSize && !('uSize' in values)) {
+    updateState.createGeometry = true;
+  }
+
+  if (updateState.createGeometry || updateState.updateTransform) {
+    if (currentStructureGroup.structure.hashCode !== newStructureGroup.structure.hashCode) {
+      updateState.updateColor = true;
+      updateState.updateSize = true;
+    }
+    if (
+      newTheme.color.granularity.startsWith('vertex') ||
+      values.colorType.ref.value.startsWith('vertex') ||
+      newTheme.color.granularity.startsWith('volume') ||
+      values.colorType.ref.value.startsWith('volume')
+    ) {
+      updateState.updateColor = true;
+    }
+  }
+}
+
+/** A units visual's iterators: of its locations (theme data, marking) and of its geometry's positions */
+export type UnitsIterators = { locationIt: LocationIterator; positionIt: LocationIterator };
+
+/**
+ * Updates the values `values` of a units visual by `updateState` (`setUnitsUpdateState`), not its renderable state:
+ * markers, transforms, counts, bounds, sizes, colors and the values of the props; `its` made again where what they
+ * iterate may differ. `newGeometry`: the geometry made again (`updateState.createGeometry`), else `geometry` stays
+ */
+export function updateUnitsValues<P extends StructureParams & Geometry.Params<G>, G extends Geometry>(
+  builder: UnitsVisualGeometryBuilder<P, G>,
+  updateState: VisualUpdateState,
+  values: RenderObjectValues<G['kind']>,
+  its: UnitsIterators,
+  newGeometry: G | undefined,
+  geometry: G,
+  newProps: PD.Values<P>,
+  currentProps: PD.Values<P>,
+  newTheme: Theme,
+  newStructureGroup: StructureGroup,
+  currentStructureGroup: StructureGroup,
+) {
+  const { updateValues, updateBoundingSphere, createPositionIterator } = builder.geometryUtils;
+  // a new iterator where what it iterates may differ: the transform, the group, the structure or the props (the
+  // color and size writers reset it); a recolor keeps it
+  if (
+    updateState.updateTransform ||
+    ((updateState.updateColor || updateState.updateSize) &&
+      (newProps !== currentProps ||
+        newStructureGroup.group !== currentStructureGroup.group ||
+        newStructureGroup.structure !== currentStructureGroup.structure))
+  ) {
+    its.locationIt = builder.createLocationIterator(newStructureGroup, newProps);
+  }
+  const { locationIt } = its;
+
+  if (updateState.updateTransform) {
+    const { instanceCount, groupCount } = locationIt;
+    if (resolveInstanceGranularity(newProps.instanceGranularity, groupCount, instanceCount)) {
+      createMarkers(instanceCount, 'instance', values);
+    } else {
+      createMarkers(instanceCount * groupCount, 'groupInstance', values);
+    }
+  }
+
+  if (updateState.updateMatrix) {
+    createUnitsTransform(
+      newStructureGroup,
+      newProps.includeParent,
+      newGeometry?.boundingSphere || values.invariantBoundingSphere.ref.value,
+      newProps.cellSize,
+      newProps.batchSize,
+      values,
+    );
+    if ('lodLevels' in values) {
+      // to trigger `uLod` update in `renderable.cull`
+      ValueCell.update(values.lodLevels, values.lodLevels.ref.value);
+    }
+  }
+
+  if (updateState.createGeometry) {
+    if (newGeometry) {
+      ValueCell.updateIfChanged(values.drawCount, Geometry.getDrawCount(newGeometry));
+      ValueCell.updateIfChanged(values.uVertexCount, Geometry.getVertexCount(newGeometry));
+      ValueCell.updateIfChanged(values.uGroupCount, locationIt.groupCount);
+    } else {
+      throw new Error('expected geometry to be given');
+    }
+  }
+
+  if (updateState.updateTransform || updateState.createGeometry) {
+    updateBoundingSphere(values, newGeometry || geometry);
+    its.positionIt = createPositionIterator(newGeometry || geometry, values);
+  }
+
+  if (updateState.updateSize) {
+    // not all geometries have size data, so check here
+    if ('uSize' in values) {
+      createSizes(locationIt, its.positionIt, newTheme.size, values as SizeValues);
+    }
+  }
+
+  if (updateState.updateColor) {
+    createColors(locationIt, its.positionIt, newTheme.color, values);
+  }
+
+  // the values from the props: again where the props or what the values derive from besides them changed (counts,
+  // bounds, sizes); a recolor of many units keeps them
+  if (
+    newProps !== currentProps ||
+    updateState.createGeometry ||
+    updateState.updateTransform ||
+    updateState.updateMatrix ||
+    updateState.updateSize
+  ) {
+    updateValues(values, newProps);
+    // the bounds' padding by the size factor (written by `updateValues`): again where it changed alone
+    if (
+      (newProps as { sizeFactor?: number }).sizeFactor !== (currentProps as { sizeFactor?: number }).sizeFactor &&
+      !updateState.updateTransform &&
+      !updateState.createGeometry
+    ) {
+      updateBoundingSphere(values, geometry);
+    }
+    return true;
+  }
+  return false;
+}
+
+/** Whether `loci` covers all of the structure of `structureGroup` (every location of a units visual) */
+function isUnitsLociSuperset(loci: Loci, structureGroup: StructureGroup) {
+  if (isEveryLoci(loci)) return true;
+  if (Structure.isLoci(loci) && Structure.areRootsEquivalent(loci.structure, structureGroup.structure)) return true;
+  if (StructureElement.Loci.is(loci) && Structure.areRootsEquivalent(loci.structure, structureGroup.structure)) {
+    if (isWholeStructureLoci(loci)) return true;
+  }
+  return false;
+}
+
+function eachUnitsInstance(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+  let changed = false;
+  if (Bond.isLoci(loci)) {
+    const { structure, group } = structureGroup;
+    if (!Structure.areEquivalent(loci.structure, structure)) return false;
+    for (const b of loci.bonds) {
+      if (b.aUnit !== b.bUnit) continue;
+      const unitIdx = group.unitIndexMap.get(b.aUnit.id);
+      if (unitIdx !== undefined) {
+        if (apply(Interval.ofSingleton(unitIdx))) changed = true;
+      }
+    }
+  } else if (StructureElement.Loci.is(loci)) {
+    const { structure, group } = structureGroup;
+    if (!Structure.areEquivalent(loci.structure, structure)) return false;
+    for (const e of loci.elements) {
+      const unitIdx = group.unitIndexMap.get(e.unit.id);
+      if (unitIdx !== undefined) {
+        if (apply(Interval.ofSingleton(unitIdx))) changed = true;
+      }
+    }
+  }
+  return changed;
+}
+
+/**
+ * Applies `apply` to the intervals of a units visual's markers or layers `loci` reaches (by instance or by group and
+ * instance, as its granularity resolves). `visualLoci`: `loci` on the group's units alone (`undefined`: none of them),
+ * computed only where `loci` is not a superset
+ */
+export function applyUnitsLoci(
+  eachLocation: UnitsVisualBuilder<any, any>['eachLocation'],
+  instanceGranularity: PD.Values<BaseGeometry.Params>['instanceGranularity'],
+  structureGroup: StructureGroup,
+  groupCount: number,
+  instanceCount: number,
+  loci: Loci,
+  getVisualLoci: (loci: Loci) => Loci | undefined,
+  apply: (interval: Interval) => boolean,
+  isMarking: boolean,
+) {
+  const byInstance = resolveInstanceGranularity(instanceGranularity, groupCount, instanceCount);
+  if (isUnitsLociSuperset(loci, structureGroup)) {
+    return apply(Interval.ofBounds(0, byInstance ? instanceCount : groupCount * instanceCount));
+  }
+  const visualLoci = getVisualLoci(loci);
+  if (!visualLoci) return false;
+  return byInstance
+    ? eachUnitsInstance(visualLoci, structureGroup, apply)
+    : eachLocation(visualLoci, structureGroup, apply, isMarking);
 }
 
 export function UnitsVisual<G extends Geometry, P extends StructureParams & Geometry.Params<G>>(
@@ -148,19 +434,12 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     createLocationIterator,
     getLoci,
     eachLocation,
-    setUpdateState,
     initUpdateState,
     mustRecreate,
     processValues,
     dispose,
   } = builder;
-  const {
-    createEmpty: createEmptyGeometry,
-    updateValues,
-    updateBoundingSphere,
-    updateRenderableState,
-    createPositionIterator,
-  } = builder.geometryUtils;
+  const { createEmpty: createEmptyGeometry, updateRenderableState, createPositionIterator } = builder.geometryUtils;
   const updateState = VisualUpdateState.create();
   const foreignResources = Visual.foreignResourcesCheck();
   let newGraphics: GraphicsContext | undefined;
@@ -208,110 +487,20 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
       return;
     }
 
-    setUpdateState(
+    setUnitsUpdateState(
       updateState,
+      builder,
+      renderObject.values,
+      geometry,
       newProps,
       currentProps,
       newTheme,
       currentTheme,
       newStructureGroup,
       currentStructureGroup,
+      graphics,
+      !!graphics && foreignResources.hasForeign(renderObject, graphics),
     );
-
-    // after a backend switch or restore: textures and buffers of the previous context are rendered or computed again,
-    // geometry relying on what the new context lacks (`GeometryUtils.isCompatible`) is created again, for the new context
-    if (graphics && renderObject && foreignResources.hasForeign(renderObject, graphics))
-      updateState.createGeometry = true;
-    if (graphics && geometry && builder.geometryUtils.isCompatible?.(geometry, graphics) === false) {
-      updateState.createGeometry = true;
-    }
-
-    if (!Structure.areHierarchiesEqual(currentStructureGroup.structure, newStructureGroup.structure)) {
-      // console.log('new hierarchy');
-      updateState.updateTransform = true;
-      updateState.updateColor = true;
-      updateState.updateSize = true;
-    }
-
-    if (!ColorTheme.areEqual(newTheme.color, currentTheme.color)) {
-      // console.log('new colorTheme');
-      updateState.updateColor = true;
-    }
-
-    if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) {
-      // console.log('new sizeTheme');
-      updateState.updateSize = true;
-    }
-
-    if (currentStructureGroup.structure.child !== newStructureGroup.structure.child) {
-      // console.log('new child');
-      updateState.createGeometry = true;
-      updateState.updateTransform = true;
-    }
-
-    // the representation keeps its props object while no prop changes (`shallowMerge2`): the same props, no prop changed
-    const propsChanged = newProps !== currentProps;
-    if (
-      propsChanged &&
-      (newProps.instanceGranularity !== currentProps.instanceGranularity ||
-        newProps.cellSize !== currentProps.cellSize ||
-        newProps.batchSize !== currentProps.batchSize)
-    ) {
-      updateState.updateTransform = true;
-    }
-
-    if (propsChanged && !deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
-      // console.log('new unitKinds');
-      updateState.createGeometry = true;
-    }
-
-    if (newStructureGroup.group.transformHash !== currentStructureGroup.group.transformHash) {
-      // console.log('new transformHash');
-      if (
-        newStructureGroup.group.units.length !== currentStructureGroup.group.units.length ||
-        updateState.updateColor
-      ) {
-        updateState.updateTransform = true;
-      } else {
-        updateState.updateMatrix = true;
-      }
-    }
-
-    // check if the operator or conformation of unit has changed
-    const newUnit = newStructureGroup.group.units[0];
-    const currentUnit = currentStructureGroup.group.units[0];
-    if (!Unit.areOperatorsEqual(newUnit, currentUnit)) {
-      // console.log('new operators');
-      updateState.updateTransform = true;
-    }
-    if (!Unit.areConformationsEqual(newUnit, currentUnit)) {
-      // console.log('new conformation');
-      updateState.createGeometry = true;
-    }
-
-    if (updateState.updateTransform) {
-      updateState.updateMatrix = true;
-    }
-
-    if (updateState.updateSize && !('uSize' in renderObject.values)) {
-      updateState.createGeometry = true;
-    }
-
-    if (updateState.createGeometry || updateState.updateTransform) {
-      if (currentStructureGroup.structure.hashCode !== newStructureGroup.structure.hashCode) {
-        // console.log('new hashCode');
-        updateState.updateColor = true;
-        updateState.updateSize = true;
-      }
-      if (
-        newTheme.color.granularity.startsWith('vertex') ||
-        renderObject.values.colorType.ref.value.startsWith('vertex') ||
-        newTheme.color.granularity.startsWith('volume') ||
-        renderObject.values.colorType.ref.value.startsWith('volume')
-      ) {
-        updateState.updateColor = true;
-      }
-    }
   }
 
   function update(newGeometry?: G) {
@@ -337,85 +526,23 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         throw new Error('expected renderObject to be available');
       }
 
-      // a new iterator where what it iterates may differ: the transform, the group, the structure or the props (the
-      // color and size writers reset it); a recolor keeps it
-      if (
-        updateState.updateTransform ||
-        ((updateState.updateColor || updateState.updateSize) &&
-          (newProps !== currentProps ||
-            newStructureGroup.group !== currentStructureGroup.group ||
-            newStructureGroup.structure !== currentStructureGroup.structure))
-      ) {
-        locationIt = createLocationIterator(newStructureGroup, newProps);
-      }
-
-      if (updateState.updateTransform) {
-        // console.log('update transform');
-        const { instanceCount, groupCount } = locationIt;
-        if (resolveInstanceGranularity(newProps.instanceGranularity, groupCount, instanceCount)) {
-          createMarkers(instanceCount, 'instance', renderObject.values);
-        } else {
-          createMarkers(instanceCount * groupCount, 'groupInstance', renderObject.values);
-        }
-      }
-
-      if (updateState.updateMatrix) {
-        // console.log('update matrix');
-        createUnitsTransform(
-          newStructureGroup,
-          newProps.includeParent,
-          newGeometry?.boundingSphere || renderObject.values.invariantBoundingSphere.ref.value,
-          newProps.cellSize,
-          newProps.batchSize,
-          renderObject.values,
-        );
-        if ('lodLevels' in renderObject.values) {
-          // to trigger `uLod` update in `renderable.cull`
-          ValueCell.update(renderObject.values.lodLevels, renderObject.values.lodLevels.ref.value);
-        }
-      }
-
-      if (updateState.createGeometry) {
-        // console.log('update geometry');
-        if (newGeometry) {
-          ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
-          ValueCell.updateIfChanged(renderObject.values.uVertexCount, Geometry.getVertexCount(newGeometry));
-          ValueCell.updateIfChanged(renderObject.values.uGroupCount, locationIt.groupCount);
-        } else {
-          throw new Error('expected geometry to be given');
-        }
-      }
-
-      if (updateState.updateTransform || updateState.createGeometry) {
-        updateBoundingSphere(renderObject.values, newGeometry || geometry);
-        positionIt = createPositionIterator(newGeometry || geometry, renderObject.values);
-      }
-
-      if (updateState.updateSize) {
-        // not all geometries have size data, so check here
-        if ('uSize' in renderObject.values) {
-          // console.log('update size');
-          createSizes(locationIt, positionIt, newTheme.size, renderObject.values as SizeValues);
-        }
-      }
-
-      if (updateState.updateColor) {
-        // console.log('update color');
-        createColors(locationIt, positionIt, newTheme.color, renderObject.values);
-      }
-
-      // the values from the props: again where the props or what the values derive from besides them changed (counts,
-      // bounds, sizes); a recolor of many units keeps them
-      if (
-        newProps !== currentProps ||
-        updateState.createGeometry ||
-        updateState.updateTransform ||
-        updateState.updateMatrix ||
-        updateState.updateSize
-      ) {
-        updateValues(renderObject.values, newProps);
-        updateRenderableState(renderObject.state, newProps);
-      }
+      const its: UnitsIterators = { locationIt, positionIt };
+      const propsUpdated = updateUnitsValues(
+        builder,
+        updateState,
+        renderObject.values,
+        its,
+        newGeometry,
+        geometry,
+        newProps,
+        currentProps,
+        newTheme,
+        newStructureGroup,
+        currentStructureGroup,
+      );
+      locationIt = its.locationIt;
+      positionIt = its.positionIt;
+      if (propsUpdated) updateRenderableState(renderObject.state, newProps);
     }
 
     currentProps = newProps;
@@ -441,19 +568,6 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
       : createEmptyGeometry(geometry);
   }
 
-  function lociIsSuperset(loci: Loci) {
-    if (isEveryLoci(loci)) return true;
-    if (Structure.isLoci(loci) && Structure.areRootsEquivalent(loci.structure, currentStructureGroup.structure))
-      return true;
-    if (
-      StructureElement.Loci.is(loci) &&
-      Structure.areRootsEquivalent(loci.structure, currentStructureGroup.structure)
-    ) {
-      if (isWholeStructureLoci(loci)) return true;
-    }
-    return false;
-  }
-
   /** the units of `currentStructureGroup.group` and its index, read once per group (see `getGroupLoci`) */
   const lociGroup: { group?: Unit.SymmetryGroup; units: ReadonlyArray<Unit>; unitIndexMap?: IntMap<number> } = {
     units: [],
@@ -471,52 +585,18 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     return getGroupLoci(loci, lociGroup.units, lociGroup.unitIndexMap!);
   }
 
-  function eachInstance(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
-    let changed = false;
-    if (Bond.isLoci(loci)) {
-      const { structure, group } = structureGroup;
-      if (!Structure.areEquivalent(loci.structure, structure)) return false;
-      for (const b of loci.bonds) {
-        if (b.aUnit !== b.bUnit) continue;
-        const unitIdx = group.unitIndexMap.get(b.aUnit.id);
-        if (unitIdx !== undefined) {
-          if (apply(Interval.ofSingleton(unitIdx))) changed = true;
-        }
-      }
-    } else if (StructureElement.Loci.is(loci)) {
-      const { structure, group } = structureGroup;
-      if (!Structure.areEquivalent(loci.structure, structure)) return false;
-      for (const e of loci.elements) {
-        const unitIdx = group.unitIndexMap.get(e.unit.id);
-        if (unitIdx !== undefined) {
-          if (apply(Interval.ofSingleton(unitIdx))) changed = true;
-        }
-      }
-    }
-    return changed;
-  }
-
   function lociApply(loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) {
-    const instanceGranularity = resolveInstanceGranularity(
+    return applyUnitsLoci(
+      eachLocation,
       currentProps.instanceGranularity,
+      currentStructureGroup,
       locationIt.groupCount,
       locationIt.instanceCount,
+      loci,
+      getVisualLoci,
+      apply,
+      isMarking,
     );
-    if (lociIsSuperset(loci)) {
-      if (instanceGranularity) {
-        return apply(Interval.ofBounds(0, locationIt.instanceCount));
-      } else {
-        return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
-      }
-    } else {
-      const visualLoci = getVisualLoci(loci);
-      if (!visualLoci) return false;
-      if (instanceGranularity) {
-        return eachInstance(visualLoci, currentStructureGroup, apply);
-      } else {
-        return eachLocation(visualLoci, currentStructureGroup, apply, isMarking);
-      }
-    }
   }
 
   function finalize(ctx: VisualContext) {
@@ -633,6 +713,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
       return getGeometrySignatures(builder.geometryUtils, p, ctx, builder.signatureDefines?.(p, ctx.graphics));
     },
     mustRecreate,
+    builder,
   };
 }
 

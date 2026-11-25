@@ -18,6 +18,7 @@ import type { Transparency } from './render-item.js';
 import type { GlobalDefines } from './renderable/schema.js';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { createDrawTable, DrawFact, DrawRow, DrawState, type DrawTable } from './draw-table.js';
+import { getDrawnBoundingSphere } from './renderable/util.js';
 
 const boundaryHelper = new BoundaryHelper('98');
 
@@ -32,7 +33,7 @@ function calculateBoundingSphere(
     if (onlyVisible && !renderables[i].state.visible) continue;
     if (!renderables[i].values.drawCount.ref.value) continue;
 
-    const boundingSphere = renderables[i].values.boundingSphere.ref.value;
+    const boundingSphere = getDrawnBoundingSphere(renderables[i].values);
     if (!boundingSphere.radius) continue;
 
     boundaryHelper.includeSphere(boundingSphere);
@@ -42,7 +43,7 @@ function calculateBoundingSphere(
     if (onlyVisible && !renderables[i].state.visible) continue;
     if (!renderables[i].values.drawCount.ref.value) continue;
 
-    const boundingSphere = renderables[i].values.boundingSphere.ref.value;
+    const boundingSphere = getDrawnBoundingSphere(renderables[i].values);
     if (!boundingSphere.radius) continue;
 
     boundaryHelper.radiusSphere(boundingSphere);
@@ -121,6 +122,8 @@ interface Scene extends Object3D {
   readonly hasOpaque: boolean;
   /** Is `true` if any primitive renderable has animation enabled */
   readonly hasAnimation: boolean;
+  /** Is `true` if any visible primitive renderable is gaussian splats (drawn by a pass of their own) */
+  readonly hasGaussianSplats: boolean;
 }
 
 namespace Scene {
@@ -157,6 +160,7 @@ namespace Scene {
     let transparencyMinDirty = true;
     let hasOpaqueDirty = true;
     let hasAnimationDirty = true;
+    let hasGaussianSplatsDirty = true;
 
     let markerAverage = 0;
     let emissiveAverage = 0;
@@ -165,6 +169,7 @@ namespace Scene {
     let transparencyMin = 0;
     let hasOpaque = false;
     let hasAnimation = false;
+    let hasGaussianSplats = false;
 
     const object3d = Object3D.create();
     const { view, position, direction, up } = object3d;
@@ -234,6 +239,7 @@ namespace Scene {
       transparencyMinDirty = true;
       hasOpaqueDirty = true;
       hasAnimationDirty = true;
+      hasGaussianSplatsDirty = true;
       return true;
     }
 
@@ -284,6 +290,7 @@ namespace Scene {
       transparencyMinDirty = true;
       hasOpaqueDirty = true;
       hasAnimationDirty = true;
+      hasGaussianSplatsDirty = true;
       return dropped;
     }
 
@@ -305,6 +312,7 @@ namespace Scene {
       transparencyMinDirty = true;
       hasOpaqueDirty = true;
       hasAnimationDirty = true;
+      hasGaussianSplatsDirty = true;
     }
 
     function syncVisibility() {
@@ -318,6 +326,7 @@ namespace Scene {
         transparencyMinDirty = true;
         hasOpaqueDirty = true;
         hasAnimationDirty = true;
+        hasGaussianSplatsDirty = true;
         visibleVersion = renderablesTable.visibleVersion;
         return true;
       } else {
@@ -399,6 +408,15 @@ namespace Scene {
       return false;
     }
 
+    function calculateHasGaussianSplats() {
+      const slots = visiblePrimitiveSlots();
+      const { bits } = primitivesTable;
+      for (let i = 0, il = slots.length; i < il; ++i) {
+        if (bits[slots[i] * DrawRow.Stride + DrawRow.Facts] & DrawFact.GaussianSplats) return true;
+      }
+      return false;
+    }
+
     function calculateHasAnimation() {
       const slots = visiblePrimitiveSlots();
       const { bits } = primitivesTable;
@@ -460,7 +478,8 @@ namespace Scene {
       updateChanged(keepBoundingSphere) {
         const slots = renderablesTable.takeChanged();
         const { objects } = renderablesTable;
-        for (let i = 0, il = slots.length; i < il; ++i) objects[slots[i]]?.update();
+        // only observed cells changed: a merged object's members read where theirs did
+        for (let i = 0, il = slots.length; i < il; ++i) objects[slots[i]]?.update(true);
         updated(keepBoundingSphere);
       },
       add: (o: GraphicsRenderObject) => commitQueue.add(o),
@@ -549,6 +568,13 @@ namespace Scene {
           hasAnimationDirty = false;
         }
         return hasAnimation;
+      },
+      get hasGaussianSplats() {
+        if (hasGaussianSplatsDirty) {
+          hasGaussianSplats = calculateHasGaussianSplats();
+          hasGaussianSplatsDirty = false;
+        }
+        return hasGaussianSplats;
       },
     };
   }

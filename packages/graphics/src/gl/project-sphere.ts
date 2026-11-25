@@ -32,7 +32,10 @@ function perspectiveProjectSphere(out: Vec4, p: Vec3, r: number, projection: Mat
   const miny = ((vy * p[1] - prz) / (vy * p[2] + pry)) * projection[5];
   const maxy = ((vy * p[1] + prz) / (vy * p[2] - pry)) * projection[5];
 
-  return v4set(out, maxx * -0.5 + 0.5, miny * 0.5 + 0.5, minx * -0.5 + 0.5, maxy * 0.5 + 0.5);
+  // the off-axis terms (stereo's eyes, a view offset): x and y of the clip space shifted by them over the depth
+  const ox = projection[8] * -0.5;
+  const oy = projection[9] * 0.5;
+  return v4set(out, maxx * -0.5 + 0.5 + ox, miny * 0.5 + 0.5 + oy, minx * -0.5 + 0.5 + ox, maxy * 0.5 + 0.5 + oy);
 }
 
 function orthographicProjectSphere(out: Vec4, p: Vec3, r: number, projection: Mat4) {
@@ -44,7 +47,10 @@ function orthographicProjectSphere(out: Vec4, p: Vec3, r: number, projection: Ma
   const miny = (p[1] + r) * sy;
   const maxy = (p[1] - r) * sy;
 
-  return v4set(out, maxx * 0.5 + 0.5, miny * -0.5 + 0.5, minx * 0.5 + 0.5, maxy * -0.5 + 0.5);
+  // the off-axis terms (a view offset): the clip space shifted
+  const ox = projection[12] * 0.5;
+  const oy = projection[13] * -0.5;
+  return v4set(out, maxx * 0.5 + 0.5 + ox, miny * -0.5 + 0.5 + oy, minx * 0.5 + 0.5 + ox, maxy * -0.5 + 0.5 + oy);
 }
 
 /**

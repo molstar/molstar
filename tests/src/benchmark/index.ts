@@ -9,10 +9,10 @@ import { SphereRasterCases } from './sphere-raster.js';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { setTimingMode } from '@molstar/core/util/debug';
 import { Canvas3DContext } from '@molstar/graphics/canvas3d/canvas3d';
-import { createWebGLBackend, WebGL2Backend, WebGLBackend } from '@molstar/graphics/gl/webgl/backend';
-import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createWebGPUBackend } from '@molstar/graphics/gl/webgpu/backend';
-import { isWebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import { createWebGLBackend, WebGL2Backend, WebGLBackend } from '@molstar/graphics/gl/contexts/webgl';
+import { isWebGLContext } from '@molstar/graphics/gl/contexts/webgl';
+import { createWebGPUBackend } from '@molstar/graphics/gl/contexts/webgpu';
+import { isWebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { matchesAny } from '../visual/framework/test-case.js';
 import { ColorSmoothingCases } from './color-smoothing.js';
 import { type BenchmarkCase, BenchmarkEnv, type BenchmarkPath, type PathResult, runPath } from './framework.js';
@@ -30,6 +30,7 @@ import {
   LineCases,
   MergingAssemblyCases,
   MergingInstanceCases,
+  MergingInstanceCartoonCases,
   MergingSegmentDataCases,
   MergingSingleInstanceCases,
   MergingPostsynCases,
@@ -42,10 +43,19 @@ import {
   SphereRasterMgCases,
   SphereRasterIGpuCases,
   SphereRasterZoomCases,
-  MergingPostsynPixelCases,
-  MergingPostsynChainCases,
+  IlluminationMesoscaleCases,
+  MesoscaleSplitCases,
+  MarkingPostsynCases,
+  MarkingAssemblyCases,
   MergingPostsynPixelModeCases,
+  MergingPostsynPackCases,
+  MergingYeastPackCases,
+  MergingIsgPackCases,
+  MergingIsgGridCases,
+  MergingYeastGridCases,
+  ParticleFrameCases,
   MergingPostsynUpdateCases,
+  ClipDragCases,
   UnindexedQuadCases,
   ClipCases,
   ClipPostsynCases,
@@ -76,6 +86,11 @@ const AllCases: BenchmarkCase<any>[] = [
 
 /** Cases run only when a filter selects them (measurements for a decision, not the default run) */
 const OnDemandCases: BenchmarkCase<any>[] = [
+  ...MergingYeastPackCases,
+  ...MergingIsgPackCases,
+  ...MergingIsgGridCases,
+  ...MergingYeastGridCases,
+  ...ParticleFrameCases,
   ...SphereRasterCases,
   ...GaussianSurfaceCutoffCases,
   ...RenderBundleCases,
@@ -92,6 +107,7 @@ const OnDemandCases: BenchmarkCase<any>[] = [
   ...LineCases,
   ...MergingAssemblyCases,
   ...MergingInstanceCases,
+  ...MergingInstanceCartoonCases,
   ...MergingSegmentDataCases,
   ...MergingSingleInstanceCases,
   ...MergingPostsynCases,
@@ -104,10 +120,14 @@ const OnDemandCases: BenchmarkCase<any>[] = [
   ...SphereRasterMgCases,
   ...SphereRasterIGpuCases,
   ...SphereRasterZoomCases,
-  ...MergingPostsynPixelCases,
-  ...MergingPostsynChainCases,
+  ...IlluminationMesoscaleCases,
+  ...MesoscaleSplitCases,
+  ...MarkingPostsynCases,
+  ...MarkingAssemblyCases,
   ...MergingPostsynPixelModeCases,
+  ...MergingPostsynPackCases,
   ...MergingPostsynUpdateCases,
+  ...ClipDragCases,
   ...UnindexedQuadCases,
   ...ClipCases,
   ...ClipPostsynCases,

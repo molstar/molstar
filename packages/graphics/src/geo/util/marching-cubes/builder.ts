@@ -9,24 +9,19 @@
 import { ChunkedArray } from '@molstar/core/data/util';
 import { noop } from '@molstar/core/util';
 import { Mesh } from '../../geometry/mesh/mesh.js';
-import { AllowedContours } from './tables.js';
+import { AllowedContours } from '@molstar/core/math/geometry/marching-cubes/tables';
+import type { MarchingCubesBuilder } from '@molstar/core/math/geometry/marching-cubes/algorithm';
 import { LinesBuilder } from '../../geometry/lines/lines-builder.js';
 import type { Lines } from '../../geometry/lines/lines.js';
 
-export interface MarchingCubesBuilder<T> {
-  addVertex(x: number, y: number, z: number): number;
-  addNormal(x: number, y: number, z: number): void;
-  addGroup(group: number): void;
-  addTriangle(vertList: number[], a: number, b: number, c: number, edgeFilter: number): void;
-  get(): T;
-}
+export type { MarchingCubesBuilder };
 
 export function MarchingCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): MarchingCubesBuilder<Mesh> {
   const triangleChunkSize = Math.min(1 << 16, vertexChunkSize * 4);
 
   const vertices = ChunkedArray.create(Float32Array, 3, vertexChunkSize, mesh && mesh.vertexBuffer.ref.value);
   const normals = ChunkedArray.create(Float32Array, 3, vertexChunkSize, mesh && mesh.normalBuffer.ref.value);
-  const groups = ChunkedArray.create(Float32Array, 1, vertexChunkSize, mesh && mesh.groupBuffer.ref.value);
+  const groups = ChunkedArray.create(Uint32Array, 1, vertexChunkSize, mesh && mesh.groupBuffer.ref.value);
   const indices = ChunkedArray.create(Uint32Array, 3, triangleChunkSize, mesh && mesh.indexBuffer.ref.value);
 
   let vertexCount = 0;
@@ -58,7 +53,7 @@ export function MarchingCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): 
       const vb = ChunkedArray.compactTrimmed(vertices) as Float32Array;
       const nb = ChunkedArray.compactTrimmed(normals) as Float32Array;
       const ib = ChunkedArray.compactTrimmed(indices) as Uint32Array;
-      const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
+      const gb = ChunkedArray.compactTrimmed(groups) as Uint32Array;
       return Mesh.create(vb, ib, nb, gb, vertexCount, triangleCount, mesh);
     },
   };
@@ -66,7 +61,7 @@ export function MarchingCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): 
 
 export function MarchingCubesLinesBuilder(vertexChunkSize: number, lines?: Lines): MarchingCubesBuilder<Lines> {
   const vertices = ChunkedArray.create(Float32Array, 3, vertexChunkSize);
-  const groups = ChunkedArray.create(Float32Array, 1, vertexChunkSize);
+  const groups = ChunkedArray.create(Uint32Array, 1, vertexChunkSize);
   // vertex ids, exact past 2^24 (perf-audit-2 08/B4)
   const indices = ChunkedArray.create(Uint32Array, 2, vertexChunkSize);
 
@@ -104,7 +99,7 @@ export function MarchingCubesLinesBuilder(vertexChunkSize: number, lines?: Lines
     get: () => {
       const vb = ChunkedArray.compactTrimmed(vertices) as Float32Array;
       const ib = ChunkedArray.compactTrimmed(indices) as Uint32Array;
-      const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
+      const gb = ChunkedArray.compactTrimmed(groups) as Uint32Array;
 
       const builder = LinesBuilder.create(linesCount, linesCount / 10, lines);
 

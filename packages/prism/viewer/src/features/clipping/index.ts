@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { operationCommand } from '../../commands/operations.js';
@@ -37,7 +38,9 @@ export const ClippingSkill: ViewerSkill = {
     '  clipping.keep leaves atoms (a target; the selection by default) whole in a cut, clipping.release cuts them again;',
     '  clipping.show draws a cut in the scene (saved with it); clipping.remove and clipping.clear take them away.',
     '- clipping.settings: variant instance leaves out whole copies whose center is cut away (pixel cuts through), for',
-    '  every cut; solidSurface closes cut surfaces with a cap.',
+    '  every cut; solidSurface closes cut surfaces with a cap; fadeNormal fades the arrow of the handles toward the viewer;',
+    '  ghost shows what the cuts remove as a faint ghost (a tint and its edges); ghostColor, ghostOpacity,',
+    '  ghostEdgeOpacity and ghostResolution set its look (a lighter color shows better on a dark background).',
   ].join('\n'),
   tools: [
     {
@@ -60,7 +63,8 @@ export const ClippingSkill: ViewerSkill = {
     {
       id: 'cut_settings',
       operation: 'clipping.settings',
-      description: 'How every cut cuts: through (pixel) or whole copies (instance); solid caps.',
+      description:
+        'How every cut cuts: through (pixel) or whole copies (instance); solid caps; a ghost of what they remove and its look.',
     },
   ],
 };

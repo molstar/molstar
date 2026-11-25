@@ -1,11 +1,12 @@
 ﻿/**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
- * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
 import * as argparse from 'argparse';
+import * as v8 from 'v8';
 import { ObjectKeys } from '@molstar/core/util/type-helpers';
 import { interpolateIdPath, validateIdPathTemplate } from '@molstar/core/util/string';
 import { VERSION } from '@molstar/model-server/version';
@@ -13,8 +14,12 @@ import * as fs from 'fs';
 import type { ModelPropertyProviderConfig } from '@molstar/model-server/property-provider';
 
 const DefaultModelServerConfig = {
-  // 0 for off
-  cacheMaxSizeInBytes: 2 * 1014 * 1024 * 1024, // 2 GB
+  /**
+   * Approximate memory the cached structures may take, 0 for off. Each entry counts what it retains (source data,
+   * model and structure, about 2.5-2.8x the source size plus 2 MB), so this should fit well within the heap limit
+   * (`--max-old-space-size`) next to the memory of the requests in flight.
+   */
+  cacheMaxSizeInBytes: 2 * 1024 * 1024 * 1024, // 2 GB
   cacheEntryTimeoutMs: 10 * 60 * 1000, // 10 minutes
 
   /**
@@ -50,8 +55,17 @@ const DefaultModelServerConfig = {
    */
   requestTimeoutMs: 60 * 1000,
 
-  /** Maximum number of requests before "server busy" */
+  /** Maximum number of requests waiting to be processed; more are answered with 503 "server busy". */
   maxQueueLength: 30,
+
+  /**
+   * Maximum number of requests processed at the same time. Parsing, querying and encoding share one thread, so more
+   * only overlaps the waiting for I/O (remote sources); each adds the transient memory of a request.
+   */
+  maxConcurrentJobs: 2,
+
+  /** The maximum time in ms to download a source file (`sourceMapUrl`), body included. */
+  fetchTimeoutMs: 30 * 1000,
 
   /** The maximum number of queries allowed by the query-many at a time */
   maxQueryManyQueries: 50,
@@ -143,7 +157,7 @@ function addServerArgs(parser: argparse.ArgumentParser) {
     default: DefaultModelServerConfig.cacheMaxSizeInBytes,
     metavar: 'CACHE_SIZE',
     type: 'int',
-    help: `0 for off.`,
+    help: `Approximate memory the cached structures may take (about 2.5-2.8x their source size), 0 for off.`,
   });
   parser.add_argument('--cacheEntryTimeoutMs', {
     default: DefaultModelServerConfig.cacheEntryTimeoutMs,
@@ -174,6 +188,24 @@ function addServerArgs(parser: argparse.ArgumentParser) {
     metavar: 'VARIANCE',
     type: 'int',
     help: `modifies the shutdown timer by +/- timeoutVarianceMinutes (to avoid multiple instances shutting at the same time)`,
+  });
+  parser.add_argument('--maxQueueLength', {
+    default: DefaultModelServerConfig.maxQueueLength,
+    metavar: 'QUEUE_LENGTH',
+    type: 'int',
+    help: `Maximum number of requests waiting to be processed; more are answered with 503.`,
+  });
+  parser.add_argument('--maxConcurrentJobs', {
+    default: DefaultModelServerConfig.maxConcurrentJobs,
+    metavar: 'JOBS',
+    type: 'int',
+    help: `Maximum number of requests processed at the same time.`,
+  });
+  parser.add_argument('--fetchTimeoutMs', {
+    default: DefaultModelServerConfig.fetchTimeoutMs,
+    metavar: 'FETCH_TIMEOUT',
+    type: 'int',
+    help: `The maximum time in ms to download a source file (sourceMapUrl), body included.`,
   });
   parser.add_argument('--maxQueryManyQueries', {
     default: DefaultModelServerConfig.maxQueryManyQueries,
@@ -323,8 +355,24 @@ export function configureServer() {
     }
 
     validateConfigAndSetupSourceMap();
+    checkResourceConfig();
   } catch (e) {
     console.error('' + e);
     process.exit(1);
+  }
+}
+
+function checkResourceConfig() {
+  const heapLimit = v8.getHeapStatistics().heap_size_limit;
+  if (ModelServerConfig.cacheMaxSizeInBytes > 0.5 * heapLimit) {
+    const mb = (b: number) => `${Math.round(b / (1024 * 1024))} MB`;
+    console.warn(
+      `Warning: cacheMaxSizeInBytes (${mb(ModelServerConfig.cacheMaxSizeInBytes)}) is over half the heap limit ` +
+        `(${mb(heapLimit)}), leaving little room for the requests in flight. ` +
+        `Lower it or raise the limit (node --max-old-space-size).`,
+    );
+  }
+  if (!(ModelServerConfig.maxConcurrentJobs >= 1)) {
+    throw new Error(`maxConcurrentJobs must be at least 1 (got ${ModelServerConfig.maxConcurrentJobs}).`);
   }
 }

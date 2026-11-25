@@ -1,0 +1,725 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The shell (shell §1–4; its sizes are the foundations', styles §8): the docked layout, then the rail at the right edge.
+   A size container: the rail's steps follow the shell's height, the mode its width (measured, `ShellModel.setWidth`). */
+.shell {
+  --msui-shell-rail: calc(10 * var(--msui-unit)); /* 40: the rail's width */
+  --msui-shell-button: calc(8 * var(--msui-unit)); /* 32: a rail button, at the normal step */
+  --msui-shell-caption: calc(3 * var(--msui-unit)); /* 12: a caption under a rail button's icon */
+  /* A docked view's header beside the rail: as tall as the rail's padding and its first button (styles §8). */
+  --msui-shell-head: calc(var(--msui-surface-pad) + var(--msui-shell-button));
+  --msui-shell-splitter: calc(2 * var(--msui-unit)); /* 8: the splitter's hit area, over the hairline */
+  /* The shell's hairlines: half a line (styles §8.1). Its parts are told apart by their surfaces first; a line only
+     where two of one surface meet (the column and the rail, the rail's sections). */
+  --msui-shell-line: color-mix(in oklab, var(--msui-line) 60%, transparent);
+
+  position: relative;
+  display: flex;
+  container: shell / size;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--msui-bg);
+  color: var(--msui-text);
+  font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);
+}
+
+/* Everything but the layers that hold the app (a modal, busy): made inert while one is up. */
+.layout {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The rail's steps by the shell's height (kept equal to `RailSteps` in rail.ts by its test). */
+@container shell (max-height: 619px) {
+  .rail,
+  .dock {
+    --msui-shell-button: calc(7 * var(--msui-unit)); /* 28 */
+  }
+}
+
+@container shell (max-height: 519px) {
+  .rail,
+  .dock {
+    --msui-shell-button: calc(6 * var(--msui-unit)); /* 24 */
+  }
+}
+
+/* The docked layout: the tree of splits, the main area in it. */
+.dock {
+  /* Declared here, where the steps set the button (a custom property's var() resolves where it is declared). */
+  --msui-shell-head: calc(var(--msui-surface-pad) + var(--msui-shell-button));
+
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.split {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+
+  &[data-dir="row"] {
+    flex-direction: row;
+  }
+
+  &[data-dir="column"] {
+    flex-direction: column;
+  }
+}
+
+/* A node's place in its split: the flexing one takes the rest, a sized one its size (`--msui-shell-size`). */
+.node {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+
+  &[data-flex] {
+    flex: 1 1 0;
+  }
+
+  &:not([data-flex]) {
+    flex: 0 0 var(--msui-shell-size);
+  }
+
+  &[data-shown="false"] {
+    display: none;
+  }
+
+  /* A folded tab group: its header only (its view's body hidden, and paused by the view). */
+  &[data-folded] {
+    flex: 0 0 auto;
+
+    & [data-msui-view] > :not(header) {
+      display: none;
+    }
+  }
+}
+
+/* The main area: the app's view fills it; the shell's layers over it (windows, a page, the status slot). */
+.main {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  container: shell-main / size;
+}
+
+/* A docked tree's box (shell §3): the shell's, beside the rail; the main area's region, filling the main area. */
+.tree {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The main area's region (shell §2.1): the app's content and the panes docked beside it, under the windows. */
+.region {
+  position: absolute;
+  inset: 0;
+}
+
+/* The app's content: its pane of the region (the whole main area while nothing is docked beside it). */
+.mainContent {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Panes side by side or stacked: a hairline between them, over what they show (a canvas runs to its pane's edge). */
+.region [data-dir] > .node + .node::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  background: var(--msui-shell-line);
+  pointer-events: none;
+}
+
+.region [data-dir="row"] > .node + .node::before {
+  inset: 0 auto 0 0;
+  width: 1px;
+}
+
+.region [data-dir="column"] > .node + .node::before {
+  inset: 0 0 auto;
+  height: 1px;
+}
+
+/* The active pane, while there are several: an accent line along its top edge, as the open tab's (styles §7: the same
+   mark for "this one"), fading in; over what it shows, taking no pointer. */
+.region[data-panes] [data-pane]::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 3;
+  height: 2px;
+  background: var(--msui-accent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--msui-motion-fast) var(--msui-ease);
+}
+
+.region[data-panes] [data-pane][data-active]::after {
+  opacity: 1;
+}
+
+/* The app's chrome over the whole main area (shell §2.1): a bottom bar over every pane, at the stage's edge; only its
+   content takes the pointer. */
+.over {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--msui-space-2);
+  padding: var(--msui-space-2);
+  pointer-events: none;
+
+  & > * > * {
+    pointer-events: auto;
+  }
+}
+
+.overStatus {
+  min-width: 0;
+}
+
+.overCorner {
+  flex: none;
+}
+
+/* The top overlay (shell §2.1): its view as tall as its content, where the app places it (a stage's band slot). */
+.topOverlay {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* The rail's toggle (the Mol* star): the main area's top right corner, a rail button. */
+.railToggle {
+  position: absolute;
+  top: var(--msui-surface-pad);
+  right: var(--msui-surface-pad);
+  z-index: 1;
+}
+
+/* A docked group: a surface beside the main area, a hairline on the main area's side. */
+.group {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--msui-surface);
+  box-shadow: inset 1px 0 0 var(--msui-shell-line);
+
+  /* A group under another in a column: a hairline above it too. */
+  [data-dir="column"] > .node + .node > & {
+    box-shadow:
+      inset 1px 0 0 var(--msui-shell-line),
+      inset 0 1px 0 var(--msui-shell-line);
+  }
+}
+
+/* A splitter: a hit area over the boundary between a sized node and the one before or after it; only on a sized node
+   (the one that takes the rest has none), on its side toward that one (`data-at` on the node, written in place). */
+.node:not([data-at]) > .splitter {
+  display: none;
+}
+
+.node[data-at="start"] > .splitter[data-dir="row"] {
+  left: calc(-0.5 * var(--msui-shell-splitter));
+}
+
+.node[data-at="end"] > .splitter[data-dir="row"] {
+  right: calc(-0.5 * var(--msui-shell-splitter));
+}
+
+.node[data-at="start"] > .splitter[data-dir="column"] {
+  top: calc(-0.5 * var(--msui-shell-splitter));
+}
+
+.node[data-at="end"] > .splitter[data-dir="column"] {
+  bottom: calc(-0.5 * var(--msui-shell-splitter));
+}
+
+.splitter {
+  position: absolute;
+  z-index: 2;
+  background: transparent;
+  touch-action: none;
+
+  &[data-dir="row"] {
+    top: 0;
+    bottom: 0;
+    width: var(--msui-shell-splitter);
+    cursor: col-resize;
+  }
+
+  &[data-dir="column"] {
+    left: 0;
+    right: 0;
+    height: var(--msui-shell-splitter);
+    cursor: row-resize;
+  }
+
+  &:hover,
+  &:focus-visible,
+  &[data-dragging],
+  /* A grid's line: the cells at its place in the other lines move with it, so their splitters light with it. */
+    &[data-linked] {
+    background: color-mix(in oklab, var(--msui-accent) 40%, transparent);
+    outline: none;
+  }
+}
+
+/* The rail: a column of buttons at the shell's right edge, full height; sections a hairline apart. */
+.rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: stretch;
+  width: var(--msui-shell-rail);
+  min-height: 0;
+  padding: var(--msui-surface-pad);
+  background: var(--msui-surface);
+  box-shadow: inset 1px 0 0 var(--msui-shell-line);
+}
+
+.railSection {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  /* A hairline between sections, a unit short of the rail's edges. */
+  & + & {
+    margin-top: var(--msui-space-1);
+    padding-top: var(--msui-space-1);
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: var(--msui-space-1);
+      right: var(--msui-space-1);
+      height: 1px;
+      background: var(--msui-shell-line);
+    }
+  }
+}
+
+/* In the foot, space alone: More, the foot's views and the tools read as one group. */
+.railFoot > .railSection + .railSection {
+  margin-top: 0;
+  padding-top: 0;
+
+  &::before {
+    content: none;
+  }
+}
+
+/* The foot (More, the foot's views, the tools) sits at the bottom, its sections a hairline apart. */
+.railFoot {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  padding-top: var(--msui-space-1);
+}
+
+/* A rail button: as tall as the step, the rail's width less its padding, its 16px icon centered (it names an object, styles §4.1); the open view's button
+   is its background only. */
+.railButton {
+  --msui-icon-size: var(--msui-icon);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--msui-shell-button);
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text-muted);
+  transition:
+    background-color var(--msui-motion-fast) var(--msui-ease),
+    color var(--msui-motion-fast) var(--msui-ease);
+
+  &:hover {
+    background: var(--msui-control-hover);
+    color: var(--msui-text);
+  }
+
+  &[aria-selected="true"],
+  &[aria-pressed="true"] {
+    background: var(--msui-control-active);
+    color: var(--msui-text);
+  }
+
+  &[data-captioned] {
+    height: calc(var(--msui-shell-button) + var(--msui-shell-caption));
+  }
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.railCaption {
+  color: var(--msui-text-subtle);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-shell-caption);
+}
+
+/* The windows' layer over the main area: it lets the pointer through, its windows do not. */
+.windows {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Expanded (shell §3.9): the windows away (paused by the view), not only inert. */
+.shell[data-expanded] .windows {
+  display: none;
+}
+
+/* A window's pane maximized: over the whole main area, under the page and the modal. */
+.maximizedPane {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  background: var(--msui-surface);
+}
+
+/* A window: a raised surface with an edge and a float shadow, its header the drag handle. */
+.window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--msui-radius-lg);
+  /* The surface (not raised): a view's controls are a step above it, as in a docked group. */
+  background: var(--msui-surface);
+  box-shadow: var(--msui-edge), var(--msui-shadow-float);
+  pointer-events: auto;
+  overflow: hidden;
+
+  & header {
+    cursor: grab;
+    /* A touch drags the window, not the page. */
+    touch-action: none;
+  }
+
+  /* Opened after the first render: it floats in, rising a unit (styles §7.1). */
+  &[data-enter] {
+    --msui-rise-y: var(--msui-rise);
+
+    animation: msui-float-in var(--msui-enter);
+  }
+
+  &[hidden] {
+    display: none;
+  }
+
+  &[data-adjusting] {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+}
+
+.windowTabs,
+.tabs {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  gap: var(--msui-space-1);
+  min-width: 0;
+  height: 100%;
+  /* A tab's icon on the inset: the strip starts at the surface pad, a tab pads a unit and a half. */
+  margin-inline-start: calc(-1 * var(--msui-inner));
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* A labelled tab: its label never cut (styles §2); the open one its text, the others muted, an accent line under it. */
+.tab {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msui-space-1);
+  padding-inline: var(--msui-space-2);
+  color: var(--msui-text-muted);
+  font-weight: var(--msui-weight-strong);
+  white-space: nowrap;
+  cursor: pointer;
+
+  --msui-icon-size: var(--msui-icon-sm);
+
+  &:hover {
+    color: var(--msui-text);
+  }
+
+  &[aria-selected="true"] {
+    color: var(--msui-text);
+    box-shadow: inset 0 -2px 0 var(--msui-accent);
+  }
+}
+
+/* The resize grips: the window's right and bottom edges and its bottom right corner. */
+.grip {
+  position: absolute;
+  z-index: 1;
+  touch-action: none;
+
+  &[data-edge="right"] {
+    top: 0;
+    right: 0;
+    bottom: var(--msui-space-3);
+    width: var(--msui-space-1);
+    cursor: ew-resize;
+  }
+
+  &[data-edge="bottom"] {
+    left: 0;
+    right: var(--msui-space-3);
+    bottom: 0;
+    height: var(--msui-space-1);
+    cursor: ns-resize;
+  }
+
+  &[data-edge="corner"] {
+    right: 0;
+    bottom: 0;
+    width: var(--msui-space-3);
+    height: var(--msui-space-3);
+    cursor: nwse-resize;
+  }
+}
+
+/* The card's slot in the dock: no box of its own (the card is placed in the dock). */
+.cardSlot {
+  display: contents;
+}
+
+/* A card: in the right column's place (over its groups, the rail beside it), full height; or, with no column, at the
+   main area's right edge, as wide as the right group would be. */
+.card {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  width: var(--msui-shell-card, 340px);
+  max-width: 100%;
+  background: var(--msui-surface);
+  box-shadow: inset 1px 0 0 var(--msui-shell-line);
+}
+
+/* A page: opaque over the main area. */
+.page {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  background: var(--msui-surface);
+}
+
+/* A modal: centered over the whole shell, a scrim under it. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--msui-z-dialog);
+  display: grid;
+  place-items: center;
+  padding: var(--msui-space-6);
+  background: var(--msui-scrim);
+}
+
+.modal {
+  display: flex;
+  width: min(480px, 100%);
+  max-height: 100%;
+  border-radius: var(--msui-radius-lg);
+  background: var(--msui-surface);
+  box-shadow: var(--msui-edge), var(--msui-shadow-overlay);
+  overflow: hidden;
+}
+
+/* What holds the app (a task with `busy`): a scrim and one card with its progress and Cancel. */
+.busy {
+  position: absolute;
+  inset: 0;
+  z-index: var(--msui-z-dialog);
+  display: grid;
+  place-items: center;
+  background: var(--msui-scrim);
+}
+
+.busyCard {
+  display: grid;
+  gap: var(--msui-space-2);
+  width: min(320px, calc(100% - 2 * var(--msui-space-4)));
+  padding: var(--msui-space-3) var(--msui-inset);
+  border-radius: var(--msui-radius-lg);
+  background: var(--msui-surface-raised);
+  box-shadow: var(--msui-edge), var(--msui-shadow-overlay);
+}
+
+.busyRow {
+  display: flex;
+  align-items: center;
+  gap: var(--msui-space-2);
+}
+
+.progress {
+  height: var(--msui-space-1);
+  border-radius: var(--msui-radius-sm);
+  background: var(--msui-control);
+  overflow: hidden;
+
+  & > span {
+    display: block;
+    height: 100%;
+    background: var(--msui-accent);
+    transition: width var(--msui-motion-fast) var(--msui-ease);
+  }
+
+  &[data-indeterminate] > span {
+    width: 30% !important;
+    animation: msui-shell-indeterminate 1.2s var(--msui-ease-in-out) infinite;
+  }
+}
+
+@keyframes msui-shell-indeterminate {
+  from {
+    translate: -100% 0;
+  }
+
+  to {
+    translate: 340% 0;
+  }
+}
+
+/* Files dragged over the shell: one overlay saying what a drop does. */
+.drop {
+  position: absolute;
+  inset: var(--msui-space-2);
+  z-index: var(--msui-z-overlay);
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--msui-accent);
+  border-radius: var(--msui-radius-lg);
+  background: color-mix(in oklab, var(--msui-bg) 80%, transparent);
+  color: var(--msui-text);
+  font-size: var(--msui-text-md);
+  font-weight: var(--msui-weight-strong);
+  pointer-events: none;
+}
+
+/* The drop overlay's words: what a drop does, then what can be dropped (quiet). */
+.dropText {
+  display: grid;
+  gap: var(--msui-space-1);
+  justify-items: center;
+  text-align: center;
+}
+
+.dropFormats {
+  color: var(--msui-text-muted);
+  font-size: var(--msui-text-sm);
+  font-weight: var(--msui-weight-regular);
+}
+
+/* Expanded with `fill: 'page'` (shell §3.9): the shell over the page (no change to the page itself). */
+.shell[data-fill="page"] {
+  position: fixed;
+  inset: 0;
+  z-index: var(--msui-z-overlay);
+  width: auto;
+  height: auto;
+}
+
+/* Compact (below its compact width): the main area over a bottom sheet holding the views; a bar of buttons under it. */
+.compact {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sheet {
+  display: flex;
+  flex: 0 0 min(45cqh, 420px);
+  flex-direction: column;
+  min-height: 0;
+  background: var(--msui-surface);
+  box-shadow: inset 0 1px 0 var(--msui-shell-line);
+
+  &[data-open="false"] {
+    flex-basis: auto;
+  }
+}
+
+.sheetContent {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+/* The sheet's bar: its buttons a touch target tall (44: compact is for touch), labelled. */
+.sheetBar {
+  --msui-icon-size: var(--msui-icon);
+
+  display: flex;
+  flex: none;
+  align-items: stretch;
+  height: calc(11 * var(--msui-unit));
+  padding-inline: var(--msui-surface-pad);
+  box-shadow: inset 0 1px 0 var(--msui-shell-line);
+}
+
+.sheetTabs {
+  display: contents;
+}
+
+.sheetButton {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-width: 0;
+  color: var(--msui-text-muted);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+
+  &[aria-selected="true"] {
+    color: var(--msui-accent);
+  }
+}

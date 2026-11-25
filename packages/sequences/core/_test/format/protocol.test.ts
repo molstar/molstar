@@ -41,7 +41,7 @@ import {
   upgrade,
   validate,
 } from '../../src/format/index.js';
-import { itWithin } from '../model/timing.js';
+import { itWithin } from '@molstar/test-harness/timing';
 import { case1, case9 } from './cases.js';
 import { fixtureLoaders, PF00042, registries } from './load-fixtures.js';
 

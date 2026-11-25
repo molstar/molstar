@@ -28,7 +28,7 @@ import { createColors } from '../color-data.js';
 import type { GeometryUtils } from '../geometry.js';
 import { createMarkers } from '../marker-data.js';
 import { createEmptyOverpaint } from '../overpaint-data.js';
-import type { TransformData } from '../transform-data.js';
+import { type TransformData, getInstanceRows } from '../transform-data.js';
 import { createEmptyTransparency } from '../transparency-data.js';
 import {
   createPreIntegratedTransferTexture,
@@ -367,6 +367,8 @@ export namespace DirectVolume {
     const location = PositionLocation();
     const p = location.position;
     const m = transform.aTransform.ref.value;
+    // the instance's row: the grid stores them in its order (`getInstanceRows`)
+    const rows = getInstanceRows(transform);
     const getLocation = (groupIndex: number, instanceIndex: number) => {
       const k = Math.floor(groupIndex / z);
       p[0] = Math.floor(k / y);
@@ -374,7 +376,7 @@ export namespace DirectVolume {
       p[2] = groupIndex % z;
       Vec3.transformMat4(p, p, t);
       if (instanceIndex >= 0) {
-        Vec3.transformMat4Offset(p, p, m, 0, 0, instanceIndex * 16);
+        Vec3.transformMat4Offset(p, p, m, 0, 0, (rows ? rows[instanceIndex] : instanceIndex) * 16);
       }
       return location;
     };

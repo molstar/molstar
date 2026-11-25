@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { WebGPUUnsupportedError } from '@molstar/graphics/gl/webgpu/errors';
+import { WebGPUUnsupportedError } from '@molstar/graphics/gl/contexts/webgpu';
 import { type BackendInstance, type BackendProfile } from './backend.js';
 import { type CapabilityReport, describeMissing, getMissingCapabilities } from './capabilities.js';
 import {

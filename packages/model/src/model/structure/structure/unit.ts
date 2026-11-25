@@ -10,7 +10,7 @@ import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator'
 import { Model } from '../model.js';
 import { GridLookup3D, type Lookup3D, Spacegroup } from '@molstar/core/math/geometry';
 import { type IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds.js';
-import { VdwRadius } from '../model/properties/atomic.js';
+import { VdwRadiusOfNumber } from '../model/properties/atomic.js';
 import type {
   CoarseElements,
   CoarseSphereConformation,
@@ -86,7 +86,7 @@ namespace Unit {
     operator: SymmetryOperator,
     elements: StructureElement.Set,
     props?: K extends Kind.Atomic ? AtomicProperties : CoarseProperties,
-    /** Atomic units only: where its bonds come from; the built-in bonds by default (bond-providers plan §2.1). */
+    /** Atomic units only: where its bonds come from; the built-in bonds by default. */
     bondProvider: BondProvider.Instance = BondProvider.DefaultInstance,
   ): Unit {
     switch (kind) {
@@ -267,8 +267,8 @@ namespace Unit {
   }
 
   function getAtomicRadiusFunc(model: Model) {
-    const type_symbol = model.atomicHierarchy.atoms.type_symbol.value;
-    return (i: ElementIndex) => VdwRadius(type_symbol(i));
+    const { atomicNumber } = model.atomicHierarchy.derived.atom;
+    return (i: ElementIndex) => VdwRadiusOfNumber(atomicNumber[i]);
   }
 
   function getSphereRadiusFunc(model: Model) {
@@ -311,7 +311,7 @@ namespace Unit {
     readonly parent: Atomic | undefined;
     /**
      * Where the unit's intra-unit bonds come from: fixed at construction and passed on to children, copies and
-     * remapped units (bond-providers plan §2.1). Not a static prop: units with the same props may differ in it only
+     * remapped units. Not a static prop: units with the same props may differ in it only
      * when made by `Unit.create`, which never shares props.
      */
     readonly bondProvider: BondProvider.Instance;
@@ -427,7 +427,7 @@ namespace Unit {
         props,
         // the parent belongs to the old model (unit.md §3)
         model === this.model ? this.parent : undefined,
-        // model-independent: a frame keeps the structure's provider (bond-providers plan §4)
+        // model-independent: a frame keeps the structure's provider
         this.bondProvider,
       );
     }
@@ -460,7 +460,7 @@ namespace Unit {
       if (this._props.bonds) return this._props.bonds;
 
       // a child restricts its parent's bonds if they exist, and never computes them (unit.md §4), unless its provider
-      // asks for the root's bonds (`childBonds: 'root'`, bond-providers plan §2.3); only bonds of the same provider
+      // asks for the root's bonds (`childBonds: 'root'`); only bonds of the same provider
       const { parent, bondProvider } = this;
       const canRestrict = !!parent && parent.bondProvider === bondProvider && canRestrictParentBonds(parent, this);
       const parentBonds: IntraUnitBonds | undefined = canRestrict
@@ -577,7 +577,7 @@ namespace Unit {
 
   /**
    * The provider's cache key under its name, so two providers never share a cache by choosing the same key; the
-   * built-in bonds keep the model's original cache (bond-providers plan §2.1).
+   * built-in bonds keep the model's original cache.
    */
   function intraCacheKey(instance: BondProvider.Instance): string | undefined {
     if (BondProvider.isDefault(instance)) return BondProvider.DefaultName;

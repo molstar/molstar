@@ -1,0 +1,59 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A log (log §3): fills its parent (a flex column): the filters, then the entries, a virtual list that scrolls on its
+   own (styles §8.4: a view that virtualizes fills the body). */
+.log {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--msui-space-1);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The filters as icons, then the text filter: one row (a `ViewToolbar`). */
+.filters {
+  flex: none;
+}
+
+.kinds {
+  display: flex;
+  flex: none;
+}
+
+.search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.entries {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* A row (`ViewRow`): the kind's color on its icon; a debug entry muted. */
+.row {
+  &[data-kind="error"] .kind {
+    color: var(--msui-danger);
+  }
+
+  &[data-kind="warning"] .kind {
+    color: var(--msui-warning);
+  }
+
+  &[data-kind="success"] .kind {
+    color: var(--msui-success);
+  }
+
+  &[data-kind="debug"] {
+    color: var(--msui-text-muted);
+  }
+}
+
+.kind {
+  color: var(--msui-text-subtle);
+}

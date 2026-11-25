@@ -23,3 +23,12 @@ describe('PD.isParamEqual', () => {
     expect(PD.isParamEqual(p, { a: 1 }, { a: 2 })).toBe(false);
   });
 });
+
+describe('PD.ObjectList', () => {
+  it('uses the item constructor given, else the element defaults', () => {
+    const element = { name: PD.Text('c'), level: PD.Numeric(1) };
+    expect(PD.ObjectList(element, (e) => e.name).ctor()).toEqual({ name: 'c', level: 1 });
+    const p = PD.ObjectList(element, (e) => e.name, { ctor: () => ({ name: 'new', level: 5 }) });
+    expect(p.ctor()).toEqual({ name: 'new', level: 5 });
+  });
+});

@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ivan Niukanen <57656076+niukanen1@users.noreply.github.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as Data from '../data-model.js';
@@ -38,6 +39,12 @@ function Category(data: EncodedCategory): Data.CifCategory {
       if (!!cache[name]) return cache[name];
       cache[name] = Field(col, data.rowCount);
       return cache[name];
+    },
+    readField(name) {
+      if (cache[name]) return cache[name];
+      const col = map[name] ?? normalizedMap[name.toLowerCase()];
+      // not cached: its decoded values go with the field
+      return col ? Field(col, data.rowCount) : void 0;
     },
   };
 }

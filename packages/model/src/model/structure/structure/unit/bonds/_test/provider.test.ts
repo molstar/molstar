@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import fs from 'node:fs';
@@ -30,7 +31,7 @@ import { BondType } from '../../../../model/types.js';
 import { parseMol2 } from '@molstar/io/reader/mol2/parser';
 import { trajectoryFromMol2 } from '@molstar/model/formats/structure/mol2';
 
-// Bond providers in the model layer (bond-providers plan §2): the instance a unit and a structure hold, how it passes
+// Bond providers in the model layer: the instance a unit and a structure hold, how it passes
 // to children, copies, assemblies and frames, the per-key intra-unit cache, and that the default is today's bonds.
 
 const examples = path.resolve(import.meta.dirname, '../../../../../../../../../data/examples');

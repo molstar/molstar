@@ -1,0 +1,124 @@
+import { Canvas, Meta } from '@storybook/addon-docs/blocks';
+import * as Live from './live.stories';
+
+<Meta title="Docs/Interaction" />
+
+# Interaction
+
+What a user does with a view (hover, select, focus, move the window, edit, undo) lives in **DOM-free models**. A mounted
+UI turns pointer and key events into calls on them, and a test or a headless host makes the same calls. The library
+provides the models, the commands and a default grammar of gestures. Your application decides which of them it offers,
+how they are bound, and what else a click does.
+
+Try it here: hover a domain, drag across the letters, double-click a domain to focus it, double-click empty space to
+fit, and press `?` for the keys.
+
+<Canvas of={Live.Tracks} />
+
+## Hover: the contract
+
+- A **hit** says what is under the pointer. It is one of:
+  - an item: a domain, a pair, a row;
+  - a cell: a position, or two positions in a grid;
+  - nothing.
+- **It follows the maps.** A hovered residue lights:
+  - its codon on the gene;
+  - its column in an alignment;
+  - its residue in a linked structure.
+- **One owner at a time.**
+  - The canvas, a structure viewer or a host's list may each set the hover.
+  - A stale owner's clear does nothing, so two sources never fight.
+- **A location with no hit.** A structure viewer's hover, carried in by a link, is drawn on every section it reaches,
+  with no card.
+- **A method, never a command.** It runs on every pointer move, and it allocates nothing once warm.
+
+## Selection, highlights and focus
+
+- **Selection** holds addresses and locations, never pixels. Click selects an item, a drag selects a range, Cmd or Ctrl
+  adds, Alt removes, Shift extends. The SVG export shows the same selection the canvas shows.
+- **Highlights** are channels a host or a link sets, each in its own color, drawn under the selection.
+- **Focus** moves the view to an item or a range: a double-click, Enter at the keyboard cursor, or `view.focus` with an
+  address. `view.fit` shows everything. `view.back` and `view.forward` walk the jumps, as a browser does.
+- Selection and hover are **session state**. They never enter the spec or its undo. Bookmarking a selection
+  (`selection.bookmark`) writes a `ref`, and that is an edit.
+
+## Navigators
+
+A **navigator** is a part placed around the view that moves its window. Navigators are nodes in the spec
+(`views/<view>/navigators/<id>`), so an export can draw them. A spec author writes a `navigator` with `of` (the sections
+it moves), `axes` (`positions`, `rows` or `both`) and `content` (what it draws), or uses the builder's helpers, which
+fill those in:
+
+| What it is called | Builder helper       | `content`          | `axes`      |
+| ----------------- | -------------------- | ------------------ | ----------- |
+| a strip           | `stripNavigator`     | `axis` or `tracks` | `positions` |
+| an ideogram       | `ideogramNavigator`  | `bands` (`bands`)  | `positions` |
+| an overview       | `overviewNavigator`  | `rows`             | `rows`      |
+| a miniature       | `miniatureNavigator` | `tracks`           | `both`      |
+
+An extension's picture is named the same way (`content: 'rondo:square'`). The ruler **rail** is no node: it is what a
+section shows when no navigator replaces it. Where navigators go is the host's choice (`place` and `size` are hints),
+and a host can draw one itself over the same `NavigatorModel`.
+
+[Features › Navigators](?path=/story/seq-next-features-navigators--rail) shows each one, including a
+[gene region on chromosome 17](?path=/story/seq-next-features-navigators--gene-region-on-chr-17) and
+[one the host draws](?path=/story/seq-next-features-navigators--host-drawn).
+
+## Commands
+
+Everything the viewer can do is a **command** with an id (`view.fit`, `section.reverse`, `refs.add`), run by a key, a
+gesture, a menu or an agent through `viewer.execute(id, context)`. Each command declares what it changes:
+
+| Kind       | What it changes                                    | Examples                                    |
+| ---------- | -------------------------------------------------- | ------------------------------------------- |
+| `patch`    | the spec: one undo step                            | `section.reverse`, `refs.add`, a theme edit |
+| `preview`  | a gesture's patch in progress: one step or nothing | an editing drag, `preview.cancel`           |
+| `navigate` | what is shown, not the spec                        | `view.focus`, `view.back`, entering a step  |
+| `session`  | the selection, highlights, the cursor              | selecting, clearing a highlight             |
+| `none`     | nothing: it only reads                             | copying a link                              |
+
+So a menu can say what Undo will undo, and an agent can tell an edit from a look. A test runs every command of the
+default viewer and checks that it changes exactly what its kind says.
+
+## Undo is the host's
+
+Seq\* owns no undo stack. The **history port** lets the host's stack take the spec's edits as steps, next to its own (a
+structure's state, say). Only spec patches enter it: undo never moves the viewport or the selection. A mounted viewer
+with the default spec gets a stack of its own (`uiHistory`); a host passes `hostHistory` over its own stack. See
+[Features › Editing](?path=/story/seq-next-features-editing--editing).
+
+## The keyboard
+
+The canvas is one tab stop with a **keyboard cursor** on its cells. Arrow keys move it, Shift extends the selection as
+it goes, Space toggles the cell under it, and Enter focuses it. The view's moves (fit, back, zoom, pan) have keys too,
+and `?` opens a panel listing every key and gesture the view answers to, generated from the commands and the bindings. A
+live region says, in words, what the cursor or the hover is on.
+
+Gestures are data, `{ gesture, modifiers, target, action }`. There are two presets, `default` (a drag on data selects)
+and `genome-browser` (a drag on data pans), and a host can add, remove or rebind any binding.
+[Features › Hover card and keys](?path=/story/seq-next-features-hover-card-and-keys--keys-panel).
+
+## Tooltips and the hover card
+
+Two parts, kept apart on purpose:
+
+- **Tooltips are the spec's.** A `tooltip` node attaches words to data: by data (each item's own field) or by range (a
+  table of rows over positions), as text or Markdown. Every reader shows the same words, and an SVG export can put them
+  in its `<title>`s. [Features › Tooltips](?path=/story/seq-next-features-tooltips--by-data).
+- **The card is the application's.** The hover card is composed by **card providers**, registry entries in the viewer
+  spec run in order, each adding rows. The viewer's own sections are built-in providers. A host adds one, replaces one
+  or leaves one out, and it can draw the card itself through the card's port, with its own styles. The floor is the item
+  and the place: a composition without them gets a warning.
+  [Features › Hover card and keys](?path=/story/seq-next-features-hover-card-and-keys--host-card) shows a host's card.
+
+## Where next
+
+- [Extending](?path=/docs/seq-next-docs-extending--docs): commands, bindings and providers an extension adds.
+- Stories: [Selection](?path=/story/seq-next-features-selection--tracks),
+  [Highlights](?path=/story/seq-next-features-highlights--overlapping-channels),
+  [Bookmarks](?path=/story/seq-next-features-addressing-bookmarks--bookmarks),
+  [Links](?path=/story/seq-next-features-addressing-links--links),
+  [Track headers](?path=/story/seq-next-features-track-headers--built-ins) and
+  [Story](?path=/story/seq-next-features-story--story).
+- For contributors: [Design › UX foundations](?path=/docs/seq-next-design-ux-foundations--docs) and
+  [Design › Navigators](?path=/docs/seq-next-design-navigators--docs).

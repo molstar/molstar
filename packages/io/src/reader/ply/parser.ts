@@ -279,6 +279,56 @@ function makeTypedArray(type: PlyType, count: number): PlyTypedArray {
   }
 }
 
+const HostLittleEndian = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
+
+/**
+ * Reads the rows of a table whose properties are all of one type, in the host's byte order, into `arrays` (a
+ * property each): one typed view of the rows (of a copy where they are not aligned for it), the values of a property
+ * every property-count-th; false where the table is not such (mixed types, the other byte order). Gaussian splat files
+ * are (all `float`, or packed `uint`): millions of rows of dozens of properties, a `DataView` read per value many
+ * times slower
+ */
+function readUniformBinaryTable(state: State, spec: TableElementSpec, arrays: PlyTypedArray[]) {
+  const { count, properties } = spec;
+  const propertyCount = properties.length;
+  if (propertyCount === 0 || state.littleEndian !== HostLittleEndian) return false;
+  const type = properties[0].type;
+  const bytes = PlyTypeByteLength[type];
+  for (let j = 1; j < propertyCount; j++) {
+    if (
+      PlyTypeByteLength[properties[j].type] !== bytes ||
+      getColumnSchema(properties[j].type) !== getColumnSchema(type)
+    ) {
+      return false;
+    }
+    if (makeTypedArray(properties[j].type, 0).constructor !== arrays[0].constructor) return false;
+  }
+  const { data } = state;
+  const length = count * propertyCount;
+  const start = data.byteOffset + state.binaryOffset;
+  if (state.binaryOffset + length * bytes > data.length) throw new Error('binary PLY data ends before its table');
+  const Ctor = arrays[0].constructor as new (
+    buffer: ArrayBufferLike,
+    byteOffset: number,
+    length: number,
+  ) => PlyTypedArray;
+  const rows =
+    start % bytes === 0
+      ? new Ctor(data.buffer, start, length)
+      : // a copy of its own (a Node `Buffer`'s `slice` is a view: its `buffer` the pool's, not the table's)
+        new Ctor(
+          new Uint8Array(data.subarray(state.binaryOffset, state.binaryOffset + length * bytes)).buffer,
+          0,
+          length,
+        );
+  for (let j = 0; j < propertyCount; j++) {
+    const array = arrays[j];
+    for (let i = 0, o = j; i < count; i++, o += propertyCount) array[i] = rows[o];
+  }
+  state.binaryOffset += length * bytes;
+  return true;
+}
+
 function parseBinaryTableElement(state: State, spec: TableElementSpec) {
   const { elements, data: binaryData, littleEndian } = state;
   const { count, properties } = spec;
@@ -290,12 +340,14 @@ function parseBinaryTableElement(state: State, spec: TableElementSpec) {
   const arrays: PlyTypedArray[] = [];
   for (let i = 0; i < propertyCount; i++) arrays.push(makeTypedArray(properties[i].type, count));
 
-  const dv = new DataView(binaryData.buffer, binaryData.byteOffset);
-  for (let i = 0; i < count; i++) {
-    for (let j = 0; j < propertyCount; j++) {
-      const { type } = properties[j];
-      arrays[j][i] = readBinaryValue(dv, state.binaryOffset, type, littleEndian);
-      state.binaryOffset += PlyTypeByteLength[type];
+  if (!readUniformBinaryTable(state, spec, arrays)) {
+    const dv = new DataView(binaryData.buffer, binaryData.byteOffset);
+    for (let i = 0; i < count; i++) {
+      for (let j = 0; j < propertyCount; j++) {
+        const { type } = properties[j];
+        arrays[j][i] = readBinaryValue(dv, state.binaryOffset, type, littleEndian);
+        state.binaryOffset += PlyTypeByteLength[type];
+      }
     }
   }
 

@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { type EmptiedComponent, emptiedComponentsOf, hiddenContents } from '../api/contents.js';
@@ -2770,7 +2771,7 @@ function typeValue(s: StructureRef, data: Structure): string {
 
 function sourceForm(s: StructureRef, data: Structure, bondProviders: BondProviderRegistry): PD.Params {
   const types = structureTypes(s, data);
-  // bond-providers plan §4.1: hidden with the built-in bonds as the only choice, so such a viewer looks as before
+  // hidden with the built-in bonds as the only choice, so such a viewer looks as before
   const model = s.model?.cell.obj?.data;
   const bondOptions = bondProviders.options(model).length;
   // The model shown is not here: a structure with several has a row of its own under it (its frames, a scrubber and
@@ -3245,13 +3246,15 @@ function particlesText(data: ParticleList): string {
   return `${data.count.toLocaleString('en')} particles${targets > 1 ? ` · ${targets} targets` : ''}`;
 }
 
-/** What stands for a target: a structure's entry, a shape's or a volume's name */
+/** What stands for a target: a structure's entry, sites' label, a shape's or a volume's name */
 function targetLabel(
   target: NonNullable<ParticleList['targetMapping']> extends ReadonlyMap<number, infer T> ? T : never,
 ) {
   switch (target.kind) {
     case 'structure':
       return target.structure.model.entryId || target.structure.label;
+    case 'sites':
+      return target.sites.label || `${target.sites.count.toLocaleString('en')} sites`;
     case 'shape':
       return target.shape.name;
     case 'volume':

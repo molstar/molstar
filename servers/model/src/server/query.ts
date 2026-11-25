@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
 import * as path from 'path';
@@ -19,7 +20,7 @@ import {
   type ModelPropertiesProvider,
 } from '@molstar/model-server/property-provider';
 import { VERSION } from '@molstar/model-server/version';
-import { type Job, JobEntry } from './jobs.js';
+import { type Job, JobEntry, isJobCancelled } from './jobs.js';
 import { createStructureWrapperFromJobEntry, resolveStructures, type StructureWrapper } from './structure-wrapper.js';
 import CifField = CifWriter.Field;
 import { splitCamelCase } from '@molstar/core/util/string';
@@ -41,8 +42,6 @@ export interface Stats {
   encodeTimeMs: number;
   resultSize: number;
 }
-
-const perf = new PerformanceMonitor();
 
 let _propertyProvider: ModelPropertiesProvider;
 function propertyProvider() {
@@ -116,6 +115,10 @@ async function resolveSingleFile(job: Job) {
   const headerMap = new Map<string, number>();
 
   for (const entry of job.entries) {
+    if (isJobCancelled(job)) {
+      ConsoleLogger.logId(job.id, 'Query', 'Stopped: the client is gone.');
+      return;
+    }
     let hasDataBlock = false;
     try {
       const structure = await createStructureWrapperFromJobEntry(entry, propertyProvider());
@@ -158,6 +161,10 @@ async function resolveMultiFile(job: Job) {
 
   let i = 0;
   for (const entry of job.entries) {
+    if (isJobCancelled(job)) {
+      ConsoleLogger.logId(job.id, 'Query', 'Stopped: the client is gone.');
+      return;
+    }
     const encoder = createEncoder(job);
 
     let hasDataBlock = false;
@@ -203,6 +210,8 @@ function createErrorDataBlock(job: JobEntry, encoder: CifWriter.Encoder<any>) {
 async function resolveJobEntry(entry: JobEntry, structure: StructureWrapper, encoder: CifWriter.Encoder<any>) {
   ConsoleLogger.logId(entry.job.id, 'Query', `Start ${entry.key}/${entry.queryDefinition.name}.`);
 
+  // one monitor per entry: the entries of concurrent jobs must not share timers
+  const perf = new PerformanceMonitor();
   try {
     perf.start('query');
     const sourceStructures = await resolveStructures(structure, entry.modelNums);

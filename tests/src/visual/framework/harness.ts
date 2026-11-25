@@ -18,18 +18,19 @@ import { Color } from '@molstar/core/util/color';
 import { now } from '@molstar/core/util/now';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
+import type { CameraHelperProps } from '@molstar/graphics/canvas3d/helper/camera-helper';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
-import { WebGPUUnsupportedError } from '@molstar/graphics/gl/webgpu/errors';
+import { WebGPUUnsupportedError } from '@molstar/graphics/gl/contexts/webgpu';
 import { type BackendInstance } from './backend.js';
 import { DefaultTestSize, type SceneContext, type VisualTestCase } from './test-case.js';
-import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isWebGLContext } from '@molstar/graphics/gl/contexts/webgl';
 
 /** Deterministic baseline; tests opt into effects explicitly */
 export const BaseCanvasProps: PartialCanvas3DProps = {
   camera: {
     mode: 'perspective',
     fov: 45,
-    helper: { axes: { name: 'off', params: {} } },
+    helper: { axes: { name: 'off', params: {} }, scale: { name: 'off', params: {} } },
     stereo: { name: 'off', params: {} },
     manualReset: true,
   },
@@ -185,10 +186,12 @@ async function releaseAndRestore(instance: BackendInstance): Promise<string[]> {
   // a busy GPU process may hand out the new device late: a released context stays released, restored once more
   if (!(await context.restore!()) && !(await context.restore!())) return [...errors, NotRestored];
   if (context.graphics === released || context.graphics.isContextLost) errors.push('no new live context');
-  // the representations update on the new context asynchronously, then are added again
+  // the representations update on the new context asynchronously, then are added again: committed here, as no render
+  // loop runs to commit them (the scene lists them only once committed; a GPU surface's come after its compute)
   const deadline = performance.now() + 10_000;
   while (canvas3d.getRenderObjects().length < objectCount && performance.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 10));
+    canvas3d.commit(true);
   }
   canvas3d.commit(true);
   if (canvas3d.getRenderObjects().length < objectCount) errors.push('scene not rebuilt on the restored context');
@@ -223,6 +226,11 @@ export async function renderTest(
   }
 
   context.setProps({ transparency: test.contextProps?.transparency ?? 'blended' });
+  // the case's time 0 (the renderer's `uTime`, of the animations): a capture without a tick of its own (the image pass)
+  // would draw at the time the last case's tick left, another on each page (a WebGPU case's reference a webgl2 page's)
+  const t0 = now();
+  canvas3d.resetTime(t0);
+  canvas3d.tick(t0, { manualDraw: true });
 
   const p = getTestCanvasProps(test);
   p.renderer = { ...p.renderer, drawLists: !!options.drawLists };
@@ -236,6 +244,7 @@ export async function renderTest(
     multiSample: p.multiSample,
     postprocessing: p.postprocessing,
     marking: p.marking,
+    clipGhost: p.clipGhost,
     illumination: p.illumination,
     hiZ: p.hiZ,
     renderer: p.renderer,
@@ -280,7 +289,9 @@ export async function renderTest(
         canvas3d.tick(now(), { isSynchronous: true });
         if (i < repeats) await context.graphics.waitForGpuCommandsComplete();
       }
-      // in the task of the frame: a WebGPU canvas keeps its image only until it is presented
+      // in the task of the frame: a WebGPU canvas keeps its image only until it is presented; what the task recorded
+      // submitted first (WebGPU submits it in a microtask, after this read: a multi-sampled frame read blank)
+      context.graphics.flush();
       const image = readCanvas(canvas);
       await context.graphics.waitForGpuCommandsComplete();
       return {
@@ -303,26 +314,38 @@ export async function renderTest(
       multiSample: p.multiSample,
       postprocessing: p.postprocessing,
       marking: p.marking,
+      clipGhost: p.clipGhost,
       illumination: p.illumination,
       renderer: p.renderer,
-      cameraHelper: { axes: { name: 'off', params: {} } },
+      // the corner axes as the canvas has them: off but where a case asks for them (`canvasProps.camera.helper`)
+      cameraHelper: p.camera.helper as CameraHelperProps,
+      // the overlay cases' representations (`cases/overlay.ts`)
+      overlay: true,
     });
     // no `updateBackground`: the render waits for the background images itself (pending work)
 
+    const scale = test.imageScale ?? 1;
+    const [imageWidth, imageHeight] = [Math.round(width * scale), Math.round(height * scale)];
     for (let i = 0; i < repeats; ++i) {
-      await imagePass.getImageData(SyncRuntimeContext, width, height);
+      await imagePass.getImageData(SyncRuntimeContext, imageWidth, imageHeight);
       await context.graphics.resources.pending.whenReady();
     }
     const { drawLists } = context.graphics.stats;
     const replayed = drawLists.replayed;
-    const image = await imagePass.getImageData(SyncRuntimeContext, width, height);
+    const image = await imagePass.getImageData(SyncRuntimeContext, imageWidth, imageHeight);
     await context.graphics.waitForGpuCommandsComplete();
     if (options.drawLists && drawLists.replayed === replayed)
       log.warnings.push('draw lists: the captured frame replayed nothing');
 
     return {
       image,
-      errors: [...interactErrors, ...releaseErrors, ...instance.takeErrors(), ...log.errors],
+      errors: [
+        ...interactErrors,
+        ...releaseErrors,
+        ...instance.takeErrors(),
+        ...log.errors,
+        ...(test.checkImage?.(image) ?? []),
+      ],
       warnings: log.warnings,
       timeMs: performance.now() - start,
     };

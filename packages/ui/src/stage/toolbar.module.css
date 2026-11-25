@@ -1,0 +1,48 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The stage's toolbar (stage §3.2): a row in the stage's corner, as wide as the corner allows, scrolling across past it. */
+.stageToolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: end;
+  min-width: 0;
+  max-width: 100%;
+
+  /* Its menus (in the top layer, still its descendants): as tall as the room above, measured as one opens. */
+  & [role="menu"] {
+    max-height: var(--msui-stage-menu-room, calc(100vh - var(--msui-space-4)));
+  }
+}
+
+.bar {
+  display: flex;
+  align-items: end;
+  gap: var(--msui-space-2);
+  min-width: 0;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+/* The scroll reaches past the row by the blocks' shadow room, so a shadow is not cut by it; the row pads it back. */
+.scroll {
+  min-width: 0;
+  margin: calc(-1 * var(--msui-space-3));
+}
+
+.row {
+  display: flex;
+  align-items: end;
+  gap: var(--msui-space-2);
+  width: max-content;
+  padding: var(--msui-space-3);
+}
+
+.folded {
+  display: flex;
+}

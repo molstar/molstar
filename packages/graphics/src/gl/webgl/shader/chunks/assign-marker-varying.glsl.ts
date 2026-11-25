@@ -6,6 +6,11 @@
 
 export const assign_marker_varying = `
 #if defined(dNeedsMarker)
-    vMarker = read_tMarker(granularityIndex(aInstance, group)).r;
+    #if defined(dInstanceExpansion)
+        // an expanded object's: its template particle's (every copy's) or-ed with its copy's
+        vMarker = float(uint(read_tMarker(granularityIndex(aInstance, group)).r * 255.0 + 0.5) | expansionCopyMarker) / 255.0;
+    #else
+        vMarker = read_tMarker(granularityIndex(aInstance, group)).r;
+    #endif
 #endif
 `;

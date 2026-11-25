@@ -21,7 +21,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { ICamera } from '../camera.js';
 import type { Scene } from '@molstar/graphics/gl/scene';
-import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
+import { createRenderPassAttachments, type RenderPassAttachments } from '@molstar/graphics/gl/render-pass-attachments';
 import { Color } from '@molstar/core/util/color';
 import { isTimingMode } from '@molstar/core/util/debug';
 import type { PostprocessingProps } from './postprocessing.js';
@@ -139,9 +139,10 @@ export class SsaoPass {
     return scene.opacityAverage < 1 && scene.transparencyMin < props.transparentThreshold;
   }
 
-  private readonly framebuffer: Framebuffer;
-  private readonly blurFirstPassFramebuffer: Framebuffer;
-  private readonly blurSecondPassFramebuffer: Framebuffer;
+  /** the passes' targets: the occlusion (opaque, transparent; the blur's second pass writes it back) and the blur proxy */
+  private readonly ssaoTarget: RenderPassAttachments;
+  private readonly ssaoTransparentTarget: RenderPassAttachments;
+  private readonly blurTarget: RenderPassAttachments;
 
   /** no depth textures, the opaque depth itself is packed */
   private readonly packedDepth: boolean;
@@ -231,10 +232,6 @@ export class SsaoPass {
     this.texSize = [width, height];
     this.levels = [];
 
-    this.framebuffer = graphics.resources.framebuffer();
-    this.blurFirstPassFramebuffer = graphics.resources.framebuffer();
-    this.blurSecondPassFramebuffer = graphics.resources.framebuffer();
-
     const sw = Math.floor(width * this.ssaoScale);
     const sh = Math.floor(height * this.ssaoScale);
 
@@ -265,14 +262,15 @@ export class SsaoPass {
 
     this.ssaoDepthTexture = targets.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     this.ssaoDepthTexture.define(sw, sh);
-    this.ssaoDepthTexture.attachFramebuffer(this.framebuffer, 'color0');
+    this.ssaoTarget = createRenderPassAttachments(graphics.resources, [this.ssaoDepthTexture]);
 
     this.ssaoDepthTransparentTexture = targets.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     this.ssaoDepthTransparentTexture.define(sw, sh);
+    this.ssaoTransparentTarget = createRenderPassAttachments(graphics.resources, [this.ssaoDepthTransparentTexture]);
 
     this.depthBlurProxyTexture = targets.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     this.depthBlurProxyTexture.define(sw, sh);
-    this.depthBlurProxyTexture.attachFramebuffer(this.blurFirstPassFramebuffer, 'color0');
+    this.blurTarget = createRenderPassAttachments(graphics.resources, [this.depthBlurProxyTexture]);
 
     this.renderable = getSsaoRenderable(
       graphics,
@@ -621,38 +619,34 @@ export class SsaoPass {
       if (b.drawing) setScaledViewport(this.ssaoScale, this.ssaoDepthTexture);
     }
 
-    this.ssaoDepthTexture.attachFramebuffer(this.framebuffer, 'color0');
     ValueCell.update(this.renderable.values.uTransparencyFlag, 0);
-    b.begin(this.framebuffer, { label: 'ssao' });
+    b.begin(this.ssaoTarget, { label: 'ssao' });
     b.quad(this.renderable, state);
 
     if (this.blur) {
       if (timing) graphics.timer.group('SSAO.blurOpaque');
       ValueCell.update(this.blurFirstPassRenderable.values.tSsaoDepth, this.ssaoDepthTexture);
       this.blurFirstPassRenderable.update();
-      b.begin(this.blurFirstPassFramebuffer, { label: 'ssao blur' });
+      b.begin(this.blurTarget, { label: 'ssao blur' });
       b.quad(this.blurFirstPassRenderable, state);
 
-      this.ssaoDepthTexture.attachFramebuffer(this.blurSecondPassFramebuffer, 'color0');
-      b.begin(this.blurSecondPassFramebuffer, { label: 'ssao blur' });
+      b.begin(this.ssaoTarget, { label: 'ssao blur' });
       b.quad(this.blurSecondPassRenderable, state);
       if (timing) graphics.timer.groupEnd('SSAO.blurOpaque');
     }
     if (includeTransparent) {
-      this.ssaoDepthTransparentTexture.attachFramebuffer(this.framebuffer, 'color0');
       ValueCell.update(this.renderable.values.uTransparencyFlag, 1);
-      b.begin(this.framebuffer, { label: 'ssao transparent' });
+      b.begin(this.ssaoTransparentTarget, { label: 'ssao transparent' });
       b.quad(this.renderable, state);
 
       if (this.blur) {
         if (timing) graphics.timer.group('SSAO.blurTransparent ');
         ValueCell.update(this.blurFirstPassRenderable.values.tSsaoDepth, this.ssaoDepthTransparentTexture);
         this.blurFirstPassRenderable.update();
-        b.begin(this.blurFirstPassFramebuffer, { label: 'ssao blur transparent' });
+        b.begin(this.blurTarget, { label: 'ssao blur transparent' });
         b.quad(this.blurFirstPassRenderable, state);
 
-        this.ssaoDepthTransparentTexture.attachFramebuffer(this.blurSecondPassFramebuffer, 'color0');
-        b.begin(this.blurSecondPassFramebuffer, { label: 'ssao blur transparent' });
+        b.begin(this.ssaoTransparentTarget, { label: 'ssao blur transparent' });
         b.quad(this.blurSecondPassRenderable, state);
         if (timing) graphics.timer.groupEnd('SSAO.blurTransparent ');
       }

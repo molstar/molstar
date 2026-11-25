@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { TriTable } from '@molstar/graphics/geo/util/marching-cubes/tables';
+import { TriTable } from '@molstar/core/math/geometry/marching-cubes/tables';
 import { type TextureImage, createTextureImage } from '../../../renderable/util.js';
 
 let TriCount: TextureImage<Uint8Array> | undefined;

@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { GraphicsContext } from '../../../context.js';
+import type { WebGLContext } from '../../context.js';
 import { type ComputeRenderable, createComputeRenderable } from '../../../renderable.js';
 import { RenderState } from '../../../render-state.js';
 import { type Values, TextureSpec, UniformSpec, DefineSpec } from '../../../renderable/schema.js';
@@ -16,6 +16,14 @@ import { QuadSchema, QuadValues } from '../../../compute/util.js';
 import { getTriCount } from './tables.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { setTexelScissor, setTexelViewport } from '../../render-pass-target.js';
+import { createScratch } from '../../../scratch.js';
+import type { Framebuffer } from '../../framebuffer.js';
+import { asGLTexture } from '../../texture.js';
+
+/** the scratch resources of this module, per context (`gl/scratch.ts`) */
+const ScratchTextures = createScratch<Texture>('marching-cubes/active-voxels textures');
+const ScratchFramebuffers = createScratch<Framebuffer>('marching-cubes/active-voxels framebuffers');
+const ScratchRenderables = createScratch<ComputeRenderable<any>>('marching-cubes/active-voxels renderables');
 
 /** Channel of the volume data texture holding the value, e.g. `alpha` for densities with a packed group in `rgb` */
 export type ValueChannel = 'red' | 'alpha';
@@ -39,7 +47,7 @@ type ActiveVoxelsValues = Values<typeof ActiveVoxelsSchema>;
 const ActiveVoxelsName = 'active-voxels';
 
 function getActiveVoxelsRenderable(
-  ctx: GraphicsContext,
+  ctx: WebGLContext,
   volumeData: Texture,
   valueChannel: ValueChannel,
   gridDim: Vec3,
@@ -47,8 +55,8 @@ function getActiveVoxelsRenderable(
   isoValue: number,
   scale: Vec2,
 ): ComputeRenderable<ActiveVoxelsValues> {
-  if (ctx.namedComputeRenderables[ActiveVoxelsName]) {
-    const v = ctx.namedComputeRenderables[ActiveVoxelsName].values as ActiveVoxelsValues;
+  if (ScratchRenderables.get(ctx, ActiveVoxelsName)) {
+    const v = ScratchRenderables.get(ctx, ActiveVoxelsName)!.values as ActiveVoxelsValues;
 
     ValueCell.update(v.uQuadScale, scale);
     ValueCell.update(v.tVolumeData, volumeData);
@@ -58,23 +66,19 @@ function getActiveVoxelsRenderable(
     ValueCell.update(v.uGridTexDim, gridTexDim);
     ValueCell.update(v.uScale, scale);
 
-    ctx.namedComputeRenderables[ActiveVoxelsName].update();
+    ScratchRenderables.get(ctx, ActiveVoxelsName)!.update();
   } else {
-    ctx.namedComputeRenderables[ActiveVoxelsName] = createActiveVoxelsRenderable(
+    ScratchRenderables.set(
       ctx,
-      volumeData,
-      valueChannel,
-      gridDim,
-      gridTexDim,
-      isoValue,
-      scale,
+      createActiveVoxelsRenderable(ctx, volumeData, valueChannel, gridDim, gridTexDim, isoValue, scale),
+      ActiveVoxelsName,
     );
   }
-  return ctx.namedComputeRenderables[ActiveVoxelsName];
+  return ScratchRenderables.get(ctx, ActiveVoxelsName)!;
 }
 
 function createActiveVoxelsRenderable(
-  ctx: GraphicsContext,
+  ctx: WebGLContext,
   volumeData: Texture,
   valueChannel: ValueChannel,
   gridDim: Vec3,
@@ -102,7 +106,7 @@ function createActiveVoxelsRenderable(
 }
 
 export function calcActiveVoxels(
-  ctx: GraphicsContext,
+  ctx: WebGLContext,
   volumeData: Texture,
   valueChannel: ValueChannel,
   gridDim: Vec3,
@@ -115,20 +119,18 @@ export function calcActiveVoxels(
   const width = volumeData.getWidth();
   const height = volumeData.getHeight();
 
-  if (!ctx.namedFramebuffers[ActiveVoxelsName]) {
-    ctx.namedFramebuffers[ActiveVoxelsName] = resources.framebuffer();
-  }
-  const framebuffer = ctx.namedFramebuffers[ActiveVoxelsName];
+  const framebuffer = ScratchFramebuffers.getOrCreate(ctx, () => resources.framebuffer(), ActiveVoxelsName);
 
-  if (!ctx.namedTextures[ActiveVoxelsName]) {
-    ctx.namedTextures[ActiveVoxelsName] = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
-  }
-  const activeVoxelsTex = ctx.namedTextures[ActiveVoxelsName];
+  const activeVoxelsTex = ScratchTextures.getOrCreate(
+    ctx,
+    () => resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest'),
+    ActiveVoxelsName,
+  );
   activeVoxelsTex.define(width, height);
 
   const renderable = getActiveVoxelsRenderable(ctx, volumeData, valueChannel, gridDim, gridTexDim, isoValue, gridScale);
 
-  activeVoxelsTex.attachFramebuffer(framebuffer, 0);
+  asGLTexture(activeVoxelsTex).attachFramebuffer(framebuffer, 0);
   ctx.beginRenderPass(framebuffer, { label: 'active voxels' });
   ctx.setRenderState(RenderState.Default);
   setTexelViewport(ctx, 0, 0, width, height);

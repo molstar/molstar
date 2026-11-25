@@ -41,11 +41,10 @@ import {
   getUniformBlockLayout,
 } from '../uniform-layout.js';
 import { BufferUsage } from './constants.js';
-import type { BufferRange } from './buffer-pages.js';
+import type { BufferCopy, BufferRange } from './buffer-pages.js';
 import { SegmentedArray } from '../segmented-array.js';
 import {
   type DataLayer,
-  DataLayerNames,
   DataLayerElementBytes,
   DataLayers,
   DataLayerPagesName,
@@ -53,6 +52,7 @@ import {
   getDataLayerPages,
   getDataLayerSchema,
   getDataOffsetName,
+  getSchemaDataLayers,
   MaxDataPages,
 } from './data-layers.js';
 import { TextureChanges } from '../renderable/texture-changes.js';
@@ -257,7 +257,7 @@ function interleave(arrays: readonly Float32Array[], itemSizes: readonly number[
   return out;
 }
 
-/** `shared` receives the textures of specs with `shared`, by name (`.v6/plans/gl/shared-textures.md` §4) */
+/** `shared` receives the textures of specs with `shared`, by name */
 function createTextures(
   ctx: WebGPUDrawContext,
   schema: RenderableSchema,
@@ -299,7 +299,7 @@ type GroupTrie = { group?: GPUBindGroup; next: WeakMap<object, GroupTrie> };
 /**
  * Bind groups binding buffers only, by their layout and buffers (a trie of weak maps: dropped with a destroyed layout
  * or buffer): one group for the items binding the same uniform arenas and storage pages, so that their draws bind one
- * group at their dynamic offsets (`shared-draw-resources.md`, shared object groups)
+ * group at their dynamic offsets (shared object groups)
  */
 const sharedGroups = new WeakMap<GPUBindGroupLayout, GroupTrie>();
 function getSharedGroup(
@@ -322,6 +322,9 @@ function getSharedGroup(
   for (let i = 0, il = storageBuffers.length; i < il; ++i) step(storageBuffers[i]);
   return (node.group ??= device.createBindGroup({ layout, entries }));
 }
+
+/** groups kept per layout for other textures bound in turn, see `alternateGroups` */
+const MaxAlternateGroups = 8;
 
 type CachedGroup = {
   group: GPUBindGroup;
@@ -447,8 +450,9 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
    * (`ctx.dataBindingSize`) in up to `MaxDataPages` ranges, each within it, bound as pages of their own
    * (`DataPageNames`, the layout in `layerPages`)
    */
-  const layers: DataLayer[] =
-    schema === renderableSchema ? [] : DataLayerNames.filter((n) => dataValues[n] !== undefined);
+  // the schema's layers in their order (the bits of `DataLayerPagesName`), those with values
+  const schemaLayers = schema === renderableSchema ? [] : getSchemaDataLayers(schema);
+  const layers: DataLayer[] = schemaLayers.filter((n) => dataValues[n] !== undefined);
   const layerOffsets = layers.map((l) => ValueCell.create(0));
   for (let i = 0; i < layers.length; ++i) objectEntries.push([getDataOffsetName(layers[i]), layerOffsets[i]]);
   const layerVersions = layers.map(() => -1);
@@ -460,11 +464,22 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
   const layerPageOffsets = layers.map(() => -1);
   // scratch of `updateLayers`, allocated once: per layer its size, page and offset, per page its bytes, cursor and whether moved
   const nextSizes = layers.map(() => 0);
+  /**
+   * per layer its slot (bytes): the size it was laid out with, grown by half again when outgrown (or less than a
+   * quarter used), so a layer grown a little moves neither itself nor the layers after it (all written again)
+   */
+  const layerSlots = layers.map(() => 0);
   const nextPageOf = layers.map(() => 0);
   const nextOffsets = layers.map(() => 0);
   const pageBytes: number[] = new Array(MaxDataPages).fill(0);
   const pageCursors: number[] = new Array(MaxDataPages).fill(0);
   const movedPages: boolean[] = new Array(MaxDataPages).fill(false);
+  /** per page its range before an update (freed after its layers were copied), per layer whether copied */
+  const oldRanges: (BufferRange | undefined)[] = new Array(MaxDataPages).fill(undefined);
+  const copiedLayers = layers.map(() => false);
+  const layerCopies: BufferCopy[] = [];
+  /** per layer the bytes written to its range (what a move copies) */
+  const layerWritten = layers.map(() => 0);
   /** false where a layer alone exceeds the limit, or the layers more than the pages: not drawn (warned) */
   let layersFit = true;
   /**
@@ -532,8 +547,22 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     }
     const sizes = nextSizes;
     const pageOf = nextPageOf;
-    for (let i = 0, il = layers.length; i < il; ++i) sizes[i] = alignLayer(layerBytes(layers[i]));
-    if (!getLayerPages(sizes, pageOf)) {
+    for (let i = 0, il = layers.length; i < il; ++i) {
+      const need = alignLayer(layerBytes(layers[i]));
+      const slot = layerSlots[i];
+      if (need > slot || need * 4 < slot) {
+        // room to grow up to a binding's size, never below the need: a layer larger than a binding doesn't fit
+        layerSlots[i] = slot === 0 ? need : Math.max(need, Math.min(ctx.dataBindingSize, alignLayer(need * 1.5)));
+      }
+      sizes[i] = layerSlots[i];
+    }
+    // the slots' room dropped where it doesn't fit, the layers laid out tight
+    let fits = getLayerPages(sizes, pageOf);
+    if (!fits) {
+      for (let i = 0, il = layers.length; i < il; ++i) sizes[i] = layerSlots[i] = alignLayer(layerBytes(layers[i]));
+      fits = getLayerPages(sizes, pageOf);
+    }
+    if (!fits) {
       if (layersFit) {
         ctx.warnUnsupported(
           `the layers of a '${shaderCode.name}' item (${sizes.join(', ')} bytes) exceed ${MaxDataPages} storage ` +
@@ -544,7 +573,7 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       return;
     }
     layersFit = true;
-    const pages = getDataLayerPages(layers, pageOf);
+    const pages = getDataLayerPages(schemaLayers, layers, pageOf);
     if (pages !== layerPages.ref.value) {
       ValueCell.update(layerPages, pages);
       if (pages === 0) delete defineValues[DataLayerPagesName];
@@ -561,25 +590,55 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     for (let p = 0; p < MaxDataPages; ++p) {
       const range = layerRanges[p];
       movedPages[p] = false;
-      if (range && (pageBytes[p] === 0 || pageBytes[p] > range.size)) {
-        ctx.dataPages.free(range);
-        ctx.byteCounts.texture -= range.size;
-        layerRanges[p] = undefined;
-      }
+      oldRanges[p] = range;
+      // a page outgrown: its next with room to grow (half again, within a binding), not moved again at each growth
+      const grown = !!range && pageBytes[p] > range.size;
+      if (range && (pageBytes[p] === 0 || pageBytes[p] > range.size)) layerRanges[p] = undefined;
       if (pageBytes[p] > 0 && !layerRanges[p]) {
-        const allocated = ctx.dataPages.allocate(pageBytes[p]);
+        const room = grown ? Math.min(ctx.dataBindingSize, Math.ceil((pageBytes[p] * 1.5) / 16) * 16) : 0;
+        const allocated = ctx.dataPages.allocate(Math.max(pageBytes[p], room));
         ctx.byteCounts.texture += allocated.size;
         layerRanges[p] = allocated;
         movedPages[p] = true;
       }
     }
+    // a layer moved (its page's range, or its place in it: another layer before it grew) with its bytes on the GPU:
+    // copied there (`BufferPages.copy`, before this update's writes), not written again from the CPU (a merged object's
+    // members' sites, hundreds of MB, at each growth); else written whole
+    for (let i = 0; i < layers.length; ++i) {
+      const p = pageOf[i];
+      const moved = movedPages[p] || layerPageOf[i] !== p || layerPageOffsets[i] !== pageOffsets[i];
+      copiedLayers[i] = false;
+      if (!moved || layerPageOf[i] < 0 || layerVersions[i] < 0 || layerWritten[i] <= 0) continue;
+      const from = oldRanges[layerPageOf[i]];
+      if (!from) continue;
+      // the bytes written, those that fit (a layer shrunk), and only from a range kept or freed below
+      const size = Math.min(layerWritten[i], sizes[i]);
+      if (size <= 0) continue;
+      layerCopies.push({ from, fromOffset: layerPageOffsets[i], to: layerRanges[p]!, toOffset: pageOffsets[i], size });
+      copiedLayers[i] = true;
+    }
+    if (layerCopies.length > 0) {
+      ctx.dataPages.copy(layerCopies);
+      layerCopies.length = 0;
+    }
+    for (let p = 0; p < MaxDataPages; ++p) {
+      const old = oldRanges[p];
+      if (old && old !== layerRanges[p]) {
+        ctx.dataPages.free(old);
+        ctx.byteCounts.texture -= old.size;
+      }
+      oldRanges[p] = undefined;
+    }
     for (let i = 0; i < layers.length; ++i) {
       const range = layerRanges[pageOf[i]]!;
       const offset = pageOffsets[i];
-      // written again where its range or its place in it changed (another layer before it grew)
-      const moved = movedPages[pageOf[i]] || layerPageOf[i] !== pageOf[i] || layerPageOffsets[i] !== offset;
+      // written again where its range or its place in it changed, unless copied
+      const moved =
+        !copiedLayers[i] && (movedPages[pageOf[i]] || layerPageOf[i] !== pageOf[i] || layerPageOffsets[i] !== offset);
       layerPageOf[i] = pageOf[i];
       layerPageOffsets[i] = offset;
+      layerWritten[i] = Math.min(sizes[i], Math.ceil(layerBytes(layers[i]) / 4) * 4);
       const cell = dataValues[layers[i]];
       const image = layerImage(layers[i]);
       const { array } = image;
@@ -649,15 +708,6 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       blocks = { levels: new WeakMap(), caps: new Map(), levelCaps: new WeakMap() };
       drawBlocks.set(globals, blocks);
     }
-    const { members, size } = program.drawLayout;
-    // the layout and entries for a block created: not per draw
-    const getLayout = (): UniformBlockLayout => ({ block: 'object', members, size, hash: '' });
-    /** the item's or the level's entries */
-    const getEntries = (): UniformsList => {
-      if (!level) return [...drawEntries, ...globals.drawUniforms];
-      const names = new Set(level.uniforms.map(([k]) => k));
-      return [...drawEntries.filter(([k]) => !names.has(k)), ...level.uniforms, ...globals.drawUniforms];
-    };
     const cap = globals.solidInteriorCap;
     if (cap && cap.pass !== 0) {
       let caps = level ? blocks.levelCaps.get(level) : blocks.caps;
@@ -665,27 +715,45 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       // the clip index is -1 (near plane) or a clip object's
       const key = cap.pass * 256 + cap.clip + 1;
       let block = caps.get(key);
-      if (!block) {
-        const entries: UniformsList = getEntries().map(([k, v]) =>
-          k === 'uSolidInteriorPass'
-            ? [k, ValueCell.create(cap.pass)]
-            : k === 'uSolidInteriorClip'
-              ? [k, ValueCell.create(cap.clip)]
-              : [k, v],
-        );
-        block = ownBlock(arena.createSnapshot(size), getLayout(), entries);
-        caps.set(key, block);
-      }
+      if (!block) caps.set(key, (block = createDrawBlock(program.drawLayout, globals, level, cap)));
       return block;
     }
-    if (!level) return (blocks.base ??= ownBlock(arena.createSnapshot(size), getLayout(), getEntries()));
+    if (!level) return (blocks.base ??= createDrawBlock(program.drawLayout, globals, level));
     let block = blocks.levels.get(level);
     if (!block) {
       // levels are kept by the renderable, replaced when their capacity grows (the slot of a replaced one stays unused)
-      block = ownBlock(arena.createSnapshot(size), getLayout(), getEntries());
+      block = createDrawBlock(program.drawLayout, globals, level);
       blocks.levels.set(level, block);
     }
     return block;
+  }
+
+  /** a draw block of the item's or the level's entries (a cap's with its pass and clip constant): not per draw */
+  function createDrawBlock(
+    layout: NonNullable<WebGPUProgram['drawLayout']>,
+    globals: DrawGlobals,
+    level: MultiDrawBaseData | undefined,
+    cap?: { pass: number; clip: number },
+  ) {
+    const { members, size } = layout;
+    let entries: UniformsList;
+    if (level) {
+      const names = new Set(level.uniforms.map(([k]) => k));
+      entries = [...drawEntries.filter(([k]) => !names.has(k)), ...level.uniforms, ...globals.drawUniforms];
+    } else {
+      entries = [...drawEntries, ...globals.drawUniforms];
+    }
+    if (cap) {
+      entries = entries.map(([k, v]) =>
+        k === 'uSolidInteriorPass'
+          ? [k, ValueCell.create(cap.pass)]
+          : k === 'uSolidInteriorClip'
+            ? [k, ValueCell.create(cap.clip)]
+            : [k, v],
+      );
+    }
+    const blockLayout: UniformBlockLayout = { block: 'object', members, size, hash: '' };
+    return ownBlock(arena.createSnapshot(size), blockLayout, entries);
   }
 
   /** per vertex buffer slot of the programs, created and updated on use; `data` is unset until uploaded */
@@ -744,7 +812,7 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
   }
   createIndexBuffer();
 
-  // the textures of specs with `shared`, by name, released instead of destroyed (`.v6/plans/gl/shared-textures.md` §4)
+  // the textures of specs with `shared`, by name, released instead of destroyed
   const sharedTextures = new Map<string, SharedTexture>();
   const textures = createTextures(ctx, schema, textureValues, sharedTextures);
   const materialTextures = createTextures(ctx, schema, materialTextureValues, sharedTextures);
@@ -862,11 +930,19 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
   function invalidatePrograms(clearAll: boolean) {
     variantPrograms.clear();
     if (clearAll) programs.clear();
+    boundLinearTextures = getLinearTextures();
     textureBindingsVersion += 1;
     ctx.linkables.add(linkable);
   }
   /** incremented when the bound textures or the programs change, bind groups resolve their textures again */
   let textureBindingsVersion = 0;
+  /** the linear-filtered textures the programs were selected for (`getLinearTextures`), see `update` */
+  let boundLinearTextures = getLinearTextures();
+  /**
+   * per layout the groups made for other textures (at most `MaxAlternateGroups`, the oldest dropped): a pass binding
+   * the same few textures in turn every frame finds its group again instead of making one per swap
+   */
+  const alternateGroups = new Map<GPUBindGroupLayout, CachedGroup[]>();
 
   // bind groups 1 (material) and 2 (object, with the draw uniforms) per bind group layout: the bound textures are
   // resolved when the textures or programs change, per draw only their views (recreated textures) and the uniform
@@ -929,6 +1005,42 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     }
     return currentStorageBuffers;
   }
+  /** a group of `alternateGroups` binding the textures bound now, with the buffers and views current */
+  function findAlternate(
+    layout: GPUBindGroupLayout,
+    program: WebGPUProgram,
+    tierTextureNames: readonly { name: string }[],
+    tierTextures: Textures,
+    buffer: GPUBuffer | undefined,
+    drawBuffer: GPUBuffer | undefined,
+  ) {
+    const list = alternateGroups.get(layout);
+    if (!list) return undefined;
+    const current = boundTexturesScratch;
+    current.length = 0;
+    for (const { name } of tierTextureNames) {
+      if (!program.referenced.has(name)) continue;
+      const t = tierTextures.find((e) => e[0] === name)?.[1];
+      current.push(t ? asWebGPUTexture(t) : undefined);
+    }
+    for (let j = list.length - 1; j >= 0; --j) {
+      const g = list[j];
+      if (g.buffer !== buffer || g.drawBuffer !== drawBuffer || g.textures.length !== current.length) continue;
+      let same = true;
+      for (let i = 0, il = current.length; i < il && same; ++i) {
+        same = g.textures[i] === current[i] && current[i]?.getView() === g.views[i];
+      }
+      if (!same) continue;
+      const { storageBuffers } = g;
+      for (let i = 0, il = storageBuffers.length; i < il && same; ++i) {
+        same = storageBuffers[i] === currentStorageBuffers[i];
+      }
+      if (same) return g;
+    }
+    return undefined;
+  }
+  const boundTexturesScratch: (WebGPUTexture | undefined)[] = [];
+
   function getBindGroup(
     program: WebGPUProgram,
     index: 1 | 2,
@@ -948,6 +1060,15 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     const bindingsVersion = groups === bindGroups ? textureBindingsVersion : 0;
     const storageBuffers = index === 2 ? getStorageBuffers(program) : noStorageBuffers;
     let cached = groups.get(layout);
+    if (cached && !isCurrent(cached, slot?.buffer, drawSlot?.buffer, bindingsVersion) && groups === bindGroups) {
+      // bound before: one made for these textures (and buffers) earlier
+      const found = findAlternate(layout, program, tier.textures, tierTextures, slot?.buffer, drawSlot?.buffer);
+      if (found) {
+        found.bindingsVersion = bindingsVersion;
+        groups.set(layout, found);
+        cached = found;
+      }
+    }
     if (!cached || !isCurrent(cached, slot?.buffer, drawSlot?.buffer, bindingsVersion)) {
       const tex = getTextureEntries(ctx.device, tierTextures, tier.textures, program.referenced);
       const entries: GPUBindGroupEntry[] = [...tex.entries];
@@ -986,6 +1107,12 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
       };
       cached.result.group = cached.group;
       groups.set(layout, cached);
+      if (groups === bindGroups) {
+        let list = alternateGroups.get(layout);
+        if (!list) alternateGroups.set(layout, (list = []));
+        list.push(cached);
+        if (list.length > MaxAlternateGroups) list.shift();
+      }
     }
     // dynamic offsets in binding order: the uniform block (0), then the draw uniforms
     const { offsets, result } = cached;
@@ -1133,11 +1260,14 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
         state.setIndexBuffer(range.buffer, 'uint32', range.offset, range.size);
       }
       // items without elements of their own draw indexed by the shared indices of their pattern (`quad-indices.ts`),
-      // quads unindexed past their limit
-      const quad = items ? getItemIndices(ctx, items).get(drawCount / items.pattern.length) : undefined;
+      // quads unindexed past their limit; a range of a merged object's by its first vertex (its first index 0), so the
+      // indices cover its largest segment's items (`drawCountMax`), not the merged geometry's (the yeast cell's 20 M)
+      const drawCountMax = (values as { drawCountMax?: ValueCell<number> }).drawCountMax?.ref.value;
+      const itemDraws = mdbDataList && drawCountMax !== undefined ? drawCountMax : drawCount;
+      const quad = items ? getItemIndices(ctx, items).get(itemDraws / items.pattern.length) : undefined;
       if (quad) state.setIndexBuffer(quad.buffer, 'uint32', 0, quad.buffer.size);
-      // boxes past their limit: not drawn (no unindexed form)
-      if (items?.name === 'box' && !quad) return;
+      // boxes and lines past their limit: not drawn (no unindexed form)
+      if (items && items.name !== 'quad' && !quad) return;
       const indexed = !!indexBuffer || !!quad;
 
       if (mdbDataList) {
@@ -1181,8 +1311,13 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
           }
           for (let i = 0; i < level.count; ++i) {
             if (counts[i] === 0 || instanceCounts[i] === 0) continue;
-            if (indexed) {
-              // element offsets are in bytes (those of quads are their first vertex times 4)
+            if (quad) {
+              // the range's first item by its first vertex (element offsets are in bytes: a quad's first index times 4)
+              const item = offsets[i] / 4 / items!.pattern.length;
+              const base = (baseVertices[i] ?? 0) + item * items!.verticesPerItem;
+              pass.drawIndexed(counts[i], instanceCounts[i], 0, base, baseInstances[i]);
+            } else if (indexed) {
+              // element offsets are in bytes
               pass.drawIndexed(counts[i], instanceCounts[i], offsets[i] / 4, baseVertices[i] ?? 0, baseInstances[i]);
             } else {
               pass.draw(counts[i], instanceCounts[i], firsts[i], baseInstances[i]);
@@ -1243,8 +1378,18 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
         layerPagesChanged = false;
         if (!definesChanged) invalidatePrograms(true);
       }
-      // another texture may be filtered differently (a program of other linear reads)
-      if (texturesReplaced && !definesChanged) invalidatePrograms(false);
+      // another texture may be filtered differently (a program of other linear reads); where the filtered ones are
+      // the same (a pass swapping its input every frame: Hi-Z levels, bloom's blur), the programs stay, the bound
+      // textures are resolved again (`getBindGroup`)
+      if (texturesReplaced && !definesChanged) {
+        const linear = getLinearTextures();
+        if (linear !== boundLinearTextures) {
+          boundLinearTextures = linear;
+          invalidatePrograms(false);
+        } else {
+          textureBindingsVersion += 1;
+        }
+      }
     },
 
     destroy: () => {

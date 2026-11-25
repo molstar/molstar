@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { holdCanvas } from '../../sources/canvas-presence.js';
@@ -110,6 +111,7 @@ const ShotParams = {
   ]),
   quality: PD.Numeric(0.9, { min: 0, max: 1, step: 0.01 }, { description: 'JPEG and WebP quality' }),
   axes: PD.Boolean(false, { description: 'Show the orientation axes' }),
+  scale: PD.Boolean(false, { description: 'Show the scale line' }),
 };
 
 export const ImageParams = {
@@ -216,12 +218,14 @@ function check(v: ShotValues): string | undefined {
 function configure(helper: ViewportScreenshotHelper, v: ShotValues): () => void {
   const before = { values: helper.values, cropParams: helper.cropParams, relativeCrop: helper.relativeCrop };
   const on = PD.getDefaultValues((CameraHelperParams.axes.map('on') as PD.Group<any>).params);
+  const scaleOn = PD.getDefaultValues((CameraHelperParams.scale.map('on') as PD.Group<any>).params);
   helper.behaviors.values.next({
     ...before.values,
     resolution: (v.size.name === 'custom' ? v.size : { name: v.size.name, params: {} }) as never,
     format: v.format === 'png' ? { name: 'png', params: {} } : { name: v.format, params: { quality: v.quality } },
     transparent: v.transparent,
     axes: (v.axes ? { name: 'on', params: on } : { name: 'off', params: {} }) as never,
+    scale: (v.scale ? { name: 'on', params: scaleOn } : { name: 'off', params: {} }) as never,
   });
   const auto = v.crop === 'auto' && !v.box;
   helper.behaviors.cropParams.next({ ...before.cropParams, auto });

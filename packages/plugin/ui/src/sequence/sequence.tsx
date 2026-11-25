@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -10,7 +10,7 @@ import * as React from 'react';
 import { type BehaviorSubject, Subject } from 'rxjs';
 import { throttleTime } from 'rxjs/operators';
 import { OrderedSet } from '@molstar/core/data/int';
-import type { ColorTypeLocation } from '@molstar/graphics/geo/geometry/color-data';
+import type { ColorTypeLocation } from '@molstar/graphics/theme/color';
 import { EveryLoci } from '@molstar/model/model/loci';
 import { StructureElement, StructureProperties, Unit } from '@molstar/model/model/structure';
 import { PluginCommands } from '@molstar/plugin/commands';

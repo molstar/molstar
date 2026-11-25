@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { FIXTURES, PATHS, sums } from './hot-paths-cases.js';
-import { quickCase } from './quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 
 /** A step of many milliseconds: few steps, in small windows. */
 const WALK = { warmSteps: 20, steps: 5, windows: 3, maxWarmSteps: 200 };

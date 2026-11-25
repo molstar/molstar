@@ -1,0 +1,55 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The keys for what is active: a row of hints, xs subtle, its text at the inset (styles §5). */
+.footer {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--msui-space-4);
+  row-gap: var(--msui-space-1);
+  min-height: var(--msui-header);
+  padding: var(--msui-space-1) var(--msui-inner);
+  /* Its line is on the row above it (a 1px shadow, not a border): where that row is the head's own line (nothing
+     between them, as for a command opened directly), the two lines are one. Positioned, so it paints over what is above. */
+  position: relative;
+  box-shadow: 0 -1px 0 var(--msui-line);
+  color: var(--msui-text-subtle);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+}
+
+.hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msui-space-1);
+  white-space: nowrap;
+}
+
+/* A chord: its caps side by side. */
+.keys {
+  display: inline-flex;
+  gap: 1px;
+  font: inherit;
+}
+
+/* A key cap: 16px on the grid, the glyph centered on a sunken cap with a hairline (a sm radius: an inline mark). */
+.cap {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--msui-icon);
+  height: var(--msui-icon);
+  padding-inline: var(--msui-space-1);
+  border-radius: var(--msui-radius-sm);
+  background: var(--msui-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--msui-line);
+  color: var(--msui-text-muted);
+  font-family: var(--msui-font-sans);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+  white-space: nowrap;
+}

@@ -10,7 +10,7 @@
 // translated (translate-cases.ts, the guard's cases), each with its positive control.
 
 import { describe, expect, it } from 'vitest';
-import { quickCase } from '../model/quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 import { resetVisits, TRANSLATE_CASES, translatedRuns, visited } from './translate-cases.js';
 
 describe('translate hot paths, quick', () => {

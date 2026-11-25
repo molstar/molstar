@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -151,6 +152,10 @@ describe('the default spec', () => {
       'ply',
       'obj',
       'vtp',
+      // new in v6: gaussian splats
+      'splat',
+      'spz',
+      'sog',
       'mmcif',
       'cifCore',
       'pdb',
@@ -214,7 +219,7 @@ describe('the default spec', () => {
       'built-in.animate-state-interpolation',
       'built-in.animate-time',
     ]);
-    expect(c.dataActions).toBe(48);
+    expect(c.dataActions).toBe(49);
     expect(c.lociLabelProviders).toBe(5);
     plugin.dispose();
   });

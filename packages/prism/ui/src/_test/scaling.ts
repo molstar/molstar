@@ -7,4 +7,4 @@
  */
 
 // The scaling tier's harness, shared with the AI package: Seq*'s `_test/model` (as `perf.ts` is). Test code only.
-export * from '../../../../sequences/core/_test/model/scaling.js';
+export * from '@molstar/test-harness/scaling';

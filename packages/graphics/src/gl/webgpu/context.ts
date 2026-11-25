@@ -12,11 +12,12 @@ import { Subject } from 'rxjs';
 import { isDebugMode } from '@molstar/core/util/debug';
 import { fromHalfFloat } from '@molstar/core/util/number-conversion';
 import type { TextureReadFormat } from '../texture-reader.js';
-import { createWebGPUTextureReader } from './texture-reader.js';
+import { createWebGPUTextureReader, type WebGPUTextureReadContext } from './texture-reader.js';
 import { now } from '@molstar/core/util/now';
 import { isTimingMode } from '@molstar/core/util/debug';
 import type { GraphicsCapabilities } from '../capabilities.js';
 import {
+  type DrawLists,
   type GraphicsContext,
   type GraphicsDestroyOptions,
   type GraphicsResources,
@@ -25,6 +26,7 @@ import {
   type PipelineRequest,
   type RenderPassOptions,
   type RenderPassTarget,
+  type TargetDescriptor,
 } from '../context.js';
 import {
   ComputeRenderVariants,
@@ -45,7 +47,12 @@ import { createGraphicsTimer, type TimerSource } from '../timer.js';
 import { createWebGPUTimerSource } from './timer.js';
 import { BufferUsage, MapMode, TextureUsage } from './constants.js';
 import { notSupported } from './errors.js';
-import { createWebGPUFramebuffer, isWebGPUFramebuffer, type WebGPUFramebuffer } from './framebuffer.js';
+import {
+  createWebGPUAttachmentSet,
+  isWebGPUAttachmentSet,
+  type WebGPUAttachment,
+  type WebGPUAttachmentSet,
+} from './attachment-set.js';
 import { asWebGPUGlobalBindings, createWebGPUGlobalBindings, type WebGPUBindingContext } from './global-bindings.js';
 import { createWebGPUProgramCache, type WebGPUProgram, type WebGPUProgramCache } from './program.js';
 import { createWebGPUProgramItem, createWebGPURenderItem } from './render-item.js';
@@ -68,9 +75,9 @@ import {
   type Release,
   type WebGPUResourceEnv,
 } from './texture.js';
-import { createWebGPURenderbuffer } from './renderbuffer.js';
+import { asWebGPURenderbuffer, createWebGPURenderbuffer } from './renderbuffer.js';
 import { createRenderTargetFromResources, type RenderTarget } from '../render-target.js';
-import { type CubeFaces, createNullTexture, decodeImage, type Texture } from '../texture.js';
+import { type CubeFaces, createNullTexture, decodeImage, type Texture, type TextureAttachment } from '../texture.js';
 import { createSharedTextures, type SharedTextures } from '../shared-texture.js';
 import {
   BoxItems,
@@ -88,6 +95,17 @@ import { type BufferPages, createBufferPages } from './buffer-pages.js';
 import { createBundlePassState, createCaptureEncoder, createPassState, type PassState } from './pass-state.js';
 import { getWgslProgram } from './shader/programs.js';
 import type { WgslSampler } from './wgsl-declarations.js';
+import {
+  type BackendRenderPassAttachments,
+  createBackendRenderPassAttachments,
+  createFixedRenderPassAttachments,
+  isRenderPassAttachments,
+  isTextureAttachment,
+  type RenderPassAttachmentsBackend,
+} from '../render-pass-attachments.js';
+
+/** render pass attachments of this backend, on an attachment set each */
+type GPURenderPassAttachments = BackendRenderPassAttachments<WebGPUAttachmentSet>;
 
 const AllProgramVariants: ProgramVariant[] = [...GraphicsRenderVariants, ...ComputeRenderVariants];
 const DepthStencilFormat: GPUTextureFormat = 'depth24plus-stencil8';
@@ -139,7 +157,7 @@ export interface WebGPUDrawContext extends WebGPUBindingContext, WebGPUResourceE
   readonly linkables: WebGPULinkables;
   /**
    * Shared buffers the vertex and index data of render items is sub-allocated in: draws binding ranges of a few buffers
-   * replay far faster than draws binding buffers of their own (`shared-draw-resources.md`)
+   * replay far faster than draws binding buffers of their own
    */
   readonly geometryPages: BufferPages;
   /** Shared storage buffers the theme layers of render items are sub-allocated in (`data-layers.ts`) */
@@ -151,7 +169,7 @@ export interface WebGPUDrawContext extends WebGPUBindingContext, WebGPUResourceE
    * share their object bind group (`render-item.ts`)
    */
   readonly uniformPages: BufferPages;
-  /** Textures shared by render items (`.v6/plans/gl/shared-textures.md` §2), gone with the device */
+  /** Textures shared by render items, gone with the device */
   readonly sharedTextures: SharedTextures;
   /** The index buffer of quad items (spheres, points), shared by all (`quad-indices.ts`), a buffer of its own */
   readonly quadIndices: QuadIndices<GPUBuffer>;
@@ -186,6 +204,7 @@ export interface WebGPULinkable {
 
 export interface WebGPUContext extends GraphicsContext {
   readonly device: GPUDevice;
+  readonly drawLists: DrawLists;
   /**
    * Whether a viewport partly outside the target is set as given (cropped); false where the device rejects one, which
    * is then clipped to the target; undefined until the probe answers (`testViewportOutsideTarget`)
@@ -197,7 +216,7 @@ export interface WebGPUContext extends GraphicsContext {
   readonly boxIndices: QuadIndices<GPUBuffer>;
   /** The index buffer of line items, shared by all */
   readonly lineIndices: QuadIndices<GPUBuffer>;
-  /** Textures shared by render items (`.v6/plans/gl/shared-textures.md`), as WebGL's `resources.sharedTextures` */
+  /** Textures shared by render items, as WebGL's `resources.sharedTextures` */
   readonly sharedTextures: SharedTextures;
   /**
    * Records the draws of `draw` into a render bundle for the open pass's target, instead of the pass; undefined when
@@ -396,8 +415,14 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     contextLost.next(now());
   };
 
+  /**
+   * Removes the context's error listener from its device: the device can outlive the context (Dawn's Node.js bindings
+   * keep it by a handle of their own, also destroyed), and the listener's scope is the whole context, its resources
+   * and their memory (in RAM on a software adapter: a test run's contexts held to the end)
+   */
+  let detachDevice: (() => void) | undefined;
   function attachDevice(d: GPUDevice) {
-    d.addEventListener('uncapturederror', (e) => {
+    const onUncapturedError = (e: Event) => {
       const { error } = e as GPUUncapturedErrorEvent;
       onError(`WebGPU error: ${error.message}`);
       // one allocation failing is usually followed by many: reported once in a while
@@ -407,7 +432,9 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
         outOfMemoryReported = time;
         outOfMemory.next(`Not enough GPU memory: ${error.message}`);
       }
-    });
+    };
+    d.addEventListener('uncapturederror', onUncapturedError);
+    detachDevice = () => d.removeEventListener('uncapturederror', onUncapturedError);
     d.lost.then((info) => {
       // losses of replaced devices and of destroyed contexts are expected
       if (d !== device || destroyed) return;
@@ -674,12 +701,12 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     return drawingBuffer;
   }
 
-  function describeFramebuffer(framebuffer: WebGPUFramebuffer): WebGPUTargetDescriptor {
-    const colorFormats = framebuffer.getColorAttachments().map((c) => {
+  function describeAttachmentSet(set: WebGPUAttachmentSet): WebGPUTargetDescriptor {
+    const colorFormats = set.getColorAttachments().map((c) => {
       if (!c) throw new Error('color attachment of the target is missing');
       return c.format;
     });
-    const depth = framebuffer.getDepthAttachment();
+    const depth = set.getDepthAttachment();
     return {
       key: getTargetKey(colorFormats, depth?.format),
       colorFormats,
@@ -703,19 +730,44 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     return options?.depthReadOnly ? withDepthReadOnly(descriptor) : descriptor;
   }
 
-  function describeWritableTarget(target: RenderPassTarget): WebGPUTargetDescriptor {
-    if (target === 'drawing-buffer') return drawingBufferTarget;
-    const framebuffer = 'framebuffer' in target ? target.framebuffer : target;
-    if ('framebuffer' in target && drawTargets.has(target)) return drawingBufferTarget;
-    if (isWebGPUFramebuffer(framebuffer)) return describeFramebuffer(framebuffer);
-    throw new Error('expected a WebGPU framebuffer or render target');
+  function describeWritableTarget(passTo: RenderPassTarget): WebGPUTargetDescriptor {
+    if (passTo === 'drawing-buffer') return drawingBufferTarget;
+    const target = isRenderPassAttachments(passTo) ? (passTo as GPURenderPassAttachments).getBackendTarget() : passTo;
+    if ('attachments' in target && drawTargets.has(target)) return drawingBufferTarget;
+    const set = 'attachments' in target ? (target.attachments as GPURenderPassAttachments).getBackendTarget() : target;
+    if (isWebGPUAttachmentSet(set)) return describeAttachmentSet(set);
+    throw new Error('expected WebGPU render pass attachments or a render target');
   }
 
-  function getFramebufferTarget(framebuffer: WebGPUFramebuffer): PassTarget {
-    const colors = framebuffer.getColorAttachments();
-    const depth = framebuffer.getDepthAttachment();
+  /**
+   * The pass target of each attachment set, made again where its attachments (`version`), their views (storage
+   * recreated) or its size changed: a pass into a set makes none (and its descriptor is kept, `getPassDescriptor`)
+   */
+  const attachmentSetTargets = new WeakMap<
+    WebGPUAttachmentSet,
+    { version: number; colors: WebGPUAttachment[]; depth?: WebGPUAttachment; target: PassTarget }
+  >();
+  function isAttachmentSetTargetCurrent(c: {
+    colors: WebGPUAttachment[];
+    depth?: WebGPUAttachment;
+    target: PassTarget;
+  }) {
+    const { target } = c;
+    for (let i = 0, il = c.colors.length; i < il; ++i) {
+      if (c.colors[i].getAttachmentView() !== target.colorViews[i]) return false;
+    }
+    if (c.depth && c.depth.getAttachmentView() !== target.depthView) return false;
+    const first = c.colors[0] ?? c.depth;
+    return !!first && first.getWidth() === target.width && first.getHeight() === target.height;
+  }
+
+  function getAttachmentSetTarget(set: WebGPUAttachmentSet): PassTarget {
+    const cached = attachmentSetTargets.get(set);
+    if (cached && cached.version === set.version && isAttachmentSetTargetCurrent(cached)) return cached.target;
+    const colors = set.getColorAttachments();
+    const depth = set.getDepthAttachment();
     const first = colors[0] ?? depth;
-    if (!first) throw new Error('render pass on a framebuffer without attachments');
+    if (!first) throw new Error('render pass without attachments');
     const colorViews: GPUTextureView[] = [];
     for (let i = 0; i < colors.length; ++i) {
       const view = colors[i]?.getAttachmentView();
@@ -723,7 +775,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       colorViews.push(view);
     }
     const colorFormats = colors.map((c) => c!.format);
-    return {
+    const target: PassTarget = {
       key: getTargetKey(colorFormats, depth?.format),
       colorViews,
       colorDepthSlices: colors.map((c) => c!.depthSlice),
@@ -734,6 +786,13 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       width: first.getWidth(),
       height: first.getHeight(),
     };
+    attachmentSetTargets.set(set, {
+      version: set.version,
+      colors: colors as WebGPUAttachment[],
+      depth,
+      target,
+    });
+    return target;
   }
 
   /** render targets of the drawing buffer, see `createDrawTarget` */
@@ -743,12 +802,13 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     return getDrawingBuffer().target;
   }
 
-  function getPassTarget(target: RenderPassTarget): PassTarget {
-    if (target === 'drawing-buffer') return getDrawingBufferTarget();
-    const framebuffer = 'framebuffer' in target ? target.framebuffer : target;
-    if ('framebuffer' in target && drawTargets.has(target)) return getDrawingBufferTarget();
-    if (isWebGPUFramebuffer(framebuffer)) return getFramebufferTarget(framebuffer);
-    throw new Error('expected a WebGPU framebuffer or render target');
+  function getPassTarget(passTo: RenderPassTarget): PassTarget {
+    if (passTo === 'drawing-buffer') return getDrawingBufferTarget();
+    const target = isRenderPassAttachments(passTo) ? (passTo as GPURenderPassAttachments).getBackendTarget() : passTo;
+    if ('attachments' in target && drawTargets.has(target)) return getDrawingBufferTarget();
+    const set = 'attachments' in target ? (target.attachments as GPURenderPassAttachments).getBackendTarget() : target;
+    if (isWebGPUAttachmentSet(set)) return getAttachmentSetTarget(set);
+    throw new Error('expected WebGPU render pass attachments or a render target');
   }
 
   /** Rows of a 2d texture (or of the rectangle with a top-left origin), tightly packed, top to bottom */
@@ -789,6 +849,23 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   /** texture formats of the `TextureReader` formats, four bytes per texel */
   const ReaderFormats: { [F in TextureReadFormat]: GPUTextureFormat } = { rgba8: 'rgba8unorm', r32f: 'r32float' };
+
+  /** what the context's texture readers use (`createWebGPUTextureReader`) */
+  const textureReadContext: WebGPUTextureReadContext = {
+    device,
+    submit: () => submit(),
+    getTexture: (texture, format) => {
+      const t = asWebGPUTexture(texture);
+      const gpuTexture = t.getGPUTexture();
+      if (!gpuTexture) throw new Error('texture without storage');
+      if (t.format !== ReaderFormats[format]) notSupported(`reading textures of format '${t.format}' as '${format}'`);
+      return gpuTexture;
+    },
+    countStaging: (bytes, buffers) => {
+      byteCounts.pixelPack += bytes;
+      stats.resourceCounts.pixelPack += buffers;
+    },
+  };
 
   /** bytes per texel and its channels, of formats `readTextureData` reads */
   const ReadableFormats: { [k: string]: { bytes: number; channels: number; type: 'ubyte' | 'float' | 'half' } } = {
@@ -873,9 +950,55 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   let passEncoder: GPURenderPassEncoder | undefined;
   let passState: PassState | undefined;
+  /** the passes' state, rebound to each pass (`beginPassEncoder`) */
+  let directPassState: PassState | undefined;
   /** target of the open pass, the encoder is begun on first draw */
   let passTarget: PassTarget | undefined;
-  let passClear: { color?: ClearValues['color']; depth?: number; stencil?: number } = {};
+  type PassClear = { readonly color?: ClearValues['color']; readonly depth?: number; readonly stencil?: number };
+  /** a pass clearing nothing: shared, not made a pass */
+  const NoClear: PassClear = {};
+  let passClear: PassClear = NoClear;
+  /**
+   * The descriptor of each target's passes, its attachments' views, load operations and clear values set anew each
+   * pass: a stable target (the drawing buffer's) begins its passes without allocating
+   */
+  const passDescriptors = new WeakMap<
+    PassTarget,
+    { descriptor: GPURenderPassDescriptor; colors: GPURenderPassColorAttachment[]; clears: GPUColorDict[] }
+  >();
+  function getPassDescriptor(target: PassTarget) {
+    let d = passDescriptors.get(target);
+    if (!d) {
+      const colors: GPURenderPassColorAttachment[] = [];
+      const clears: GPUColorDict[] = [];
+      for (let i = 0, il = target.colorViews.length; i < il; ++i) {
+        colors.push({ view: target.colorViews[i], loadOp: 'load', storeOp: 'store' });
+        clears.push({ r: 0, g: 0, b: 0, a: 0 });
+      }
+      const descriptor: GPURenderPassDescriptor = { colorAttachments: colors };
+      if (target.depthView && target.depthReadOnly) {
+        // read in the pass (and bindable as a texture), so neither loaded nor stored
+        descriptor.depthStencilAttachment = {
+          view: target.depthView,
+          depthReadOnly: true,
+          stencilReadOnly: target.hasStencil ? true : undefined,
+        };
+      } else if (target.depthView) {
+        descriptor.depthStencilAttachment = {
+          view: target.depthView,
+          depthLoadOp: 'load',
+          depthStoreOp: 'store',
+          depthClearValue: 0,
+          stencilLoadOp: target.hasStencil ? 'load' : undefined,
+          stencilStoreOp: target.hasStencil ? 'store' : undefined,
+          stencilClearValue: 0,
+        };
+      }
+      d = { descriptor, colors, clears };
+      passDescriptors.set(target, d);
+    }
+    return d;
+  }
 
   let renderState: RenderState = {};
   let blendConstant: GPUColorDict = { r: 0, g: 0, b: 0, a: 0 };
@@ -893,39 +1016,40 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   function beginPassEncoder(target: PassTarget) {
     const { color, depth, stencil } = passClear;
-    const descriptor: GPURenderPassDescriptor = {
-      colorAttachments: target.colorViews.map((view, i) => ({
-        view,
-        depthSlice: target.colorDepthSlices?.[i],
-        loadOp: color ? 'clear' : 'load',
-        storeOp: 'store',
-        clearValue: color ? { r: color[0], g: color[1], b: color[2], a: color[3] } : undefined,
-      })),
-    };
-    if (target.depthView && target.depthReadOnly) {
-      // read in the pass (and bindable as a texture), so neither loaded nor stored
-      descriptor.depthStencilAttachment = {
-        view: target.depthView,
-        depthReadOnly: true,
-        stencilReadOnly: target.hasStencil ? true : undefined,
-      };
-    } else if (target.depthView) {
-      descriptor.depthStencilAttachment = {
-        view: target.depthView,
-        depthLoadOp: depth !== undefined ? 'clear' : 'load',
-        depthStoreOp: 'store',
-        depthClearValue: depth ?? 0,
-        stencilLoadOp: target.hasStencil ? (stencil !== undefined ? 'clear' : 'load') : undefined,
-        stencilStoreOp: target.hasStencil ? 'store' : undefined,
-        stencilClearValue: stencil ?? 0,
-      };
+    const { descriptor, colors, clears } = getPassDescriptor(target);
+    for (let i = 0, il = colors.length; i < il; ++i) {
+      const a = colors[i];
+      a.view = target.colorViews[i];
+      a.depthSlice = target.colorDepthSlices?.[i];
+      a.loadOp = color ? 'clear' : 'load';
+      if (color) {
+        const c = clears[i];
+        c.r = color[0];
+        c.g = color[1];
+        c.b = color[2];
+        c.a = color[3];
+        a.clearValue = c;
+      } else {
+        a.clearValue = undefined;
+      }
     }
-    passClear = {};
-    const timestampWrites = timerSource?.getTimestampWrites();
-    if (timestampWrites) descriptor.timestampWrites = timestampWrites;
+    const ds = descriptor.depthStencilAttachment;
+    if (ds && target.depthView) {
+      ds.view = target.depthView;
+      if (!target.depthReadOnly) {
+        ds.depthLoadOp = depth !== undefined ? 'clear' : 'load';
+        ds.depthClearValue = depth ?? 0;
+        if (target.hasStencil) ds.stencilLoadOp = stencil !== undefined ? 'clear' : 'load';
+        ds.stencilClearValue = stencil ?? 0;
+      }
+    }
+    passClear = NoClear;
+    descriptor.timestampWrites = timerSource?.getTimestampWrites();
     const pass = getCommandEncoder().beginRenderPass(descriptor);
     pass.setBlendConstant(blendConstant);
-    passState = createPassState(pass);
+    if (directPassState) directPassState.rebind(pass);
+    else directPassState = createPassState(pass);
+    passState = directPassState;
     return pass;
   }
 
@@ -969,27 +1093,42 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
   /** the render bundle being recorded (`recordRenderBundle`), the draws' state meanwhile */
   let recording: { state: PassState; failed?: string } | undefined;
-  /** the draws being captured (`captureDraws`): their state, encoding nothing */
+  /** the draws being captured (`DrawLists.capture`): their state, encoding nothing */
   let capturing: PassState | undefined;
 
   /**
    * Bundles replayed one after another, executed together before the next command of the pass (`getPassState`, the
-   * pass's end, a blend constant): one `executeBundles` for a pass replayed in chunks; `pendingKey` the dynamic state
-   * they run with (viewport, scissor, stencil reference)
+   * pass's end, a blend constant): one `executeBundles` for a pass replayed in chunks; `pendingDynamic` the dynamic
+   * state they run with (`readDynamicState`). Both reused: a replay allocates nothing
    */
-  let pendingBundles: GPURenderBundle[] = [];
-  let pendingKey = '';
+  const pendingBundles: GPURenderBundle[] = [];
+  const pendingDynamic = new Float64Array(9);
+  const currentDynamic = new Float64Array(9);
   function flushBundles() {
     if (pendingBundles.length === 0) return;
+    // the encoder copies the list
     passEncoder!.executeBundles(pendingBundles);
-    pendingBundles = [];
+    pendingBundles.length = 0;
     // a bundle leaves the pipeline, bind groups and buffers unset
     passState!.invalidate();
   }
-  function getDynamicStateKey() {
+  /** The viewport, scissor (`-Infinity` where unset) and stencil reference into `out` */
+  function readDynamicState(out: Float64Array) {
     const v = viewport;
     const s = scissor;
-    return `${v ? `${v.x},${v.y},${v.width},${v.height}` : ''}|${s ? `${s.x},${s.y},${s.width},${s.height}` : ''}|${renderState.stencil?.reference ?? 0}`;
+    out[0] = v ? v.x : -Infinity;
+    out[1] = v ? v.y : -Infinity;
+    out[2] = v ? v.width : -Infinity;
+    out[3] = v ? v.height : -Infinity;
+    out[4] = s ? s.x : -Infinity;
+    out[5] = s ? s.y : -Infinity;
+    out[6] = s ? s.width : -Infinity;
+    out[7] = s ? s.height : -Infinity;
+    out[8] = renderState.stencil?.reference ?? 0;
+  }
+  function isPendingDynamicState() {
+    for (let i = 0; i < 9; ++i) if (currentDynamic[i] !== pendingDynamic[i]) return false;
+    return true;
   }
 
   function getPassState() {
@@ -1270,19 +1409,21 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
           recordings.delete(passTarget.key);
           return false;
         }
-        executeRenderBundles([recording.bundle]);
+        executeRenderBundle(recording.bundle);
         return true;
       },
       record: (globals, draw) => {
         const target = passTarget;
         if (!target) throw new Error('recording a draw list outside of a render pass');
-        const state = asWebGPUGlobalBindings(globals).getState();
+        // copied: the bindings update their state in place
+        const { buffer, offset, textures } = asWebGPUGlobalBindings(globals).getState();
+        const state = { buffer, offset, textures };
         const bundle = recordRenderBundle(draw);
         recordings.delete(target.key);
         if (bundle) {
           if (recordings.size >= MaxDrawListTargets) recordings.delete(recordings.keys().next().value!);
           recordings.set(target.key, { bundle, state, arenaReplacements: ring.arenaReplacements });
-          executeRenderBundles([bundle]);
+          executeRenderBundle(bundle);
         } else {
           draw();
         }
@@ -1293,15 +1434,18 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     };
   }
 
-  function executeRenderBundles(bundles: readonly GPURenderBundle[]) {
+  function executeRenderBundle(bundle: GPURenderBundle) {
     if (recording) throw new Error('replaying render bundles while recording one');
-    const key = getDynamicStateKey();
+    readDynamicState(currentDynamic);
     // the dynamic state applied (and earlier bundles executed) unless it is the one of the bundles pending
-    if (pendingBundles.length === 0 || key !== pendingKey) {
+    if (pendingBundles.length === 0 || !isPendingDynamicState()) {
       getPassState();
-      pendingKey = key;
+      pendingDynamic.set(currentDynamic);
     }
-    for (const b of bundles) pendingBundles.push(b);
+    pendingBundles.push(bundle);
+  }
+  function executeRenderBundles(bundles: readonly GPURenderBundle[]) {
+    for (let i = 0, il = bundles.length; i < il; ++i) executeRenderBundle(bundles[i]);
   }
 
   let submitCount = 0;
@@ -1319,6 +1463,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     ring.reset();
     globalRing.reset();
     submitCount += 1;
+    reclaimPages(false);
     if (pendingReleases.length) {
       for (const r of pendingReleases) r.destroy();
       pendingReleases.length = 0;
@@ -1378,6 +1523,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     pageSize: Math.min(GeometryPageSize, device.limits.maxBufferSize),
     label: 'geometry page',
     getSubmitCount: () => submitCount,
+    onFree: () => schedulePageReclaim(),
   });
   const dataBindingSize = Math.min(
     device.limits.maxStorageBufferBindingSize,
@@ -1388,6 +1534,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     pageSize: Math.min(DataPageSize, dataBindingSize),
     label: 'data page',
     getSubmitCount: () => submitCount,
+    onFree: () => schedulePageReclaim(),
   });
   const uniformPages = createBufferPages(device, {
     usage: BufferUsage.UNIFORM,
@@ -1395,7 +1542,30 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     alignment: device.limits.minUniformBufferOffsetAlignment,
     label: 'uniform page',
     getSubmitCount: () => submitCount,
+    onFree: () => schedulePageReclaim(),
   });
+  /**
+   * The pages' freed ranges reclaimed (and empty pages dropped) after each submission, and once the canvas is idle
+   * after a free (no frame follows a removal): else only by a later allocation, its pages kept meanwhile
+   */
+  const reclaimPages = (idle: boolean) => {
+    geometryPages.reclaim(idle);
+    dataPages.reclaim(idle);
+    uniformPages.reclaim(idle);
+  };
+  let pageReclaimScheduled = false;
+  function schedulePageReclaim() {
+    if (pageReclaimScheduled) return;
+    pageReclaimScheduled = true;
+    setTimeout(() => {
+      pageReclaimScheduled = false;
+      if (destroyed || isContextLost) return;
+      // commands recorded but not submitted may still read a freed range: those wait for their submission
+      reclaimPages(!commandEncoder);
+      // the memory of the pages dropped is freed on a submission
+      scheduleReclaim();
+    }, 0);
+  }
 
   /** The shared index buffer of the items of `items` (`quad-indices.ts`), a buffer of its own */
   function createItemIndices(items: ItemIndexPattern) {
@@ -1503,8 +1673,34 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     multiDrawIndirect: device.features.has('chromium-experimental-multi-draw-indirect' as GPUFeatureName),
     atomicMinMax64: device.features.has('atomic-vec2u-min-max' as GPUFeatureName),
     parallelCompile: true,
+    instanceExpansion: false,
   };
 
+  const attachmentsBackend: RenderPassAttachmentsBackend<WebGPUAttachmentSet> = {
+    createTarget: () => {
+      const set = createWebGPUAttachmentSet();
+      const uncount = countResource(stats, 'framebuffer');
+      const destroy = set.destroy;
+      set.destroy = () => {
+        destroy();
+        uncount();
+      };
+      return set;
+    },
+    destroyTarget: (set) => set.destroy(),
+    attachColor: (set, texture, index, layer) =>
+      asWebGPUTexture(texture).attach(set, index as TextureAttachment, layer),
+    detachColor: (set, texture, index) => asWebGPUTexture(texture).detach(set, index as TextureAttachment),
+    attachDepth: (set, depth) => {
+      if (isTextureAttachment(depth)) asWebGPUTexture(depth).attach(set, 'depth');
+      else asWebGPURenderbuffer(depth).attach(set);
+    },
+    detachDepth: (set, depth) => {
+      if (isTextureAttachment(depth)) asWebGPUTexture(depth).detach(set, 'depth');
+      else asWebGPURenderbuffer(depth).detach(set);
+    },
+    setDrawBuffers: (set, count) => set.setDrawBuffers(count),
+  };
   const resources: GraphicsResources = {
     limits: {
       maxTextureSize: device.limits.maxTextureDimension2D,
@@ -1545,16 +1741,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       };
       return texture;
     },
-    framebuffer: () => {
-      const framebuffer = createWebGPUFramebuffer();
-      const uncount = countResource(stats, 'framebuffer');
-      const destroy = framebuffer.destroy;
-      framebuffer.destroy = () => {
-        destroy();
-        uncount();
-      };
-      return framebuffer;
-    },
+    renderPassAttachments: (color, depth) => createBackendRenderPassAttachments(attachmentsBackend, color, depth),
     renderbuffer: (format, attachment, width, height) =>
       createWebGPURenderbuffer(env, format, attachment, width, height),
     uniformBuffer: () => notSupported('uniformBuffer'),
@@ -1598,17 +1785,19 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     device,
     recordRenderBundle,
     executeRenderBundles,
-    createDrawList,
-    captureDraws,
-    get submitCount() {
-      return submitCount;
+    drawLists: {
+      create: createDrawList,
+      capture: captureDraws,
+      get submitCount() {
+        return submitCount;
+      },
+      get resourcesVersion() {
+        // both only advance: their sum advances with either
+        return getSharedIndicesVersion() + drawContext.sharedTextures.version;
+      },
     },
     get viewportOutsideTarget() {
       return viewportOutsideTarget;
-    },
-    get drawResourcesVersion() {
-      // both only advance: their sum advances with either
-      return getSharedIndicesVersion() + drawContext.sharedTextures.version;
     },
     quadIndices: drawContext.quadIndices,
     boxIndices: drawContext.boxIndices,
@@ -1650,10 +1839,6 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
 
     xr,
 
-    namedFramebuffers: Object.create(null),
-    namedTextures: Object.create(null),
-    namedComputeRenderables: Object.create(null),
-
     isProgramSupported: (shaderCode) => strict || getWgslProgram(shaderCode.name) !== undefined,
     createProgramItem: (drawMode, shaderCode, schema, defineValues, linearTextures, transparency) =>
       createWebGPUProgramItem(drawContext, drawMode, shaderCode, schema, defineValues, linearTextures, transparency),
@@ -1686,12 +1871,11 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       const target: RenderTarget = {
         id: -1,
         texture: createNullTexture(),
-        framebuffer: createWebGPUFramebuffer(),
         depthRenderbuffer: null,
+        attachments: createFixedRenderPassAttachments(createWebGPUAttachmentSet()),
         getByteCount: () => 0,
         getWidth: () => drawingBufferWidth,
         getHeight: () => drawingBufferHeight,
-        bind: () => {},
         setSize: () => {},
         destroy: () => {},
       };
@@ -1724,13 +1908,15 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
     },
 
     describeTarget,
+    prepareClear: (target: TargetDescriptor, values: ClearValues) =>
+      clearDraw.prepare(target as WebGPUTargetDescriptor, values),
     beginRenderPass: (target: RenderPassTarget, options?: RenderPassOptions) => {
       endComputePass();
       endPassEncoder();
       timer.passBegin(target, options?.label);
       passTarget = getPassTarget(target);
       if (options?.depthReadOnly) passTarget = withDepthReadOnly(passTarget);
-      passClear = {};
+      passClear = NoClear;
       if (options?.clear) {
         checkReadOnlyClear(options.clear);
         passClear = { ...options.clear };
@@ -1819,14 +2005,7 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       if (t.format !== 'rgba8unorm') notSupported(`reading textures of format '${t.format}'`);
       return readGPUTexture(gpuTexture, 4, { x, y, width, height });
     },
-    createTextureReader: (options) =>
-      createWebGPUTextureReader((texture, format, x, y, width, height) => {
-        const t = asWebGPUTexture(texture);
-        const gpuTexture = t.getGPUTexture();
-        if (!gpuTexture) throw new Error('texture without storage');
-        if (t.format !== ReaderFormats[format]) notSupported(`reading textures of format '${t.format}' as '${format}'`);
-        return readGPUTexture(gpuTexture, 4, { x, y, width, height });
-      }, options),
+    createTextureReader: (options) => createWebGPUTextureReader(textureReadContext, options),
     readTextureData: async (texture: Texture) => {
       const t = asWebGPUTexture(texture);
       const gpuTexture = t.getGPUTexture();
@@ -1882,6 +2061,8 @@ export function createWebGPUContext(device: GPUDevice, options: WebGPUContextOpt
       pending.clear();
       contextLost.complete();
       // the resources of a lost device are gone with it; its canvas is the one a restored context configures
+      detachDevice?.();
+      detachDevice = undefined;
       if (options?.lost) {
         if (contextOptions.ownsDevice) device.destroy();
         return;

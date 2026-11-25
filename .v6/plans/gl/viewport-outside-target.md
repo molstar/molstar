@@ -73,15 +73,17 @@ the main one; how each meets the crop:
   (`setProjectionPlanes`): the crop's narrowed frustum is carried as is, nothing to do but copy the crop with the view
   offset.
 - **`ScreenCamera`** (`screen-helper.ts`) builds its own orthographic projection in CSS pixels of `source.viewport` and
-  anchors the corner axes, the view cube and the scale line to that viewport's corners and edges. It already takes
+  anchors the corner axes and the scale line to that viewport's corners and edges. It already takes
   `viewOffset` as a tile of a larger image ("keeps the place of the full image in a tile of it", `screen-camera.test.ts`),
   but nothing produces such a view offset: the only producer is the jitter, whose full size is the viewport. The crop
   is that tile: `ScreenCamera` anchors to the crop's full frame and projects the cropped part of it, the jitter's view
   offset applied on top as sub-pixels; the tile reading of `viewOffset` goes (`setScreenProjection`, the test rewritten
   against the crop).
-- **Screen-sized objects and the scale line** take a pixel's size from `projection[5]` and `uCssHeight` (the viewport's
-  height in CSS pixels). Under the crop both change by the frame's height over the cropped height, inversely, so their
-  product, and the size, stays: nothing to do; a quick test of a screen-sized mesh's size cropped and not.
+- **Screen-sized objects** take a pixel's size from `projection[5]` and `uCssHeight` (the viewport's height in CSS
+  pixels). Under the crop both change by the frame's height over the cropped height, inversely, so their product, and
+  the size, stays: nothing to do; a quick test of a screen-sized mesh's size cropped and not.
+- **The scale line** (`worldPerPixel`) measures by the field of view, which spans the frame: the frame's height, not
+  the viewport's.
 - **Hit areas, occlusion by the scene, depth of field**: from `camera.viewport`, the target's pixels and unprojection
   with the cropped camera, consistent as for the passes.
 

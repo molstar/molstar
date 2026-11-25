@@ -7,12 +7,10 @@
 import { ValueCell } from '@molstar/core/util';
 import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
 import type { LocationIterator } from '../util/location-iterator.js';
-import { type Location, NullLocation } from '@molstar/model/model/location';
-import type { SizeTheme } from '@molstar/graphics/theme/size';
+import { NullLocation } from '@molstar/model/model/location';
+import type { LocationSize, SizeTheme, SizeType } from '@molstar/graphics/theme/size';
 import { Geometry } from './geometry.js';
 import { unpackRGBToInt, packIntToRGBArray } from '@molstar/core/util/number-packing';
-
-export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance';
 
 export type SizeData = {
   uSize: ValueCell<number>;
@@ -26,31 +24,39 @@ export type SizeData = {
 };
 
 /**
+ * The size types of size data: the themes' (`SizeType`), and `siteType`: by the type of a quantized sphere center
+ * (`SphereSites`, the fourth int16 of its `tSite` element), `tSize` a table of the types' sizes (a particle pack's
+ * radii by type: a few entries, not one a site)
+ */
+export type SizeDataType = SizeType | 'siteType';
+
+/**
  * How the size types read from `tSize` by index select it (`uSizeIndexType`): they share the define value 'texture',
  * one program, the shaders select at runtime
  */
-export const SizeTypeIndex: { readonly [T in SizeType]?: number } = {
+export const SizeTypeIndex: { readonly [T in SizeDataType]?: number } = {
   instance: 0,
   group: 1,
   groupInstance: 2,
   vertex: 3,
   vertexInstance: 4,
+  siteType: 5,
 };
 
 /** The define value of the size type `type`: the types read from `tSize` by index share 'texture' */
-export function getSizeTypeDefine(type: SizeType | string): string {
+export function getSizeTypeDefine(type: SizeDataType | string): string {
   return type === 'uniform' ? 'uniform' : 'texture';
 }
 
 /** Sets the size type `type`, its define and index (`SizeTypeIndex`) of `values` */
-export function setSizeType(values: Pick<SizeData, 'sizeType' | 'dSizeType' | 'uSizeIndexType'>, type: SizeType) {
+export function setSizeType(values: Pick<SizeData, 'sizeType' | 'dSizeType' | 'uSizeIndexType'>, type: SizeDataType) {
   ValueCell.updateIfChanged(values.sizeType, type);
   ValueCell.updateIfChanged(values.dSizeType, getSizeTypeDefine(type));
   ValueCell.updateIfChanged(values.uSizeIndexType, SizeTypeIndex[type] ?? 0);
 }
 
 /** The values of the size type `type` (its define and index, see `setSizeType`) */
-function createSizeType(type: SizeType) {
+function createSizeType(type: SizeDataType) {
   return {
     uSizeIndexType: ValueCell.create(SizeTypeIndex[type] ?? 0),
     dSizeType: ValueCell.create(getSizeTypeDefine(type)),
@@ -88,7 +94,7 @@ export function createSizes(
 export const sizeDataFactor = 100; // NOTE same factor is set in shaders
 
 export function getMaxSize(sizeData: SizeData): number {
-  const type = sizeData.sizeType.ref.value as SizeType;
+  const type = sizeData.sizeType.ref.value as SizeDataType;
   switch (type) {
     case 'uniform':
       return sizeData.uSize.ref.value;
@@ -97,6 +103,7 @@ export function getMaxSize(sizeData: SizeData): number {
     case 'groupInstance':
     case 'vertex':
     case 'vertexInstance':
+    case 'siteType':
       let maxSize = 0;
       // the elements only: a reused array may be longer
       const { array, count } = sizeData.tSize.ref.value;
@@ -108,9 +115,14 @@ export function getMaxSize(sizeData: SizeData): number {
   }
 }
 
-export type LocationSize = (location: Location) => number;
-
 const emptySizeTexture = { array: new Uint8Array(4), count: 1 };
+
+/** the array of `sizeData`'s table to write again: not the empty one, which every uniform size shares */
+function reusedArray(sizeData: SizeData | undefined) {
+  const table = sizeData?.tSize.ref.value;
+  return table && table !== emptySizeTexture ? table.array : undefined;
+}
+
 function createEmptySizeTexture() {
   return { tSize: ValueCell.create(emptySizeTexture) };
 }
@@ -136,7 +148,7 @@ export function createUniformSize(locationIt: LocationIterator, sizeFn: Location
   return createValueSize(sizeFn(location), sizeData);
 }
 
-export function createTextureSize(sizes: DataArray<Uint8Array>, type: SizeType, sizeData?: SizeData): SizeData {
+export function createTextureSize(sizes: DataArray<Uint8Array>, type: SizeDataType, sizeData?: SizeData): SizeData {
   if (sizeData) {
     ValueCell.update(sizeData.tSize, sizes);
     setSizeType(sizeData, type);
@@ -150,10 +162,20 @@ export function createTextureSize(sizes: DataArray<Uint8Array>, type: SizeType, 
   }
 }
 
+/**
+ * The sizes of quantized sphere centers by their type (`siteType`): `tSize` the table of `sizes`, one a type (a
+ * particle pack's radii by type, times the theme's scale)
+ */
+export function createSiteTypeSize(sizes: ArrayLike<number>, sizeData?: SizeData): SizeData {
+  const table = createDataArray(Math.max(1, sizes.length), 4, Uint8Array, reusedArray(sizeData));
+  for (let i = 0; i < sizes.length; ++i) packIntToRGBArray(sizes[i] * sizeDataFactor, table.array, i * 4);
+  return createTextureSize(table, 'siteType', sizeData);
+}
+
 /** Creates size texture with size for each instance/unit */
 export function createInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
   const { instanceCount } = locationIt;
-  const sizes = createDataArray(Math.max(1, instanceCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, instanceCount), 4, Uint8Array, reusedArray(sizeData));
   locationIt.reset();
   while (locationIt.hasNext && !locationIt.isNextNewInstance) {
     const v = locationIt.move();
@@ -166,7 +188,7 @@ export function createInstanceSize(locationIt: LocationIterator, sizeFn: Locatio
 /** Creates size texture with size for each group (i.e. shared across instances/units) */
 export function createGroupSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
   const { groupCount } = locationIt;
-  const sizes = createDataArray(Math.max(1, groupCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, groupCount), 4, Uint8Array, reusedArray(sizeData));
   locationIt.reset();
   while (locationIt.hasNext && !locationIt.isNextNewInstance) {
     const v = locationIt.move();
@@ -183,7 +205,7 @@ export function createGroupInstanceSize(
 ): SizeData {
   const { groupCount, instanceCount } = locationIt;
   const count = instanceCount * groupCount;
-  const sizes = createDataArray(Math.max(1, count), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, count), 4, Uint8Array, reusedArray(sizeData));
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();
@@ -195,7 +217,7 @@ export function createGroupInstanceSize(
 /** Creates size texture with size for each vertex */
 export function createVertexSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
   const { groupCount } = locationIt;
-  const sizes = createDataArray(Math.max(1, groupCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, groupCount), 4, Uint8Array, reusedArray(sizeData));
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();
@@ -212,7 +234,7 @@ export function createVertexInstanceSize(
 ): SizeData {
   const { groupCount, instanceCount } = locationIt;
   const count = instanceCount * groupCount;
-  const sizes = createDataArray(Math.max(1, count), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createDataArray(Math.max(1, count), 4, Uint8Array, reusedArray(sizeData));
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();

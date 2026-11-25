@@ -9,7 +9,15 @@ import { gzipSync } from 'node:zlib';
 import { describe, expect, it, vi } from 'vitest';
 import { Task } from '@molstar/core/task';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
-import { ajaxGet, ajaxGetMany, fetchData, fetchDataMany, readFromFile, setFSModule } from '../data-source.js';
+import {
+  ajaxGet,
+  ajaxGetMany,
+  fetchData,
+  fetchDataMany,
+  readFromFile,
+  setFSModule,
+  SizeLimitExceeded,
+} from '../data-source.js';
 import { zip } from '../zip/zip.js';
 
 const encode = (s: string) => new TextEncoder().encode(s);
@@ -271,6 +279,37 @@ describe('fetchData', () => {
     } finally {
       setFSModule(fs);
     }
+  });
+
+  it('a file:// read honors maxBytes (refused before it is read), the signal and a bound that is not a size', async () => {
+    const readFile = vi.fn((_: string, cb: (e: null, d: Buffer) => void) => cb(null, Buffer.alloc(100, 'a')));
+    setFSModule({
+      readFile,
+      stat: (_: string, cb: (e: null, s: { size: number }) => void) => cb(null, { size: 100 }),
+    } as any);
+    try {
+      await expect(fetchData({ url: 'file:///tmp/x.bin', type: 'binary', maxBytes: 50 }).run()).rejects.toBeInstanceOf(
+        SizeLimitExceeded,
+      );
+      expect(readFile).not.toHaveBeenCalled();
+      expect((await fetchData({ url: 'file:///tmp/x.bin', type: 'binary', maxBytes: 100 }).run()).length).toBe(100);
+      const aborted = AbortSignal.abort();
+      await expect(fetchData({ url: 'file:///tmp/x.bin', signal: aborted }).run()).rejects.toThrow();
+      await expect(fetchData({ url: 'file:///tmp/x.bin', maxBytes: Number.NaN }).run()).rejects.toThrow('maxBytes');
+    } finally {
+      setFSModule(fs);
+    }
+  });
+
+  it('refuses a maxBytes that is not a size, and names the source of a body over the bound', async () => {
+    stubFetch(() => streamed([encode('aaaa')]));
+    await expect(fetchData({ url: 'https://example.org/x', maxBytes: -1 }).run()).rejects.toThrow('maxBytes');
+    const e = await fetchData({ url: 'https://example.org/x', maxBytes: 2 })
+      .run()
+      .catch((x) => x);
+    expect(e).toBeInstanceOf(SizeLimitExceeded);
+    expect(e.source).toBe('https://example.org/x');
+    expect(e.message).toContain('https://example.org/x');
   });
 });
 

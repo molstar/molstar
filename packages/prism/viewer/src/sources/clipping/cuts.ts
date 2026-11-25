@@ -3,10 +3,11 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Sphere3D } from '@molstar/core/math/geometry';
-import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
+import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { type State, type StateObjectCell, StateTransform } from '@molstar/core/state';
 import type { Clip } from '@molstar/core/util/clip';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -220,6 +221,42 @@ export function rotationTo(from: Vec3, to: Vec3): Clip.Rotation {
   return { axis: Vec3.normalize(axis, axis), angle: (Math.acos(Math.max(-1, Math.min(1, dot))) * 180) / Math.PI };
 }
 
+/** A clip object's rotation (an axis and degrees) as a unit quaternion */
+export function quatOf(rotation: Clip.Rotation): Quat {
+  return Quat.setAxisAngle(Quat(), Vec3.normalize(Vec3(), rotation.axis), (rotation.angle * Math.PI) / 180);
+}
+
+/** A unit quaternion as a clip object's rotation (an axis and degrees; none: about +X by 0) */
+export function rotationOf(q: Quat): Clip.Rotation {
+  const axis = Vec3();
+  const rad = Quat.getAxisAngle(axis, q);
+  if (!Number.isFinite(rad) || Vec3.magnitude(axis) < 1e-9) return { axis: Vec3.create(1, 0, 0), angle: 0 };
+  return { axis: Vec3.normalize(axis, axis), angle: (rad * 180) / Math.PI };
+}
+
+/** The local direction across every shape's axis (+Y, a cone's −Z) a twist is measured on */
+const Across = Vec3.create(1, 0, 0);
+
+/**
+ * A cut's twist (degrees): its turn about its axis, from the shortest turn of its local axis onto where the axis points
+ * (`rotationTo`) to its rotation, measured on its local +X. Which way a box's or an ellipsoid's other axes point.
+ */
+export function twistOf(object: Pick<CutObject, 'type' | 'rotation'>): number {
+  const local = shapeAxis(object.type);
+  const axis = rotated(object.rotation, local);
+  const from = rotated(rotationTo(local, axis), Across);
+  const to = rotated(object.rotation, Across);
+  return (Math.atan2(Vec3.dot(Vec3.cross(Vec3(), from, to), axis), Vec3.dot(from, to)) * 180) / Math.PI;
+}
+
+/** The rotation of a cut of `shape` whose axis points along `axis`, twisted `twist` degrees about it (`twistOf`) */
+export function twisted(shape: string, axis: Vec3, twist: number): Clip.Rotation {
+  const to = Vec3.normalize(Vec3(), axis);
+  const turn = Quat.setAxisAngle(Quat(), to, (twist * Math.PI) / 180);
+  const q = Quat.multiply(Quat(), turn, quatOf(rotationTo(shapeAxis(shape), to)));
+  return rotationOf(Quat.normalize(q, q));
+}
+
 /** A direction turned by a clip object's rotation (its local axis in the world: a plane's normal is local +Y) */
 export function rotated(rotation: Clip.Rotation, local: Vec3): Vec3 {
   const m = Mat4.fromRotation(Mat4(), (rotation.angle * Math.PI) / 180, rotation.axis);
@@ -322,8 +359,8 @@ export function nearlyEqual(a: CutObject, b: CutObject): boolean {
   if (Vec3.distance(a.position, b.position) > SameWithin || Vec3.distance(a.scale, b.scale) > SameWithin) return false;
   const axis = shapeAxis(a.type);
   if (Vec3.dot(rotated(a.rotation, axis), rotated(b.rotation, axis)) < 0.999) return false;
-  // a box or a cylinder also by its twist about the axis
-  if (a.type === 'cube' || a.type === 'cylinder') {
+  // a box, an ellipsoid or a cylinder also by its twist about the axis
+  if (a.type === 'cube' || a.type === 'sphere' || a.type === 'cylinder') {
     const side = Vec3.create(1, 0, 0);
     if (Vec3.dot(rotated(a.rotation, side), rotated(b.rotation, side)) < 0.999) return false;
   }
@@ -335,30 +372,25 @@ export const shapeAxis = (shape: string) => (shape === 'infiniteCone' ? ConeOpen
 
 /**
  * The cut as another shape, what they have in common carried over: where it is, which way it points (a plane's normal
- * becomes a cylinder's axis or a cone's opening), how large (a sphere's diameter a box's edge or a cylinder's), flipped
- * or not. A plane or a cone has no size: the new one is `size` across (from what it cuts).
+ * becomes a cylinder's axis or a cone's opening) and its twist about that, how large (a box's, an ellipsoid's and an
+ * elliptic cylinder's three sizes each other's: a cylinder's (diameter, height, diameter)), flipped or not. A plane or a cone
+ * has no size: the new one is `size` across (from what it cuts).
  */
 export function reshape(object: CutObject, shape: CutShape, size: number): CutObject {
   if (object.type === shape) return object;
   const axis = rotated(object.rotation, shapeAxis(object.type));
-  const s = object.scale;
-  const across =
-    object.type === 'sphere' || object.type === 'cylinder'
-      ? s[0]
-      : object.type === 'cube'
-        ? Math.max(s[0], s[1], s[2])
-        : size;
-  const rotation = rotationTo(shapeAxis(shape), axis);
+  const sized = object.type === 'sphere' || object.type === 'cube' || object.type === 'cylinder';
+  const s = sized ? object.scale : Vec3.create(size, 2 * size, size);
+  const rotation = twisted(shape, axis, twistOf(object));
   const base = { ...object, type: shape, rotation, position: Vec3.clone(object.position) };
   switch (shape) {
     case 'plane':
       return { ...base, scale: Vec3.create(1, 1, 1) };
     case 'sphere':
-      return { ...base, scale: Vec3.create(across, across, across) };
     case 'cube':
-      return { ...base, scale: Vec3.create(across, object.type === 'cylinder' ? s[1] : across, across) };
+      return { ...base, scale: sized ? Vec3.clone(s) : Vec3.create(size, size, size) };
     case 'cylinder':
-      return { ...base, scale: Vec3.create(across, object.type === 'cube' ? s[1] : 2 * across, across) };
+      return { ...base, scale: Vec3.clone(s) };
     case 'infiniteCone':
       return { ...base, scale: coneScale(25) };
   }

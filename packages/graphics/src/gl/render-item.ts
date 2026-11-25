@@ -9,14 +9,7 @@ import type { Textures } from './texture.js';
 import type { UniformsList } from './uniform.js';
 import type { StorageBuffer } from './compute.js';
 
-export type DrawMode =
-  | 'points'
-  | 'lines'
-  | 'line-strip'
-  | 'line-loop'
-  | 'triangles'
-  | 'triangle-strip'
-  | 'triangle-fan';
+export type DrawMode = 'points' | 'lines' | 'line-strip' | 'triangles' | 'triangle-strip';
 
 export type Transparency = 'blended' | 'wboit' | 'dpoit';
 
@@ -96,7 +89,7 @@ export interface GlobalBindings {
 }
 
 /**
- * The draws of a pass recorded for replay in later frames (WebGPU render bundles, `GraphicsContext.createDrawList`):
+ * The draws of a pass recorded for replay in later frames (WebGPU render bundles, `GraphicsContext.drawLists`):
  * whether the pass would draw the recorded draws the caller decides, the list whether they bind the same globals
  */
 export interface DrawList {
@@ -117,7 +110,7 @@ export type DataLayerBinding = { readonly buffer: StorageBuffer; readonly offset
 export interface RenderItem<T extends string> {
   readonly id: number;
   readonly materialId: number;
-  /** GPU bytes of the item, a shared texture by the item's share (`.v6/plans/gl/shared-textures.md` §5) */
+  /** GPU bytes of the item, a shared texture by the item's share */
   getByteCount(): number;
   getProgram: (variant: T) => GraphicsProgram;
   /**

@@ -53,6 +53,9 @@ describe.skipIf(!WebGPU.module)('global bindings on WebGPU', () => {
       await representation.addRepresentation(structure, { type: 'ball-and-stick' });
       const cartoon = await representation.addRepresentation(structure, { type: 'cartoon' });
       const canvas = plugin.canvas3d!;
+      // every pass drawn directly, binding the global offsets each frame (a recorded pass binds none of its own: the
+      // camera moving, these objects' passes replay)
+      canvas.setProps({ renderer: { ...canvas.props.renderer, drawLists: false } });
       const image = () => plugin.getImageRaw({ width: 64, height: 64 });
       // pipelines compile in the background: frames drawn before they are ready skip draws
       await image();

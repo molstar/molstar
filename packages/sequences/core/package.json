@@ -111,6 +111,7 @@
     "tslib": "catalog:"
   },
   "devDependencies": {
+    "@molstar/test-harness": "workspace:*",
     "@types/node": "catalog:",
     "rehype-sanitize": "^6.0.0",
     "remark-parse": "^11.0.0",

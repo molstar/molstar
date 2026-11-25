@@ -2,7 +2,7 @@
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Acceptance checks of the plugin-composition refactor (.v6/plans/plugin-composition.md, section 6) that need the
+ * Acceptance checks of the plugin-composition refactor that need the
  * Viewer's own spec, which the unit-test setup does not load (its UI extensions are `.tsx` modules), and the CLI tools:
  *   - a snapshot made by the default plugin restores in a plugin with the Viewer spec, and one that needs an
  *     unregistered transformer fails before changing the Viewer plugin's state,
@@ -14,6 +14,9 @@
  * Usage: node scripts/workspace/composition-check.mjs
  *
  * Requires compiled library output (`pnpm build:lib`). Nothing is written to the repository.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import assert from 'node:assert/strict';

@@ -17,6 +17,7 @@ import { apply_marker_color } from './chunks/apply-marker-color.glsl.js';
 import { apply_fog } from './chunks/apply-fog.glsl.js';
 import { wboit_write } from './chunks/wboit-write.glsl.js';
 import { dpoit_write } from './chunks/dpoit-write.glsl.js';
+import { apply_occlusion } from './chunks/apply-occlusion.glsl.js';
 
 export const points_frag = `
 precision highp float;
@@ -43,6 +44,10 @@ void main(){
     #if defined(dPointStyle_circle)
         float dist = distance(vPointCoord, center);
         if (dist > radius) discard;
+    #elif defined(dPointStyle_ring)
+        // a ring: the circle less an inner one, its width a fraction of the radius
+        float dist = distance(vPointCoord, center);
+        if (dist > radius || dist < radius * (1.0 - uPointRingWidth)) discard;
     #elif defined(dPointStyle_fuzzy)
         float dist = distance(vPointCoord, center);
         float fuzzyAlpha = 1.0 - smoothstep(0.0, radius, dist);
@@ -53,6 +58,7 @@ void main(){
         material.a *= fuzzyAlpha;
     #endif
 
+    ${apply_occlusion}
     ${check_transparency}
 
     #if defined(dRenderVariant_pick)

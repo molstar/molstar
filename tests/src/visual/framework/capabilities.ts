@@ -10,7 +10,8 @@ import { WboitPass } from '@molstar/graphics/canvas3d/passes/wboit';
 import { getGaussianSurfaceGpuUnsupportedReason } from '@molstar/graphics/repr/structure/visual/gaussian-surface-mesh';
 import { GraphicsFeatures } from '@molstar/graphics/gl/capabilities';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
-import { isWebGLContext, type WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
+import { isWebGLContext, type WebGLContext } from '@molstar/graphics/gl/contexts/webgl';
 
 /**
  * Backend-neutral capability keys: the graphics features plus derived rendering features.
@@ -23,6 +24,8 @@ export const CapabilityKeys = [
   'illumination',
   'gaussianSurfaceGpu',
   'releaseContext',
+  'sphereSites',
+  'integerIds',
 ] as const;
 export type CapabilityKey = (typeof CapabilityKeys)[number];
 
@@ -53,12 +56,18 @@ export function getCapabilities(graphics: GraphicsContext): Capabilities {
     // probed without releasing: WebGPU destroys its device, WebGL needs the extension
     releaseContext:
       isWebGLContext(graphics) && !graphics.gl.getExtension('WEBGL_lose_context') ? 'no WEBGL_lose_context' : undefined,
+    // quantized sphere centers: integer data
+    sphereSites: Spheres.isSitesSupported(graphics) ? undefined : 'no integer data (WebGL1)',
+    // instance ids and data indices as integers, exact past 2^24
+    integerIds: graphics.capabilities.backend === 'webgl' ? 'no integer attributes (WebGL1)' : undefined,
   };
   capabilities.wboit = !reasons.wboit;
   capabilities.dpoit = !reasons.dpoit;
   capabilities.illumination = !reasons.illumination;
   capabilities.gaussianSurfaceGpu = !reasons.gaussianSurfaceGpu;
   capabilities.releaseContext = !reasons.releaseContext;
+  capabilities.sphereSites = !reasons.sphereSites;
+  capabilities.integerIds = !reasons.integerIds;
   MissingReasons.set(capabilities, reasons);
   return capabilities;
 }

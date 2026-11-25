@@ -25,7 +25,7 @@ What reads what the table observes:
 1. **Rows** (`SlotObserver`): `DrawFactCells`, `boundingSphere`, `uLod` and the state. Unchanged.
 2. **Values versions** (`valuesVersions`, `valuesEpoch`): the renderer's plans and recordings (`walkPass`,
    `isChunkInputsCurrent`, `flushDataChanges`, `walkCaps`). A changed version means "draw it again without encoding
-   and compare what it binds" (`captureDraws`): what matters is what `render()` writes or binds. On WebGPU
+   and compare what it binds" (`DrawLists.capture`): what matters is what `render()` writes or binds. On WebGPU
    (`webgpu/render-item.ts`) that is the uniform blocks (material, object, draw), the vertex buffers (attribute
    versions compared in `getVertexBuffer`, written when drawn), the index buffer, the textures and data layers
    (`update`), `drawIndirect`, and the pipeline: a define change replaces the program (`invalidatePrograms`), seen only
@@ -53,7 +53,9 @@ What reads what the table observes:
    `instanceCount`, `drawIndirect`; not the defines (2) nor the other values. About 80 of 129 for a mesh, the uniforms
    among them already observed.
 4. **Merged members' marks only** (done): `Renderable.memberCells` are the members' marker cells (`markerStatus`,
-   `tMarker`): 2 a member instead of about 30.
+   `tMarker`): 2 a member instead of about 30. `updateChanged` tells the renderable (`update(observedOnly)`): a merged
+   object then syncs the members whose observed cells changed, not all of them (a hover over 100k members 146 to
+   8 ms); its other changes come with a full update.
 5. **A single observer without a `Set`** (`@molstar/core` `ValueCell`): `observers` holds one observer, a `Set` from
    the second on (`observe`, `unobserve`, `notify`). The cells that forward `observers` to a derived cell
    (`affine-rows.ts`, `depth-range.ts`, `oct-normals.ts`) follow. For 372k cells about 8 ms and 15 MB instead of 40 ms

@@ -11,6 +11,7 @@ import {
   GlobalUniformSchema,
   BaseSchema,
   DefineSpec,
+  UniformSpec,
   ValueSpec,
   DataSpec,
   type Values,
@@ -29,10 +30,17 @@ import { ValueCell } from '@molstar/core/util';
 export const PointsSchema = {
   ...BaseSchema,
   ...SizeSchema,
-  tPositionGroup: DataSpec('rgba32f'),
+  tPositionGroup: DataSpec('rgb32f-i32'),
   lodLevels: ValueSpec('unknown'),
+  /** the stride of the level drawn (per level list, `lodLevels`): quad `p` draws item `p * uLodStride`; 1 without */
+  uLodStride: UniformSpec('f', undefined, 'draw'),
   dPointSizeAttenuation: DefineSpec('boolean'),
-  dPointStyle: DefineSpec('string', ['square', 'circle', 'fuzzy']),
+  dPointStyle: DefineSpec('string', ['square', 'circle', 'fuzzy', 'ring']),
+  /** a `ring` point's ring width, a fraction of its radius (1: the full disk) */
+  uPointRingWidth: UniformSpec('f'),
+  /** CSS pixels toward the camera (negative: away), in depth only (`Points.Params.pointDepthOffset`) */
+  uPointDepthOffset: UniformSpec('f'),
+  dPointFront: DefineSpec('boolean'),
 
   ...AnimationSchema,
 };

@@ -12,7 +12,7 @@ import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { spiral2d } from '@molstar/core/math/misc';
 import { isTimingMode } from '@molstar/core/util/debug';
-import type { Camera } from '../camera.js';
+import type { Camera, ICamera } from '../camera.js';
 import { StereoCamera } from '../camera/stereo.js';
 import { cameraUnproject, Viewport } from '../camera/util.js';
 import type { Helper } from './helper.js';
@@ -91,6 +91,9 @@ export class PickHelper {
 
   private render(camera: Camera | StereoCamera, frame?: Frame) {
     this.plan(this.renderBuilder, camera, frame);
+    // a page store's picks resolved before they are read (their slots' identity: `PickPass.resolvePaged`); its kernel
+    // compiling, the pick incomplete (drawn again once work settled)
+    if (!this.pickPass.resolvePaged(this.scene)) this.incomplete = true;
   }
 
   /** What `identify` draws before reading, see `PassBuilder` */
@@ -102,9 +105,9 @@ export class PickHelper {
     const { pickX, pickY, pickWidth, pickHeight, halfPickWidth } = this;
     const { renderer, scene, helper } = this;
 
-    // share one frame across both eyes (and with the caller's frame, e.g. Canvas3D's, when given)
-    // so a resting camera can reuse the main draw's cull instead of always recomputing
-    const f = frame ?? createFrame();
+    // share one frame across both eyes (and with the caller's frame, e.g. Canvas3D's, when given, else its frame now:
+    // a pick drawn again later) so a resting camera can reuse the main draw's cull instead of always recomputing
+    const f = frame ?? this.getFrame?.() ?? createFrame();
 
     renderer.setTransparentBackground(false);
     if (b.drawing) {
@@ -165,17 +168,21 @@ export class PickHelper {
 
     const z = this.buffers.getDepth(xp, yp);
     const position = Vec3.create(x, y, z);
+    // the overlay's depth is of its own near and far planes (`OverlayCamera`)
+    const { overlay } = this.helper;
+    const inOverlay = overlay.isEnabled && overlay.hasObject(pickingId.objectId);
+    const unprojectWith = (c: ICamera) => (inOverlay ? overlay.getCamera(c) : c).inverseProjectionView;
     if (StereoCamera.is(camera)) {
       const halfWidth = Math.floor(viewport.width / 2);
       if (x > viewport.x + halfWidth) {
         position[0] = viewport.x + (xv - halfWidth) * 2;
-        cameraUnproject(position, position, viewport, camera.right.inverseProjectionView);
+        cameraUnproject(position, position, viewport, unprojectWith(camera.right));
       } else {
         position[0] = viewport.x + xv * 2;
-        cameraUnproject(position, position, viewport, camera.left.inverseProjectionView);
+        cameraUnproject(position, position, viewport, unprojectWith(camera.left));
       }
     } else {
-      cameraUnproject(position, position, viewport, camera.inverseProjectionView);
+      cameraUnproject(position, position, viewport, unprojectWith(camera));
     }
 
     return { id: pickingId, position };
@@ -263,6 +270,8 @@ export class PickHelper {
   }
 
   private disposed = false;
+  /** the canvas' frame now (`PickOptions.getFrame`) */
+  private readonly getFrame: (() => Frame) | undefined;
 
   dispose() {
     this.disposed = true;
@@ -284,6 +293,7 @@ export class PickHelper {
     this.renderBuilder = createRenderBuilder(graphics);
     // before the viewport: it sets the spiral of pixels searched around the pick
     this.pickPadding = options.pickPadding;
+    this.getFrame = options.getFrame;
     this.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
     if (!checkAsyncPickingSupport(this.buffers)) {

@@ -15,7 +15,15 @@
 // load-cases.ts's, shared with the quick twin (load.quick.ts).
 
 import { describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapGrowth, heapScaling, isFlat, leak, leaking } from '../model/heap.js';
+import {
+  controlCaught,
+  describeScaling,
+  heapGrowth,
+  heapScaling,
+  isFlat,
+  leak,
+  leaking,
+} from '@molstar/test-harness/heap';
 import { delimited, STOCKHOLM_ROWS, STOCKHOLM_WIDTH, stockholm, TSV_ROWS, tileStep } from './load-cases.js';
 
 describe('tile addressing', () => {

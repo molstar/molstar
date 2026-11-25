@@ -6,7 +6,7 @@
 
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
-import { TriTable } from '@molstar/graphics/geo/util/marching-cubes/tables';
+import { TriTable } from '@molstar/core/math/geometry/marching-cubes/tables';
 import {
   type ComputeContext,
   KernelCode,

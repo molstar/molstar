@@ -90,7 +90,7 @@
 - **Context API**: rectangles top-left on both backends; WebGPU passes them through (its flips went), WebGL keeps the
   viewport and scissor as given and applies them flipped with the height of the render pass target (framebuffers learn
   it from their attachments), flips readback rectangles and the texture reader's rows, and the source and destination of
-  `copyFromFramebuffer`. Its own compute on data textures converts rectangles in texel rows from the bottom internally
+  `copyFromTexture`. Its own compute on data textures converts rectangles in texel rows from the bottom internally
   (`setTexelViewport`, `setTexelScissor`; the pass target height is internal too); the Gaussian density and color
   smoothing atlases place tiles by texel rows from the bottom explicitly (unchanged layouts on both backends).
 - **CPU**: `Camera.viewport`, project/unproject/rays, picking (no pointer flip; pick buffers top to bottom), trackball

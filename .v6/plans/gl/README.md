@@ -33,6 +33,8 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 - [program-switch-frames.md](program-switch-frames.md): adaptive tracing compiles nothing (A); WebGPU frames held while
   a props change's pipelines compile, at most 1 s (B, through pipeline-readiness); new representations and define
   changes appear when their pipelines are ready (kept).
+- [marking-performance.md](marking-performance.md): done: marking's depth read from the scene's, the mask over the
+  marked instances alone (counted per instance with the markers), the redraw keeping the frame's GPU culling.
 - [ssao-performance.md](ssao-performance.md): SSAO at half resolution by default with depth-aware upsampling, reading
   the full-resolution depth (occlusion independent of the resolution), 4x4 ordered kernel rotation; 32 samples kept.
 - [gpu-surface-buffers.md](gpu-surface-buffers.md): WebGPU isosurfaces in 4 K vertex chunks of a vertex arena,
@@ -66,9 +68,41 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 - [clip-culling.md](clip-culling.md): objects, cells, instances and primitives that clip objects remove entirely culled
   (CPU, GPU culler, vertex stage), primitives they don't touch without per-fragment clip tests: the sphere raster's
   classification by distance bounds made general.
+- [shader-compile-time.md](shader-compile-time.md): done: what compiles slowly with an empty cache, inlining avoided
+  where one branch runs anyway (solid-interior cylinders 2-3 times faster); no pipeline slow enough to matter now.
+
+- [illumination-performance.md](illumination-performance.md): done: on the mesoscale models the inputs are 85-95% of
+  a moving frame's GPU time (the back depth 39-47% of them); the tracing input culled on the GPU in two phases (WebGPU;
+  the back depth not by occlusion: MG zoomed at 2560x1440 72.7 -> 51.0 ms); a fixed thickness of 256 Å looks as auto on
+  the mesoscale models (23.8 ms, no back depth), auto stays the default (too thick on other models); the back depth at
+  half resolution shelved, the rest dropped.
+
+- [graphics-review.md](graphics-review.md): done: the graphics layer review triaged against this branch: late
+  callbacks, buffer reclaim, Dawn and visual smoke tests in CI, the multi-sample savings, the large closures split
+  (`Renderer.create`, `Canvas3D.create`), the backend folders internal, layering, render pass attachments
+  (framebuffers internal to the backends); its follow-ups (geo-split, core GPU compute) deferred.
+
+- [overlay-review-followups.md](overlay-review-followups.md): done: from testing the overlay layer, the scale line an
+  export option of its own (a breaking-changes entry), widgets picked at any opacity and `occludedAlpha` in
+  `Representation.State` (not hidden geometry params), lit gizmo meshes as an opt-in (`GizmoPart.lit`).
+
+- [sphere-raster-workgroups.md](sphere-raster-workgroups.md): the sphere raster's work shared in workgroups: measured by
+  stage, chunks packed (the yeast cell's raster 5.9 -> 3.5 ms), pixels shared over the workgroup (zoomed 8-15 %);
+  subgroup atomics, persistent workgroups and kernel variants measured and dropped.
 
 ## In progress or paused
 
+- [load-time.md](load-time.md): the yeast cell's load, 14.2 s of CPU to the first frame, now first drawn 2.47 s after
+  navigation in Prism (the GPU-side structures built on the GPU or not at all, uploads of runs and colors cut, the
+  precompile complete); stopped, what is left of the 1.7 s from the data listed in its Status.
+- [instance-index.md](instance-index.md): the instance grid split: steps 1 to 4 done (the grids pending, built at the
+  first CPU cull; pose changes without a layout); adds and removals after a plan for editable particle lists; the
+  WebGL steps 5 and 6 deferred.
+
+- [stereo-gpu-culling.md](stereo-gpu-culling.md): every view of a frame culled on the GPU: one cull for stereo's eyes
+  (both by the sphere raster), a scaled camera culled in the unscaled world (XR), occlusion against one pyramid of both
+  eyes (the yeast cell in stereo 8.1 ms a still frame, 60 before); multiview on WebGL and view instancing on WebGPU (a
+  proposal) deferred.
 - [backend-selection.md](backend-selection.md): the Viewer and the plugin default to `auto` (WebGPU where capable);
   backend sets, the bundle check, Viewer variants with one backend and runtime switching
   keeping the scene done.
@@ -93,8 +127,8 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   snapshot replay without compile hitches (step 6): precompile lists (object signatures, recorded and prepared) and
   their derivation from a state's params, prepared when a state or story is loaded, done and measured (WebGPU stories play
   without compiling); fewer variants per signature done (kinase story: 24 signatures, 1.6 s on WebGPU); WebGL's first draws into several
-  targets (an ANGLE compile once per browser) accepted; proposed: precompiling when a representation transform applies or
-  updates, with its data, overlapping its build (step 7, measurements first).
+  targets (an ANGLE compile once per browser) accepted; representations prepared with their data while they build (step
+  7, particle targets included): an added representation's wait after its commit 0 where the build outlasts the compile.
 - [fewer-defines.md](fewer-defines.md): paused, good enough for now: the color, size and instance-granularity types
   as runtime selectors (kinase story 24 to 18 precompiled signatures), the clip object count on WebGL (WebGPU keeps it
   a pipeline constant); the shading switches measured, not converted (a frame cost for programs rarely saved); the
@@ -113,8 +147,27 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 
 - [direct-volume-quality.md](direct-volume-quality.md): pre-integration and normals from the values done; shading by the gradient's magnitude
   and ambient occlusion built and removed (not good on our data); shadows and volumes in illumination not for now.
-- [gizmo-layer.md](gizmo-layer.md): proposed: overlay layers replacing `HandleHelper` and `CameraHelper` (gizmos above
-  the scene, scene depth as occluded alpha, screen-constant size; the corner axes on a screen-anchored layer).
+- [gizmo-layer.md](gizmo-layer.md): overlay layers replacing `HandleHelper` and `CameraHelper` (gizmos above the
+  scene, scene depth as occluded alpha, screen-constant size; the corner axes on a screen-anchored layer); steps 1 to 9
+  done (the overlay layer, drawn and picked above the scene, out of its bounds; the scene's depth per object by
+  occluded alpha; meshes and lines of constant size on screen; `HandleHelper` removed; the screen layer with the
+  corner axes and a scale line; the gizmo library and Prism on the overlay, with facing fade, drag
+  dimming, hit areas (the clipping gizmos' too), billboards and unlit handles with a rim; DOF before the overlay).
+
+- [gaussian-splats.md](gaussian-splats.md): steps 1 to 10 of 10 done: Gaussian splats (3DGS) as a geometry kind on WebGL2
+  and WebGPU: rotation, scales and opacity per splat (`tSplat`, `rgba16i`) beside `tPositionGroup`, EWA projection, a
+  back-to-front order (`tSplatOrder`, a counting sort when the view turns, on the GPU on WebGPU), one blended pass after
+  the other transparency; PLY (3DGS and the compressed layout), `.splat`, `.spz` and `.sog` files, picking, marking,
+  layers, view-dependent color; data-layer pages by the schema's layers; WebGL1 by float pages; SOG read in place on
+  the GPU (its images as textures, decoded by the shaders), upright as the shape's transform. Next: depth for
+  post-processing (proposed), [gaussian-splats-lod.md](gaussian-splats-lod.md).
+
+- [gaussian-splats-lod.md](gaussian-splats-lod.md): planned: PlayCanvas's streamed SOG (`lod-meta.json` over chunk
+  files, levels of detail by distance within a splat budget): the loaded files' images as layers of texture arrays read
+  in place, the selected ranges drawn and sorted as one object; the folder SOG, the manifest, layers, streaming.
+
+- [gizmo-controls.md](gizmo-controls.md): proposed: z-fighting of solid-interior caps with clip visuals; gizmo rings at a
+  constant rate, free rotation as the trackball; the clip gizmos' turn handle, the slide arrow's fade an option.
 
 - [shader-analysis.md](shader-analysis.md): done: every reachable variant compiled on every backend, GLSL and WGSL
   reviewed side by side for parity and numerical hazards, the costliest passes measured and analysed.
@@ -129,6 +182,10 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 - [vertex-inputs-and-varyings.md](vertex-inputs-and-varyings.md): done: per-instance data (the transform as 3 vec4,
   merged segment data by member), per-primitive varyings flat and packed, layer scalars packed, mesh normals
   oct-encoded.
+- [modular-passes.md](modular-passes.md): proposed: screen effects as public modules in a registry (props built from
+  it) and one chain for every output path, optional to bundle (sources per backend at build time) and created on
+  first use; shadow maps and transmission (IOR, thickness; per object and per group) as renderer passes; material
+  layers as registered kinds replacing the per-layer API.
 - [merged-segment-caps.md](merged-segment-caps.md): done: merged objects' solid-interior caps only for the segments
   the near plane or a clip object cuts (4V6X merged near cut: WebGPU 1.19 → 0.96 ms GPU, as unmerged).
 - [webgl-compile-on-link.md](webgl-compile-on-link.md): done: WebGL shaders compiled when a program links, not when a
@@ -144,6 +201,9 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 - [merged-segment-draws.md](merged-segment-draws.md): merged objects of many single-instance segments: the cull view
   by one version done (70 → 50 ms a moving frame of the NPC capsid); item-range draws (GPU 1.31 → 0.23 ms) and
   flattening rejected (complexity, clipping by the original unit); culling by batches open.
+- [chunked-impostor-draws.md](chunked-impostor-draws.md): paused (its reason an uncapped benchmark's): sphere impostors of merged objects culled on the GPU
+  drawn from chunks of culled instances, one indirect draw an object and phase, not a record a member, level and phase
+  (the yeast inside: about 11,000 records a frame, Chrome's GPU process busy, every write waiting).
 
 - [sphere-compute-raster.md](sphere-compute-raster.md): small opaque spheres rasterized by compute kernels into a
   visibility buffer (64-bit `atomicStoreMax` of depth and id, `atomic-vec2u-min-max`), shaded once per pixel by a
@@ -171,8 +231,46 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 
 ## Not started
 
+- [mesoscale-lod.md](mesoscale-lod.md): proposed: levels of detail for mesoscale scenes: one metric (error on screen
+  in CSS pixels), bands (several representations of a target over one instance source, chosen by the cull), exact
+  dithered crossfades (nested sphere levels by a geomorph), fades in time for loads, proxies a particle, instance
+  overrides (a few posed, pinned or hidden; the nearest promoted), moving instances (bounds by reach or law, a
+  spatial index for free motion), motion evaluated on the GPU, mesh levels by index ranges, aggregates a region
+  far away; how it fits meso\*'s render IR and runtimes.
+
+- [clip-drag.md](clip-drag.md): a clip object's drag on the yeast cell was about 74 ms a mousemove, all CPU (every
+  particle target updated in full, every merged group checked); the merge check cheap and a clip-only path done
+  (PetWorld's update a frame 1.59 -> 0.22 ms); next: the yeast cell measured.
+
+- [object-transforms.md](object-transforms.md): built (steps 1-4; next: one transform per merged object): a transient transform for transient visualization only (a
+  drag before its release), a per-object matrix the vertex stages and the culling apply (`previewTransform`,
+  `uObjectTransform`, merged members' in their segment data); placements stay baked: a drag frame writes a uniform and
+  a sphere, not the instances, grid and culler layout.
+- [many-culled-objects.md](many-culled-objects.md): analysed: the mesoscale explorer's PetWorld (150 objects, one per
+  model) with the sphere raster 7.5 times slower a moving frame (4.0 -> 30.3 ms): `auto` culls objects of 100k spheres
+  on the GPU where the device has the raster, each with passes and dispatches of its own; one pass per culling phase
+  and cached kernel bind groups done; dispatches over all objects (a culling pool) built and measured (4-6 ms), then
+  removed (memory and coupling costs); a budget done: objects culled on the GPU for the raster only culled there where
+  the raster takes them, the 8 largest with `auto` (whole rotating 26 -> 4.2 ms); next: visibility per instance in
+  render objects and the explorer on fewer representations, merging across representations if needed.
+
+- [multi-draw-indirect.md](multi-draw-indirect.md): multi-draw indirect stays behind its flag; many objects' passes
+  replayed while the camera moves (solid interiors no longer view dependent, rows unculled while the visible set
+  changes) done, GPU culling's threshold 20k -> 50k instances; immediates measured, no gain (dropped).
+
+- [clip-ghosts.md](clip-ghosts.md): built (the inverted clip test, the pass, the composite, the CPU and GPU culling, the raster, Prism, illumination):
+  what clip objects remove drawn as a faint ghost (a tint and its edges, the
+  front-most removed surface) by a pass of its own: the clip test inverted (the clip culling's classes serve both
+  lists), a coarser sphere level, a low-resolution target, composited as the marking pass's ghost edges.
+- [cull-workgroup-limit.md](cull-workgroup-limit.md): built: the merged culler's kernels dispatched over two
+  dimensions, past WebGPU's 65,535 workgroups per dimension (about 4.2 M instances or cells); open: its region buffers
+  past 2 GiB a buffer.
+- [culled-instance-indices.md](culled-instance-indices.md): built and measured (the opaque pass the same or less, +13% zoomed into impostors moving): the culler's regions as 4-byte instance indices
+  instead of copied attributes (12× smaller), read through a culled program variant; past 2 GiB a buffer.
 - [webgpu-xr.md](webgpu-xr.md): XR on WebGPU through `XRGPUBinding` behind the neutral `GraphicsXR`.
 - [core-gpu-compute.md](core-gpu-compute.md): a neutral map-kernel tier and GPU algorithms in core.
+- [geo-split.md](geo-split.md): the non-GL part of geo into core (the marching cubes done; primitives, array math, then
+  geometry data split from rendering).
 - [attribute-color-size.md](attribute-color-size.md): per-vertex color and size attributes, to be considered.
 - [dual-source-blending.md](dual-source-blending.md): dual-source blending where available, for features (colored
   transmission in blended transparency, per-pixel accumulation weights); not for performance, and not for the passes
@@ -182,8 +280,6 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
   recomputed or read back on demand (the lost-context path widened); playback without allocations (geometry buffers
   with slack handed out as views, a scratch arena per thread for intermediates); CPU bytes accounted; measured: most of
   what CPU meshes hold (89 % of 3j3q's cartoon at `medium`).
-- [shader-compile-time.md](shader-compile-time.md): in progress: what compiles slowly with an empty cache, and inlining
-  avoidable where one branch runs anyway; solid-interior cylinders 2-3 times faster so far.
 - [two-phase-culling.md](two-phase-culling.md): built, on by default: what the previous frame's pyramid left out of GPU-culled
   objects tested against a pyramid of the frame's depth so far and drawn in the same frame, by the sphere raster too:
   exact while the camera moves and when it stops, 0.4-1.0 ms a moving frame at 1280×720, still frames unchanged.

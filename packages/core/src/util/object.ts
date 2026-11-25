@@ -37,20 +37,120 @@ export function shallowMerge2<T extends {}>(source: T, update: Partial<T>): T {
   return Object.assign({}, source, update);
 }
 
-export function shallowEqual<T extends {}>(a: T, b: T) {
-  if (!a) {
-    if (!b) return true;
-    return false;
-  }
-  if (!b) return false;
+/** Whether `value` is a record made by an object literal (its prototype is `Object.prototype` or `null`). */
+export function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
 
-  const keys = Object.keys(a);
-  if (Object.keys(b).length !== keys.length) return false;
-  for (const k of keys) {
-    if (!hasOwnProperty.call(a, k) || (a as any)[k] !== (b as any)[k]) return false;
+/**
+ * The same own enumerable string keys with the same values (`Object.is`), counted with `for … in`: no key arrays.
+ * Symbol keys are not compared.
+ */
+export function shallowEqualObjects(a: {}, b: {}): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  let count = 0;
+  for (const key in a) {
+    if (!hasOwnProperty.call(a, key)) continue;
+    if (!hasOwnProperty.call(b, key) || !Object.is((a as any)[key], (b as any)[key])) return false;
+    count++;
   }
+  for (const key in b) {
+    if (hasOwnProperty.call(b, key)) count--;
+  }
+  return count === 0;
+}
 
+/** The same length and items (`Object.is`). */
+export function shallowEqualArrays(a: readonly any[], b: readonly any[]): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0, il = a.length; i < il; ++i) {
+    if (!Object.is(a[i], b[i])) return false;
+  }
   return true;
+}
+
+/**
+ * Two objects with the same own keys and values (`Object.is`; two arrays item by item); two nullish values (`null`,
+ * `undefined`) are equal.
+ */
+export function shallowEqual<T extends {}>(a: T, b: T): boolean {
+  if (!a || !b) return !a && !b;
+  if (Array.isArray(a) && Array.isArray(b)) return shallowEqualArrays(a, b);
+  return shallowEqualObjects(a, b);
+}
+
+/**
+ * The equality that decides "changed" for values held in states: `Object.is`; two arrays item by item; two plain
+ * records (`isPlainRecord`) key by key; anything else (a class instance, a `Map`, a `Date`, a function) only to itself.
+ */
+export function sameShallow(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (Array.isArray(a)) return Array.isArray(b) && shallowEqualArrays(a, b);
+  return isPlainRecord(a) && isPlainRecord(b) && shallowEqualObjects(a, b);
+}
+
+/**
+ * Every level of plain arrays and records (`isPlainRecord`) compared as `sameShallow` compares one; anything else by
+ * identity (`Object.is`). For values built fresh from data (a list of items, a label's lines) that must not count as a
+ * change when equal.
+ */
+export function sameData(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (Array.isArray(a)) {
+    if (!Array.isArray(b) || a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (!sameData(a[i], b[i])) return false;
+    return true;
+  }
+  if (!isPlainRecord(a) || !isPlainRecord(b)) return false;
+  let count = 0;
+  for (const key in a) {
+    if (!hasOwnProperty.call(a, key)) continue;
+    if (!hasOwnProperty.call(b, key) || !sameData(a[key], b[key])) return false;
+    count++;
+  }
+  for (const key in b) {
+    if (hasOwnProperty.call(b, key)) count--;
+  }
+  return count === 0;
+}
+
+/** Structural equality of plain data (arrays, objects, `Date`, `RegExp`); adapted from fast-deep-equal (MIT). */
+export function deepEqual(a: any, b: any): boolean {
+  if (a === b) return true;
+  const arrA = Array.isArray(a);
+  const arrB = Array.isArray(b);
+  if (arrA && arrB) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!deepEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+  if (arrA !== arrB) return false;
+  if (a && b && typeof a === 'object' && typeof b === 'object') {
+    const keys = Object.keys(a);
+    if (keys.length !== Object.keys(b).length) return false;
+    const dateA = a instanceof Date;
+    const dateB = b instanceof Date;
+    if (dateA && dateB) return a.getTime() === b.getTime();
+    if (dateA !== dateB) return false;
+    const regexpA = a instanceof RegExp;
+    const regexpB = b instanceof RegExp;
+    if (regexpA && regexpB) return a.toString() === b.toString();
+    if (regexpA !== regexpB) return false;
+    for (let i = 0; i < keys.length; i++) {
+      if (!hasOwnProperty.call(b, keys[i])) return false;
+    }
+    for (let i = 0; i < keys.length; i++) {
+      if (!deepEqual(a[keys[i]], b[keys[i]])) return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 export function shallowMerge<T extends {}>(source: T, ...rest: (Partial<T> | undefined)[]): T {

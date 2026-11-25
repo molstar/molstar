@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { flatStep, garbage, onceStep, viewsStep } from './heap-guard-cases.js';
-import { LEAK_BYTES, quickCase } from './quick.js';
+import { LEAK_BYTES, quickCase } from '@molstar/test-harness/quick';
 
 describe("the quick measurement, on the guards' synthetic steps", () => {
   it('reads a step that allocates nothing as nothing, and catches its leak', async ({ task }) => {

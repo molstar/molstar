@@ -1,0 +1,43 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Composition" />
+
+# Composition
+
+A spec is short and declarative, written by people and agents. What the viewer, the data runtimes and other renderers
+need is explicit. In between sit three compiled forms, made by pure passes, so each consumer reads one of them.
+
+## One language, four levels
+
+```
+spec
+├── data        sources, sequences, alignments, maps, annotations
+├── views       views → sections → tracks → layers; themes; focus; highlights
+├── refs        your names for addresses: bookmarks, regions, sets
+└── snapshots   named patches over the base: a story's steps
+```
+
+- One language with one version. The levels are containers, so addresses read `/data/p53` or `/views/main`.
+- Sublanguages fill slots: queries (a layer's data, a filter, an address's forms), themes and patches.
+- **Session is not the spec.** The viewport, the selection, the hover and open panels are transient. Snapshots and refs
+  are how a spec names a view state on purpose.
+
+## Three compiled forms, in three tiers
+
+```
+     keyed by the spec                                 keyed by the data store
+spec ─▶ static model ─▶ resolved view   │   overlay ─▶ draw lists ─▶ backend
+                                        │      ▲          ▲
+                    data store ◀── runtimes ◀── requests for the regions in view
+```
+
+- **Static model and resolved view** (from the spec only): coordinate systems, maps and their paths, sources bound to
+  runtimes, annotations' access plans; then views, sections, tracks and layers with themes resolved and fallback chains.
+  The resolved view holds no data, no streamed nodes and no target, so it is the same for every renderer.
+- **Overlay** (from the data store): the nodes that arrive with data, such as transcripts and their coordinate systems,
+  with paths through them. A stream never invalidates the resolved view.
+- **Draw lists** (per frame): the resolved view laid out for a size, a viewport and a target, from the overlay and the
+  store's data. Layers waiting for data wait here, and templates expand here.
+
+The data store sits beside the tiers. Visible layers ask for regions, runtimes answer, and entries arrive with versions.
+Pending is never drawn as empty. Nothing from the store goes into the spec, the static model or the resolved view.

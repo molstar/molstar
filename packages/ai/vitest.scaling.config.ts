@@ -7,11 +7,11 @@
  */
 
 // `test:scaling`, the AI package's scaling guards: the `*.scaling.ts` cases under any `_test/` of `src/`, each at n and
-// 4n, time and allocation about linear, with a quadratic positive control (the shared harness, `sequences/core/_test/model/scaling.ts`). The heap
+// 4n, time and allocation about linear, with a quadratic positive control (the shared harness, `test-harness/src/scaling.ts`). The heap
 // tier's process (one thread, `--expose-gc`), as the Prism packages have it. Opt in, at checkpoints; never in CI.
 import { join } from 'node:path';
 import { defineConfig } from 'vitest/config';
-import { heapTests } from '../sequences/vitest.shared.js';
+import { heapTests } from '@molstar/test-harness/vitest';
 
 const root = join(import.meta.dirname, 'src');
 const base = heapTests();

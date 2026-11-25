@@ -1,0 +1,50 @@
+[
+  {
+    "file": "services/sifts-2ocj.json",
+    "entry": "PDBe SIFTS: PDB 2OCJ's chains mapped to UniProt (mappings/uniprot/2ocj)",
+    "url": "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/2ocj",
+    "recorded": "2026-11-21",
+    "licence": [
+      "LicenseRef-EMBL-EBI-terms"
+    ],
+    "attribution": "PDBe, SIFTS (Dana et al. 2019), EMBL-EBI terms of use",
+    "trimmed": "none: as published, byte for byte",
+    "derived": "none",
+    "bytesDownloaded": 1222,
+    "bytesFixture": 1222,
+    "sha256Download": "17ff0bcf18bdfd961a57aaeef265fde32c6fd91bd71de00185a1daf09bc48872",
+    "sha256Fixture": "17ff0bcf18bdfd961a57aaeef265fde32c6fd91bd71de00185a1daf09bc48872"
+  },
+  {
+    "file": "services/sifts-1fin.json",
+    "entry": "PDBe SIFTS: PDB 1FIN's chains mapped to UniProt (mappings/uniprot/1fin)",
+    "url": "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/1fin",
+    "recorded": "2026-11-21",
+    "licence": [
+      "LicenseRef-EMBL-EBI-terms"
+    ],
+    "attribution": "PDBe, SIFTS (Dana et al. 2019), EMBL-EBI terms of use",
+    "trimmed": "none: as published, byte for byte",
+    "derived": "none",
+    "bytesDownloaded": 1280,
+    "bytesFixture": 1280,
+    "sha256Download": "f5bc41d96e253aa3a78eb8a9fc70669a9919bc598f2be29de300b9587fd3fdb2",
+    "sha256Fixture": "f5bc41d96e253aa3a78eb8a9fc70669a9919bc598f2be29de300b9587fd3fdb2"
+  },
+  {
+    "file": "services/AF-P04637-F1-confidence_v6.json",
+    "entry": "AlphaFold DB AF-P04637-F1, model version 6, per-residue confidence (pLDDT)",
+    "url": "https://alphafold.ebi.ac.uk/files/AF-P04637-F1-confidence_v6.json",
+    "recorded": "2026-11-21",
+    "licence": [
+      "CC-BY-4.0"
+    ],
+    "attribution": "AlphaFold DB (Jumper et al. 2021; Varadi et al. 2024), CC BY 4.0",
+    "trimmed": "none: as published, byte for byte",
+    "derived": "none",
+    "bytesDownloaded": 5417,
+    "bytesFixture": 5417,
+    "sha256Download": "a63a6e43b6fed127c2f3839e45cdb9ad9b3fc6f3135febccf0e95f207c9fdb93",
+    "sha256Fixture": "a63a6e43b6fed127c2f3839e45cdb9ad9b3fc6f3135febccf0e95f207c9fdb93"
+  }
+]

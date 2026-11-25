@@ -22,7 +22,7 @@ import {
   leak,
   leaking,
   SCALED_LIMIT,
-} from '../model/heap.js';
+} from '@molstar/test-harness/heap';
 import { CELL_COLUMNS, cellStep, genome } from './validate-cases.js';
 
 /** Steps in the shorter run; the longer runs four times as many. */

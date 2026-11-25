@@ -8,8 +8,8 @@ import { ValueCell } from '@molstar/core/util/value-cell';
 import type { DataArray, TextureImage } from './util.js';
 
 /**
- * The element ranges the updates of a data array (`DataSpec`) changed, so that consumers upload those instead of the whole image
- * (`shared-draw-resources.md`): a short log on the image, an entry per update by the cell version it produced, its
+ * The element ranges the updates of a data array (`DataSpec`) changed, so that consumers upload those instead of the whole image:
+ * a short log on the image, an entry per update by the cell version it produced, its
  * ranges as `[start, end)` element pairs. Only `TextureChanges.update` writes entries, together with the update; any
  * other update of the cell has none, and consumers upload all then. Changes of the image that do not update the cell
  * (`defer`) are pending, part of the next update's entry
@@ -26,11 +26,15 @@ const logs = new WeakMap<DataArray<any>, ChangeLog>();
 /** Updates kept per image: consumers further behind upload all */
 const MaxEntries = 8;
 /** Ranges per update kept: more upload all */
-const MaxEntryRanges = 64;
+const MaxEntryRanges = 256;
 /** Ranges closer than this (in elements) are merged: uploads of what lies between cost less than another write */
 const MergeGap = 256;
-/** Ranges handed out at most, and the fill (of all elements) beyond which consumers upload all */
-const MaxRanges = 8;
+/**
+ * Ranges handed out at most (more merged across their smallest gaps: a write a range, not the whole layer; a page store's
+ * update its tiles' pages scattered over its layer, 268 MB the yeast's colors each time), and the fill (of all
+ * elements) beyond which consumers upload all
+ */
+const MaxRanges = 64;
 const MaxFill = 0.5;
 
 /** The rows each in-place write of an image changed, by the image version it produced (`TextureChanges.writeRows`) */
@@ -177,9 +181,27 @@ export namespace TextureChanges {
         merged.push(start, end);
       }
     }
-    if (merged.length > 2 * MaxRanges) return undefined;
-    for (let k = 0; k < merged.length; k += 2) covered += merged[k + 1] - merged[k];
+    const out = merged.length > 2 * MaxRanges ? mergeSmallestGaps(merged, MaxRanges) : merged;
+    for (let k = 0; k < out.length; k += 2) covered += out[k + 1] - out[k];
     if (covered > MaxFill * elementCount) return undefined;
-    return merged;
+    return out;
+  }
+
+  /** sorted disjoint `ranges` (pairs) merged across their smallest gaps into `max` ranges */
+  export function mergeSmallestGaps(ranges: readonly number[], max: number) {
+    const n = ranges.length / 2;
+    if (n <= max) return ranges.slice();
+    // the gaps after each range but the last, the n - max smallest closed
+    const gaps = Array.from({ length: n - 1 }, (_, i) => i).sort(
+      (a, b) => ranges[2 * a + 2] - ranges[2 * a + 1] - (ranges[2 * b + 2] - ranges[2 * b + 1]),
+    );
+    const closed = new Uint8Array(n - 1);
+    for (let k = 0; k < n - max; ++k) closed[gaps[k]] = 1;
+    const out: number[] = [ranges[0], ranges[1]];
+    for (let i = 1; i < n; ++i) {
+      if (closed[i - 1]) out[out.length - 1] = ranges[2 * i + 1];
+      else out.push(ranges[2 * i], ranges[2 * i + 1]);
+    }
+    return out;
   }
 }

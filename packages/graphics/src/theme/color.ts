@@ -7,12 +7,7 @@
 
 import { Color } from '@molstar/core/util/color';
 import type { Location } from '@molstar/model/model/location';
-import type {
-  ColorType,
-  ColorTypeDirect,
-  ColorTypeGrid,
-  ColorTypeLocation,
-} from '@molstar/graphics/geo/geometry/color-data';
+import type { ParticleList, ParticleRuns } from '@molstar/model/model/particles/particle-list';
 import { deepEqual } from '@molstar/core/util';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type ThemeDataContext, ThemeRegistry, type ThemeProvider } from './theme.js';
@@ -25,6 +20,22 @@ import type { ColorListEntry } from '@molstar/core/util/color/color';
 import { getPrecision } from '@molstar/core/util/number';
 import { SortedArray } from '@molstar/core/data/int/sorted-array';
 import { normalize } from '@molstar/core/math/interpolate';
+
+/**
+ * How a geometry stores its colors: one, per instance, group, vertex, a grid, or given directly. `object`: one too, a
+ * texel of `tColor` (a merged object's members' packed, read by the segment): what a merged object keeps per member
+ */
+export type ColorTypeLocation =
+  | 'uniform'
+  | 'object'
+  | 'instance'
+  | 'group'
+  | 'groupInstance'
+  | 'vertex'
+  | 'vertexInstance';
+export type ColorTypeGrid = 'volume' | 'volumeInstance';
+export type ColorTypeDirect = 'direct';
+export type ColorType = ColorTypeLocation | ColorTypeGrid | ColorTypeDirect;
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color;
 
@@ -45,6 +56,23 @@ type ColorThemeShared<P extends PD.Params, G extends ColorType> = {
    */
   readonly palette?: Readonly<ColorTheme.Palette>;
   readonly preferSmoothing?: boolean;
+  /**
+   * runs of particles (`ParticleRuns`) the theme's color is constant over: a particle target whose particles lie in one
+   * run takes one color (`uniform`), not a color a particle (a pack's colors by entity: a target's particles one run)
+   */
+  readonly particleRuns?: ParticleRuns;
+  /**
+   * a flat particle list's colors (a slot list's page, or the theme's list itself) as RGBA from `offset` (4 bytes a
+   * particle, in its order), all at once: a tile's block filled a run at a time, not a color a location
+   * (`color/particle-pages.ts`)
+   */
+  readonly fillParticleColors?: (list: ParticleList, out: Uint8Array, offset: number) => void;
+  /**
+   * a particle target's color where every particle of it has it (by what the target is: its `targetInfo`'s entity,
+   * which all its particles share), undefined where its particles' colors may differ: a color a target, not a color a
+   * particle (a slot list's object: a member's color read by its segment, no per-particle layer)
+   */
+  readonly targetColor?: (target: number) => Color | undefined;
   readonly contextHash?: number;
   readonly description?: string;
   readonly legend?: Readonly<ScaleLegend | TableLegend>;

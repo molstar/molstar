@@ -112,6 +112,7 @@ import { VolumeFromCube } from '@molstar/plugin/state/formats/volume/cube';
 import { VolumeFromDx } from '@molstar/plugin/state/formats/volume/dx';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { VolumeInstances, VolumeTransform } from '@molstar/plugin/state/transforms/volume/ops';
+import { TransformShapeProvider } from '@molstar/plugin/state/transforms/shape/transform';
 import {
   BoxifyVolumeStreaming,
   CreateVolumeStreamingBehavior,
@@ -241,6 +242,8 @@ export const DefaultActions: PluginRegistryEntry = {
     VolumeRepresentation3D,
     VolumeTransform,
     VolumeInstances,
+
+    TransformShapeProvider,
   ],
 };
 
@@ -324,7 +327,7 @@ export const DefaultAnimations: PluginRegistryEntry = {
 /** The default plugin: every entry above, in registration order. */
 /**
  * The generic bond providers: `'none'` (the format's bonds only) and `'per-unit'`. The built-in bonds are not an entry,
- * they are always there (bond-providers plan §3); an app that needs neither provider leaves this out.
+ * they are always there; an app that needs neither provider leaves this out.
  */
 export const DefaultBonds: PluginRegistryEntry = {
   structure: { bondProviders: [NoComputedBondsProvider, PerUnitBondProvider] },

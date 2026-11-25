@@ -13,7 +13,7 @@
 // Each call loads the viewer afresh (`vi.resetModules`).
 
 import { vi } from 'vitest';
-import type { AllocOptions } from '../../core/_test/model/alloc.js';
+import type { AllocOptions } from '@molstar/test-harness/alloc';
 
 /** The draws' quick counts: a whole frame of the plot is about 0.5 ms (M4), so windows of 250 steps. */
 export const DRAW: AllocOptions = { warmSteps: 1_000, steps: 250, windows: 3 };

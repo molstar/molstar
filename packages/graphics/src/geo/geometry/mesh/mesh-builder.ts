@@ -125,7 +125,7 @@ export namespace MeshBuilder {
       normals: ChunkedArray.create(Float32Array, 3, chunkSize, mesh ? mesh.normalBuffer.ref.value : initialCount),
       // ~2 triangles per vertex (closed surfaces, tubes and grids); `getMesh` trims what an estimate overshoots
       indices: ChunkedArray.create(Uint32Array, 3, chunkSize * 2, mesh ? mesh.indexBuffer.ref.value : initialCount * 2),
-      groups: ChunkedArray.create(Float32Array, 1, chunkSize, mesh ? mesh.groupBuffer.ref.value : initialCount),
+      groups: ChunkedArray.create(Uint32Array, 1, chunkSize, mesh ? mesh.groupBuffer.ref.value : initialCount),
       mesh,
     };
   }
@@ -238,7 +238,7 @@ export namespace MeshBuilder {
     const vb = ChunkedArray.compactTrimmed(vertices) as Float32Array;
     const ib = ChunkedArray.compactTrimmed(indices) as Uint32Array;
     const nb = ChunkedArray.compactTrimmed(normals) as Float32Array;
-    const gb = ChunkedArray.compactTrimmed(groups) as Float32Array;
+    const gb = ChunkedArray.compactTrimmed(groups) as Uint32Array;
     return Mesh.create(vb, ib, nb, gb, state.vertices.elementCount, state.indices.elementCount, mesh);
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Koya Sakuma
  * Adapted from MolQL implemtation of atom-set.ts
@@ -7,6 +7,7 @@
  * Copyright (c) 2017 MolQL contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author sixty-66 <puzhexin@foxmail.com>
  */
 
 import type { StructureQuery } from '../query.js';
@@ -20,8 +21,12 @@ export function atomCount(ctx: QueryContext) {
 
 export function countQuery(query: StructureQuery) {
   return (ctx: QueryContext) => {
-    const sel = query(ctx);
-    return StructureSelection.structureCount(sel);
+    ctx.pushInputStructure(ctx.currentStructure ?? ctx.inputStructure);
+    try {
+      return StructureSelection.structureCount(query(ctx));
+    } finally {
+      ctx.popInputStructure();
+    }
   };
 }
 

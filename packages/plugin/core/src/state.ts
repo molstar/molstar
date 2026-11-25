@@ -63,7 +63,7 @@ const SettingsUpdatedDebounceMs = 100;
 interface UsedNames {
   readonly transformers: ReadonlySet<string>;
   readonly providers: ReadonlyArray<readonly [RepresentationScope, ProviderKind, string]>;
-  /** The bond providers the structure transforms name (bond-providers plan §4) */
+  /** The bond providers the structure transforms name */
   readonly bondProviders: ReadonlySet<string>;
 }
 
@@ -258,7 +258,7 @@ class PluginState extends PluginComponent {
               : themes.sizeThemeRegistry;
         warnIfUnregistered(this.plugin, scopeName, kind, r as Parameters<typeof warnIfUnregistered>[3], name);
       }
-      // a bond provider the plugin lacks: normalization replaces it by the built-in bonds (bond-providers plan §4)
+      // a bond provider the plugin lacks: normalization replaces it by the built-in bonds
       for (const name of names.bondProviders) {
         const key = `bonds|${name}`;
         if (reported.has(key) || this.plugin.bondProviders.has(name)) continue;

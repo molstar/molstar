@@ -20,6 +20,7 @@ import { apply_marker_color } from './chunks/apply-marker-color.glsl.js';
 import { apply_fog } from './chunks/apply-fog.glsl.js';
 import { wboit_write } from './chunks/wboit-write.glsl.js';
 import { dpoit_write } from './chunks/dpoit-write.glsl.js';
+import { apply_occlusion } from './chunks/apply-occlusion.glsl.js';
 
 export const text_frag = `
 precision highp float;
@@ -94,6 +95,7 @@ void main(){
         #endif
     }
 
+    ${apply_occlusion}
     ${check_transparency}
 
     #if defined(dRenderVariant_pick)

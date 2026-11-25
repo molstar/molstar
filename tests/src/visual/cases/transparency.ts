@@ -11,7 +11,7 @@ import { cartesian, mergeRequires, variants } from '../framework/matrix.js';
 import { type SceneContext, type VisualTestCase } from '../framework/test-case.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { SsaoParams } from '@molstar/graphics/canvas3d/passes/ssao';
-import { meshBox, meshTorus, shapeRepr, sphereGrid } from '../scenes/primitives.js';
+import { meshBox, meshTorus, shapeRepr, sphereGrid, splatSphere } from '../scenes/primitives.js';
 import { blobVolume, volumeRepr } from '../scenes/volume.js';
 import { DirectVolumeRepresentationProvider } from '@molstar/graphics/repr/volume/direct-volume';
 import { Impostor, ObliqueView } from './geometry.js';
@@ -71,6 +71,15 @@ const scenes = variants<(ctx: SceneContext) => Promise<Representation.Any[]>>(
       }),
     ],
     'volume-behind': volumeBehindScene,
+    /**
+     * gaussian splats around an opaque box, through a transparent torus: the splats blended back to front over the
+     * mode's composite, on the opaque depth
+     */
+    splats: async () => [
+      await shapeRepr('box', meshBox(4), { colors: [Color(0x999999)] }),
+      await shapeRepr('torus', meshTorus(3), { colors: [Color(0x377eb8)], props: { alpha: 0.5 } }),
+      await shapeRepr('splats', splatSphere(300, 5, 0.07)),
+    ],
     /** caps of the clipped torus, stencil-marked and filled in the transparent passes */
     'solid-interior': async () => [
       await shapeRepr('torus', meshTorus(3), {

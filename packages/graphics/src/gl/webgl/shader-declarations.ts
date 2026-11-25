@@ -22,7 +22,7 @@ import {
 } from '../uniform-layout.js';
 import { getAttributeLayout, getAttributeLocationNames } from '../attribute-layout.js';
 import { AffineRowsItemSize } from '../affine-rows.js';
-import type { AttributeItemSize } from '../buffer.js';
+import type { AttributeItemSize, AttributeKind } from '../buffer.js';
 import { getUniformGlslType } from './uniform.js';
 import { getDataTextureAccessors } from './data-textures.js';
 
@@ -104,7 +104,12 @@ export function getSamplerGlslType(
   return sampleType === 'sint' ? `i${base}` : sampleType === 'uint' ? `u${base}` : base;
 }
 
-export function getAttributeGlslType(itemSize: AttributeItemSize) {
+/** The GLSL type of an attribute: integers (`uint32`, `int32`) as `uint`, `ivec4`… on WebGL2, floats on WebGL1 */
+export function getAttributeGlslType(itemSize: AttributeItemSize, kind: AttributeKind = 'float32', isWebGL2 = true) {
+  if (isWebGL2 && (kind === 'uint32' || kind === 'int32')) {
+    const prefix = kind === 'uint32' ? 'u' : 'i';
+    return itemSize === 1 ? (kind === 'uint32' ? 'uint' : 'int') : `${prefix}vec${itemSize}`;
+  }
   switch (itemSize) {
     case 1:
       return 'float';
@@ -191,7 +196,7 @@ export function getShaderDeclarations(
   const attributeTypes = new Map<string, string>();
   for (const entry of getAttributeLayout(schema).entries) {
     const { name, itemSize } = entry;
-    const type = getAttributeGlslType(itemSize);
+    const type = getAttributeGlslType(itemSize, entry.kind, isWebGL2);
     if (itemSize === AffineRowsItemSize) {
       // the rows (`affine-rows.ts`); merged items reading their instance data define the transform themselves
       for (const [row, location] of getAttributeLocationNames(entry)) {

@@ -33,6 +33,7 @@ import { Emissive } from '@molstar/graphics/theme/emissive';
 import { Wiggle } from '@molstar/graphics/theme/wiggle';
 import type { SignatureContext } from '../signatures.js';
 import { createVisual, getFactorySignatures, type VisualFactory } from '../visual-factory.js';
+import { Visual } from '../visual.js';
 
 export function ComplexRepresentation<P extends StructureParams>(
   label: string,
@@ -77,7 +78,10 @@ export function ComplexRepresentation<P extends StructureParams>(
       }
       const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, structure);
       if (promise) await promise;
-      if (newVisual) setState(_state); // current state for new visual
+      if (newVisual)
+        setState(_state); // current state for new visual
+      // a render object made anew has the identity: the transient transform as set
+      else Visual.setPreviewTransform(visual.renderObject, _state.previewTransform);
       // update list of renderObjects
       renderObjects.length = 0;
       if (visual && visual.renderObject) {
@@ -162,6 +166,9 @@ export function ComplexRepresentation<P extends StructureParams>(
     }
     if (state.themeStrength !== undefined && visual) visual.setThemeStrength(state.themeStrength);
     if (state.transform !== undefined && visual) visual.setTransform(state.transform);
+    if (state.previewTransform !== undefined && visual) {
+      Visual.setPreviewTransform(visual.renderObject, state.previewTransform);
+    }
     if (state.unitTransforms !== undefined && visual) {
       // Since ComplexVisuals always renders geometries between units, the application
       // of `unitTransforms` does not make sense. When given here and not the identity,

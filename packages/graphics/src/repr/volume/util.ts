@@ -28,6 +28,7 @@ import type { GraphicsFeature } from '@molstar/graphics/gl/capabilities';
 import { isComputeIsosurfaceSupported } from '@molstar/graphics/gl/compute/marching-cubes/compute';
 import { getAtlasIsosurfaceExtraction } from '@molstar/graphics/gl/compute/marching-cubes/atlas';
 import { missingCapabilities } from '../util.js';
+import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3set = Vec3.set;
@@ -172,32 +173,6 @@ export function createVolumeSliceCellLocationIterator(volume: Volume, key: numbe
 }
 
 //
-
-export function getVolumeTexture2dLayout(dim: Vec3, padding = 0) {
-  const area = dim[0] * dim[1] * dim[2];
-  const squareDim = Math.sqrt(area);
-  const powerOfTwoSize = Math.pow(2, Math.ceil(Math.log(squareDim) / Math.log(2)));
-
-  let width = dim[0] + padding;
-  let height = dim[1] + padding;
-  let rows = 1;
-  let columns = width;
-  if (powerOfTwoSize < width * dim[2]) {
-    columns = Math.floor(powerOfTwoSize / width);
-    rows = Math.ceil(dim[2] / columns);
-    width *= columns;
-    height *= rows;
-  } else {
-    width *= dim[2];
-  }
-  return {
-    width,
-    height,
-    columns,
-    rows,
-    powerOfTwoSize: height < powerOfTwoSize ? powerOfTwoSize : powerOfTwoSize * 2,
-  };
-}
 
 export function createVolumeTexture2d(
   volume: Volume,

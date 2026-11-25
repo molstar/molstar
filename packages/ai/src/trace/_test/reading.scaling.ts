@@ -10,15 +10,10 @@ import { expect, it } from 'vitest';
 import type { CallRecord, HarnessEvent, HarnessReader } from '../../harness/index.js';
 import type { Json, Message } from '../../messages/index.js';
 import { assistant, declareTools, system, toolDefinition, user } from '../../testing/index.js';
-import {
-  checkLinear,
-  quadraticControl,
-  scaling,
-  scalingAsync,
-} from '../../../../sequences/core/_test/model/scaling.js';
+import { checkLinear, quadraticControl, scaling, scalingAsync } from '@molstar/test-harness/scaling';
 import { createTraceCache, readTrace } from '../index.js';
 
-// The Inspector's reads (`test:scaling`, `sequences/core/_test/model/scaling.ts`; trace.md, Incremental reads): one turn of N model
+// The Inspector's reads (`test:scaling`, `test-harness/src/scaling.ts`; trace.md, Incremental reads): one turn of N model
 // calls, each with a tool call, each seeing the conversation so far (a window that grows by two messages a call), read
 // again as the turn goes on. A read that maps every call's window again is calls × messages a read; one that keeps the
 // views of the calls it has read maps the new call's window only (one window: about the factor, 4×, not its square).

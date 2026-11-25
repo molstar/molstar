@@ -14,7 +14,7 @@
 // (`vi.resetModules`).
 
 import { vi } from 'vitest';
-import type { AllocOptions } from '../../core/_test/model/alloc.js';
+import type { AllocOptions } from '@molstar/test-harness/alloc';
 
 /** The zooms (CSS px a cell) of the copy's pans, the navigators, the group label modes and the range labels' zooms. */
 export const COPY_CELLS = [13, 3, 0.4] as const;

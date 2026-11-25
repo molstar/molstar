@@ -9,8 +9,8 @@ export const assign_group = `
     readInstanceData();
 #endif
 #ifdef dGeometryType_textureMesh
-    float group = unpackRGBToInt(readFromTexture(tGroup, vertexId, uGeoTexDim).rgb);
+    GroupId group = unpackGroupId(readFromTexture(tGroup, vertexId, uGeoTexDim));
 #else
-    float group = aGroup;
+    GroupId group = GroupId(aGroup);
 #endif
 `;

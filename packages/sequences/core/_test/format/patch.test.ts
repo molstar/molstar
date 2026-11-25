@@ -31,7 +31,7 @@ import {
 } from '../../src/format/index.js';
 import { normalizeNodeParams } from '../../src/format/normalize.js';
 import { diffTree, patchTree } from '../../src/format/patch/tree-patch.js';
-import { itWithin } from '../model/timing.js';
+import { itWithin } from '@molstar/test-harness/timing';
 import { CASES, case2, case10 } from './cases.js';
 import { registries } from './load-fixtures.js';
 

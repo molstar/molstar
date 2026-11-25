@@ -16,7 +16,7 @@ import { isComputeColorSmoothingSupported } from '@molstar/graphics/gl/compute/c
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { createDataArray, type DataArray, getDataTextureImage } from '@molstar/graphics/gl/renderable/util';
 import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
-import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isWebGLContext } from '@molstar/graphics/gl/contexts/webgl';
 import {
   computeStructureGaussianDensity,
   computeStructureGaussianDensityTexture,
@@ -74,7 +74,7 @@ async function gaussianSurfaceMesh(atoms: number) {
 }
 
 const Identity = new Float32Array(Mat4.id);
-const Instance = new Float32Array([0]);
+const Instance = new Uint32Array([0]);
 
 /** Reused per graphics context and input, as the representation reuses its color grid texture */
 const outputs = new WeakMap<GraphicsContext, Texture>();

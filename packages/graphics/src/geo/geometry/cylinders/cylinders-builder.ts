@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { int32ToFloatBits } from '../center-group.js';
 import { ChunkedArray } from '@molstar/core/data/util';
 import { Cylinders } from './cylinders.js';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
@@ -86,7 +87,8 @@ export namespace CylindersBuilder {
       group: number,
     ) => {
       const cap = (topCap ? 1 : 0) + (bottomCap ? 2 : 0);
-      caAdd4(data, startX, startY, startZ, group);
+      // the group as its bits (`rgb32f-i32`: exact past 2^24)
+      caAdd4(data, startX, startY, startZ, int32ToFloatBits(group));
       caAdd4(data, endX, endY, endZ, radiusScale);
       caAdd4(data, cap, colorMode, 0, 0);
     };

@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as fs from 'node:fs';
@@ -12,6 +13,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import { memoryStore } from '../../persist/stores.js';
 import { particlesFile } from '../../api/_test/volume-fixtures.js';
+import { CustomProperties } from '@molstar/model/model/custom-property';
+import type { ParticleList } from '@molstar/model/model/particles/particle-list';
+import { writeParticlePack } from '@molstar/model/formats/particles/pack';
 
 // The light restore (journal.md §6) on headless viewers sharing one store, as a tab's sessionStorage is across a reload.
 // The address is served by a stubbed fetch: no network.
@@ -25,6 +29,26 @@ const Url = 'https://files.rcsb.org/download/1cbs.cif';
 afterEach(() => {
   vi.unstubAllGlobals();
 });
+
+/** 64 particles on a 4³ lattice of one target, a pack of 2³ tiles */
+function tileOrderedPack() {
+  const n = 64;
+  const list: ParticleList = {
+    label: 'lattice',
+    count: n,
+    targets: new Int32Array(n).fill(1),
+    targetInfo: new Map([[1, { name: 'one' }]]),
+    targetMapping: new Map([
+      [1, { kind: 'sites', sites: { count: 1, positions: new Float32Array(3), radii: new Float32Array(1).fill(2) } }],
+    ]),
+    coordinates: Float32Array.from({ length: n * 3 }, (_, k) => (Math.floor(k / 3 / 4 ** (k % 3)) % 4) * 30),
+    getParticleLabel: (i) => `particle ${i}`,
+    sourceData: { kind: 'test', name: 'test', data: {} },
+    customProperties: new CustomProperties(),
+    _propertyData: Object.create(null),
+  };
+  return writeParticlePack(list, { tiles: 2 });
+}
 
 const structures = (v: {
   plugin: { managers: { structure: { hierarchy: { current: { structures: unknown[] } } } } };
@@ -72,6 +96,20 @@ describe('the light restore', () => {
     v.managers.notifications.posted.subscribe((m) => said.push(m.text));
     expectOk(await v.api.load.files({ files: [cbs()] }));
     v.restore!.flush();
+    v.restore!.flush();
+    expect(v.restore!.available).toBe(false);
+    expect(said.filter((t) => /not kept across a reload/.test(t)).length).toBeGreaterThan(0);
+  });
+
+  it('does not keep a tile-ordered particle pack read by range from a local file, and says so', async () => {
+    const store = memoryStore({ version: 'test', budget: 256 * 1024 });
+    const v = await headlessViewer({ spec: { persist: { key: 'test', restore: store } } });
+    const said: string[] = [];
+    v.managers.notifications.posted.subscribe((m) => said.push(m.text));
+    expectOk(await v.api.load.files({ files: [new File([tileOrderedPack()], 'lattice.mspk')] }));
+    // read by range (not whole): its tile set's file the held data
+    const ids = [...v.plugin.state.data.cells.values()].map((c) => c.transform.transformer.id);
+    expect(ids).toContain('ms-plugin.particle-tile-set-from-pack');
     v.restore!.flush();
     expect(v.restore!.available).toBe(false);
     expect(said.filter((t) => /not kept across a reload/.test(t)).length).toBeGreaterThan(0);

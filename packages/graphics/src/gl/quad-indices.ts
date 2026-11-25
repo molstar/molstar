@@ -6,7 +6,7 @@
 
 /**
  * Quad items (sphere impostors, points: six vertex ids per item, two triangles, no elements) drawn indexed: four
- * vertex shader invocations per item instead of six (`sphere-impostors.md`, indexed quads). Item `i` is the indices
+ * vertex shader invocations per item instead of six (indexed quads). Item `i` is the indices
  * `6i + QuadIndexPattern`, ids of the six-vertex quad whose corners the shaders map (0 (-1, 1), 1 (-1, -1), 2 (1, 1),
  * 4 (1, -1)): its triangles are those of the six vertices, so the shaders, the draw counts (6 per item, indices now)
  * and the draw bases stay, and an indexed draw of a range draws what the unindexed draw of it does
@@ -153,8 +153,10 @@ export function createQuadIndices<B>(
       if (current && current.itemCount >= itemCount) return current;
       const grown = Math.max(itemCount, MinItemCount, current ? current.itemCount * 2 : 0);
       const next = Math.min(grown, maxItemCount);
+      // made before the old one is released: a failed allocation (a RangeError growing to gigabytes) keeps `current`
+      const grownCurrent = { buffer: create(createItemIndexArray(next, items)), id: nextId++, itemCount: next };
       if (current) release(current.buffer);
-      current = { buffer: create(createItemIndexArray(next, items)), id: nextId++, itemCount: next };
+      current = grownCurrent;
       return current;
     },
     get id() {

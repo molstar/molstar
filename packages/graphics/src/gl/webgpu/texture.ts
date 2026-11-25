@@ -8,11 +8,18 @@ import { toHalfFloat } from '@molstar/core/util/number-conversion';
 import { idFactory } from '@molstar/core/util/id-factory';
 import type { TextureImage, TextureVolume } from '../renderable/util.js';
 import type { GraphicsStats } from '../stats.js';
-import type { Texture, TextureFilter, TextureFormat, TextureKind, TextureSource, TextureType } from '../texture.js';
+import type {
+  Texture,
+  TextureAttachment,
+  TextureFilter,
+  TextureFormat,
+  TextureKind,
+  TextureSource,
+  TextureType,
+} from '../texture.js';
 import { TextureUsage } from './constants.js';
 import { notSupported } from './errors.js';
-import type { AttachmentRef } from '../framebuffer.js';
-import { asWebGPUFramebuffer } from './framebuffer.js';
+import type { AttachmentRef, WebGPUAttachmentSet } from './attachment-set.js';
 import { getMipLevelCount, type MipmapGenerator } from './mipmap.js';
 
 const getNextTextureId = idFactory();
@@ -80,7 +87,7 @@ export interface WebGPUResourceEnv {
 }
 
 export interface WebGPUTexture extends Texture {
-  /** as attachment (`Framebuffer.getAttachments`) */
+  /** as attachment (`WebGPUAttachmentSet.getAttachments`) */
   readonly ref: AttachmentRef;
   readonly format: GPUTextureFormat;
   readonly dimension: GPUTextureDimension;
@@ -95,6 +102,9 @@ export interface WebGPUTexture extends Texture {
   getGPUTexture: () => GPUTexture | undefined;
   /** whether the texture has GPU storage (written, or read or copied since `define`) */
   readonly hasStorage: boolean;
+  /** Attaches it to an attachment set (render pass attachments); `layer`: a z-slice of a 3d texture */
+  attach: (set: WebGPUAttachmentSet, attachment: TextureAttachment, layer?: number) => void;
+  detach: (set: WebGPUAttachmentSet, attachment: TextureAttachment) => void;
   readonly hasStencil: boolean;
   /** as on WebGL, a property of the texture; programs sample linear textures filtered, see `isLinearFiltered` */
   readonly filter: TextureFilter;
@@ -195,7 +205,7 @@ export function createWebGPUTexture(
   const gpuFormat = getGPUTextureFormat(format, type, env.device.features);
   const isDepth = format === 'depth' || format === 'depth-stencil';
   const hasStencil = format === 'depth-stencil';
-  // all mapped color formats are renderable, 3d textures one slice at a time (`attachFramebuffer` with a layer); formats
+  // all mapped color formats are renderable, 3d textures one slice at a time (`attach` with a layer); formats
   // with storage support can be written by compute kernels
   const usage =
     TextureUsage.TEXTURE_BINDING |
@@ -280,11 +290,12 @@ export function createWebGPUTexture(
 
   function load(image: TextureImage<any> | TextureVolume<any> | HTMLImageElement | ImageBitmap) {
     if (destroyed) return;
-    loaded = image;
-    mipmapped = false;
-    const { device } = env;
     const isElement = typeof HTMLImageElement !== 'undefined' && image instanceof HTMLImageElement;
     const isBitmap = typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap;
+    // a bitmap not kept: its owner may close it (`Texture.load`)
+    loaded = isBitmap ? undefined : image;
+    mipmapped = false;
+    const { device } = env;
     if (isElement || isBitmap) {
       if (format !== 'rgba' || type !== 'ubyte') notSupported(`images in '${format}' '${type}' textures`);
       const w = isElement ? image.naturalWidth || image.width : image.width;
@@ -335,10 +346,13 @@ export function createWebGPUTexture(
       const start = rows[k];
       const end = Math.min(rows[k + 1], image.height);
       if (end <= start) continue;
+      // a view of the rows alone, not the array at an offset: the data a write is given is sent whole to the GPU
+      // process (its layout read there), an atlas of a few rows written per write otherwise
+      const rowsView = new Uint8Array(array.buffer, array.byteOffset + start * stride, (end - start) * stride);
       env.device.queue.writeTexture(
         { texture, origin: { x: 0, y: start } },
-        array,
-        { offset: start * stride, bytesPerRow: stride, rowsPerImage: end - start },
+        rowsView,
+        { offset: 0, bytesPerRow: stride, rowsPerImage: end - start },
         { width, height: end - start },
       );
     }
@@ -406,14 +420,14 @@ export function createWebGPUTexture(
       attachmentView = texture.createView({ baseMipLevel: 0, mipLevelCount: 1 });
       version += 1;
     },
-    attachFramebuffer: (framebuffer, attachment, layer) => {
+    attach: (set, attachment, layer) => {
       if (layer === undefined) {
-        asWebGPUFramebuffer(framebuffer).attach(attachment, t);
+        set.attach(attachment, t);
         return;
       }
       if (dimension !== '3d') notSupported('attaching layers of 2d textures');
       // a slice of the 3d view of level 0
-      asWebGPUFramebuffer(framebuffer).attach(attachment, {
+      set.attach(attachment, {
         ref: t.ref,
         format: gpuFormat,
         hasStencil,
@@ -430,14 +444,13 @@ export function createWebGPUTexture(
         getHeight: () => height,
       });
     },
-    detachFramebuffer: (framebuffer, attachment) => {
-      asWebGPUFramebuffer(framebuffer).detach(attachment);
+    detach: (set, attachment) => {
+      set.detach(attachment);
     },
-    copyFromFramebuffer: (framebuffer, x, y, w, h, dstX, dstY) => {
-      const src = asWebGPUFramebuffer(framebuffer).getColorAttachment(0);
-      const srcTexture = src?.getGPUTexture();
+    copyFromTexture: (source, x, y, w, h, dstX, dstY) => {
+      const srcTexture = asWebGPUTexture(source).getGPUTexture();
       ensureStorage();
-      if (!srcTexture || !texture) throw new Error('copyFromFramebuffer needs a defined source and destination');
+      if (!srcTexture || !texture) throw new Error('copyFromTexture needs a defined source and destination');
       env.encode((encoder) => {
         encoder.copyTextureToTexture(
           { texture: srcTexture, origin: { x, y } },
@@ -578,9 +591,9 @@ export function createWebGPUCubeTexture(env: WebGPUResourceEnv, mipmaps: boolean
     load: () => notSupported('loading cube textures, use loadFaces'),
     loadFaces,
     mipmap: () => {},
-    attachFramebuffer: () => notSupported('attaching cube textures'),
-    detachFramebuffer: () => notSupported('detaching cube textures'),
-    copyFromFramebuffer: () => notSupported('copying into cube textures'),
+    attach: () => notSupported('attaching cube textures'),
+    detach: () => notSupported('detaching cube textures'),
+    copyFromTexture: () => notSupported('copying into cube textures'),
     // loaded from images, not a target
     releaseStorage: () => {},
 

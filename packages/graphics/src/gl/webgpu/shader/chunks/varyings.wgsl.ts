@@ -6,6 +6,7 @@
 
 import { clip_flag_wgsl } from './clip.wgsl.js';
 import { assign_data_index_wgsl } from './read-from-texture.wgsl.js';
+import { CopyMarkerBlock, PagedCopyShift } from '../../../culled-data.js';
 
 /**
  * \`VertexOutput\` with the varyings shared by the graphics programs at locations 0 to 8 and 15, and the program's
@@ -18,7 +19,7 @@ struct VertexOutput {
     @location(0) vModelPosition: vec3<f32>,
     @location(1) vViewPosition: vec3<f32>,
 #if defined(dRenderVariant_pick)
-    @location(2) @interpolate(flat) vPickIds: vec2<f32>,
+    @location(2) @interpolate(flat) vPickIds: vec2<u32>,
 #endif
 // scalars share locations (each counts against the 16 inter-stage variables, whatever its size): the palette
 // coordinate in the color's alpha (unread, materials take \`uAlpha\`), the marker with the clipping flags (both flat by
@@ -49,7 +50,9 @@ ${extra}
 
 /**
  * Item `vertexId` of the quad from `vertex_index` (6 vertices, two triangles per item) with its `position` and
- * `group` from `tPositionGroup`, and the quad corner `mapping` (-1 or 1 per axis)
+ * `group` from `tPositionGroup`, and the quad corner `mapping` (-1 or 1 per axis): quad `p` of a level of detail draws
+ * item `p * stride` (the items in their order; merged, from the member's first item, `segmentItem`); quantized centers
+ * (`dSites`) from `tSite` by the object's origin and scale (merged, the member's, `segmentSites`), the group the item's
  */
 export const assign_quad_position_group_wgsl = /* wgsl */ `
     let m = i32(in.vertexIndex) % 6;
@@ -61,10 +64,36 @@ export const assign_quad_position_group_wgsl = /* wgsl */ `
     } else if (m == 4) {
         mapping = vec2<f32>(1.0, -1.0);
     }
-    let vertexId = i32(in.vertexIndex) / 6;
-    let positionGroup = read_tPositionGroup(vertexId);
-    var position = positionGroup.xyz;
-    let group = positionGroup.w;
+    var vertexId = i32(in.vertexIndex) / 6;
+    #if defined(dSegmented)
+        // the member's stride at the level drawn (1 without levels, or drawn whole) from its first item
+        let itemBase = segmentItem(in);
+        vertexId = itemBase + (vertexId - itemBase) * i32(segmentStride(in)[clamp(uDraw.uLodLevel, 0, 3)]);
+    #else
+        // at least 1: a draw before its uniforms are written draws every item
+        vertexId *= max(1, i32(uDraw.uLodStride));
+    #endif
+    #if defined(dSites)
+        #if defined(dSegmented)
+            let siteOriginScale = segmentSites(in);
+            let group = vertexId - itemBase;
+        #else
+            let siteOriginScale = vec4<f32>(uObject.uSiteOrigin, uObject.uSiteScale);
+            let group = vertexId;
+        #endif
+        let site = read_tSite(vertexId);
+        var position = siteOriginScale.xyz + site.xyz * siteOriginScale.w;
+        // the index of the site's type in the size table (\`siteType\` sizes; merged, from the member's table)
+        #if defined(dSegmented)
+            let siteSizeIndex = segmentSizeBase(in) + i32(site.w);
+        #else
+            let siteSizeIndex = i32(site.w);
+        #endif
+    #else
+        var position = read_tPositionGroup(vertexId).xyz;
+        // an integer (\`rgb32f-i32\`)
+        let group = readGroup_tPositionGroup(vertexId);
+    #endif
 `;
 
 /**
@@ -83,14 +112,11 @@ export const assign_lod_factor_wgsl = /* wgsl */ `
         #else
             let lodScale = lod.w;
         #endif
-        if (uGlobal.uModelScale != 1.0) {
-            lodFactor = lodScale;
-        } else {
-            let d = (dot(uGlobal.uCameraPlane.xyz, out.vModelPosition) + uGlobal.uCameraPlane.w) / uGlobal.uModelScale;
-            let level = lodAt(d, lod.xyz, lodScale);
-            lodFactor = level.factor;
-            lodCulled = level.culled;
-        }
+        // the distance unscaled, as the instances are culled (any camera scale)
+        let d = (dot(uGlobal.uCameraPlane.xyz, out.vModelPosition) + uGlobal.uCameraPlane.w) / uGlobal.uModelScale;
+        let level = lodAt(d, lod.xyz, lodScale);
+        lodFactor = level.factor;
+        lodCulled = level.culled;
     }
 `;
 
@@ -145,44 +171,89 @@ function grid_value_wgsl(texture: string, position: string) {
 
 /** grid positions: the local position for 'volume', the model position for 'volumeInstance' */
 const GridPosition = 'gridPosition';
-const GridModelPosition = '(out.vModelPosition / uGlobal.uModelScale)';
+const GridModelPosition = 'gridModelPosition';
 
 /**
  * Data texture indices and the color, marker and transparency varyings; expects `in.aInstance`, `vertexId`,
- * `group` and `out`, and for grid data (mesh programs) `gridPosition` and `out.vModelPosition`
+ * `group` and `out`, and for grid data (mesh programs) `gridPosition` and `gridModelPosition` (where the instance is
+ * placed, without the transient object transform)
  */
 export const assign_varyings_wgsl = /* wgsl */ `
     let instanceIndex = i32(in.aInstance);
+    #if defined(dCopyLayers)
+        // a page store's copy's instance: its copy plus one (none 0) and its template particle's store index, by which
+        // its copy's own layers replace its store index's (\`copyLayerOr\`)
+        #if defined(dSphereResolve)
+            let layerWords = rasterPagedWords(in.instanceIndex);
+        #else
+            let layerWords = culledPagedWords(in.instanceIndex);
+        #endif
+        let layerTag = layerWords.w >> ${PagedCopyShift}u;
+        let layerIndex = layerWords.z;
+    #endif
     #if defined(dSegmented)
         // the data of merged render items, offset per segment (see \`SegmentSchema\`)
         let segment = segmentGroups(in);
-        let groupInstanceIndex = i32(segment.y + in.aInstance * segment.x + group);
-        let groupIndex = i32(segment.z + group);
+        // integers: the instance ids and offsets past 2^24 exact
+        let groupInstanceIndex = segment.y + i32(in.aInstance) * segment.x + i32(group);
+        let groupIndex = segment.z + i32(group);
     #else
-        let groupInstanceIndex = i32(in.aInstance * f32(uObject.uGroupCount) + group);
+        let groupInstanceIndex = i32(in.aInstance) * i32(uObject.uGroupCount) + i32(group);
         let groupIndex = i32(group);
     #endif
     let vertexInstanceIndex = instanceIndex * uObject.uVertexCount + vertexId;
 
     #if defined(dRenderVariant_pick)
-        out.vPickIds = vec2<f32>(in.aInstance, group);
+        #if defined(dCulledPaged)
+            // a page store's: its composed pose's slot (a copy's instances' the frame's), its record's identity (store
+            // index, copy) gathered before the pick is read (\`paged-pick.ts\`)
+            out.vPickIds = vec2<u32>(in.instanceIndex, u32(group));
+        #else
+            out.vPickIds = vec2<u32>(in.aInstance, u32(group));
+        #endif
     #endif
 
     #if defined(dNeedsMarker)
         ${assign_data_index_wgsl(undefined, 'markerIndex')}
         out.vMarkerClipping.x = read_tMarker(markerIndex).r;
+        #if defined(dCopyMarkers)
+            // a copy's instance (a page store's template particle, its copy plus one above its pose's segment): its
+            // copy's marker (\`sCopyMarkers\`: two words a copy, its marker or its block's offset by store index) or-ed
+            // with its store index's (its template's: every copy's, a selection by entity)
+            #if defined(dSphereResolve)
+                let copyWords = rasterPagedWords(in.instanceIndex);
+            #else
+                let copyWords = culledPagedWords(in.instanceIndex);
+            #endif
+            let copyTag = copyWords.w >> ${PagedCopyShift}u;
+            if (copyTag != 0u) {
+                let copyWord = sCopyMarkers[2u * (copyTag - 1u)];
+                var copyMarker = copyWord & 0xffu;
+                if ((copyWord & ${CopyMarkerBlock}u) != 0u) {
+                    let b = u32(bitcast<i32>(sCopyMarkers[2u * (copyTag - 1u) + 1u]) + i32(copyWords.z));
+                    copyMarker = (sCopyMarkers[b / 4u] >> (8u * (b % 4u))) & 0xffu;
+                }
+                let templateMarker = u32(out.vMarkerClipping.x * 255.0 + 0.5);
+                out.vMarkerClipping.x = f32(copyMarker | templateMarker) / 255.0;
+            }
+        #endif
     #endif
 
     #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
         #if defined(dColorType_texture)
             // the texture's index by the color type (\`ColorTypeIndex\`): instance, group, groupInstance, vertex,
-            // vertexInstance
+            // vertexInstance, object (the object's texel; merged, its segment's)
             var colorIndex = instanceIndex;
             switch uObject.uColorIndexType {
                 case 1: { colorIndex = groupIndex; }
                 case 2: { colorIndex = groupInstanceIndex; }
                 case 3: { colorIndex = vertexId; }
                 case 4: { colorIndex = vertexInstanceIndex; }
+                #if defined(dSegmented)
+                    case 5: { colorIndex = i32(in.aSegment.w); }
+                #else
+                    case 5: { colorIndex = 0; }
+                #endif
                 default: {}
             }
             #if defined(dDualColor)
@@ -211,10 +282,13 @@ export const assign_varyings_wgsl = /* wgsl */ `
 
         #if defined(dOverpaint)
             #if defined(dOverpaintType_volumeInstance)
-                let overpaint = ${grid_value_wgsl('tOverpaintGrid', GridModelPosition)};
+                var overpaint = ${grid_value_wgsl('tOverpaintGrid', GridModelPosition)};
             #else
                 ${assign_data_index_wgsl('dOverpaintType', 'overpaintIndex')}
-                let overpaint = read_tOverpaint(overpaintIndex);
+                var overpaint = read_tOverpaint(overpaintIndex);
+            #endif
+            #if defined(dCopyLayers)
+                overpaint = copyLayerOr(0u, 4u, layerTag, layerIndex, overpaint);
             #endif
             // pre-mix to avoid darkening due to empty overpaint
             #if defined(dColorType_uniform)
@@ -230,16 +304,23 @@ export const assign_varyings_wgsl = /* wgsl */ `
                 out.vTransparencyEmissive.y = ${grid_value_wgsl('tEmissiveGrid', GridModelPosition)}.r * uMaterial.uEmissiveStrength;
             #else
                 ${assign_data_index_wgsl('dEmissiveType', 'emissiveIndex')}
-                out.vTransparencyEmissive.y = read_tEmissive(emissiveIndex).r * uMaterial.uEmissiveStrength;
+                var emissive = read_tEmissive(emissiveIndex).r;
+                #if defined(dCopyLayers)
+                    emissive = copyLayerOr(3u, 1u, layerTag, layerIndex, vec4<f32>(emissive)).r;
+                #endif
+                out.vTransparencyEmissive.y = emissive * uMaterial.uEmissiveStrength;
             #endif
         #endif
 
         #if defined(dSubstance)
             #if defined(dSubstanceType_volumeInstance)
-                let substance = ${grid_value_wgsl('tSubstanceGrid', GridModelPosition)};
+                var substance = ${grid_value_wgsl('tSubstanceGrid', GridModelPosition)};
             #else
                 ${assign_data_index_wgsl('dSubstanceType', 'substanceIndex')}
-                let substance = read_tSubstance(substanceIndex);
+                var substance = read_tSubstance(substanceIndex);
+            #endif
+            #if defined(dCopyLayers)
+                substance = copyLayerOr(4u, 4u, layerTag, layerIndex, substance);
             #endif
             // pre-mix to avoid artifacts due to empty substance
             let baseSubstance = vec3<f32>(uMaterial.uMetalness, uMaterial.uRoughness, uMaterial.uBumpiness);
@@ -252,13 +333,20 @@ export const assign_varyings_wgsl = /* wgsl */ `
             out.vTransparencyEmissive.x = ${grid_value_wgsl('tTransparencyGrid', GridModelPosition)}.r * uMaterial.uTransparencyStrength;
         #else
             ${assign_data_index_wgsl('dTransparencyType', 'transparencyIndex')}
-            out.vTransparencyEmissive.x = read_tTransparency(transparencyIndex).r * uMaterial.uTransparencyStrength;
+            var transparency = read_tTransparency(transparencyIndex).r;
+            #if defined(dCopyLayers)
+                transparency = copyLayerOr(1u, 1u, layerTag, layerIndex, vec4<f32>(transparency)).r;
+            #endif
+            out.vTransparencyEmissive.x = transparency * uMaterial.uTransparencyStrength;
         #endif
     #endif
 
     #if defined(dClipObjects) && defined(dClipping)
         ${assign_data_index_wgsl(undefined, 'clippingIndex')}
         out.vMarkerClipping.y = read_tClipping(clippingIndex).r;
+        #if defined(dCopyLayers)
+            out.vMarkerClipping.y = copyLayerOr(2u, 1u, layerTag, layerIndex, vec4<f32>(out.vMarkerClipping.y)).r;
+        #endif
     #endif
     ${clip_flag_wgsl('out.vMarkerClipping.y')}
 `;
@@ -268,9 +356,12 @@ export const assign_size_wgsl = /* wgsl */ `
     #if defined(dSizeType_uniform)
         var size = uMaterial.uSize;
     #else
-        let sizeDataIndex = sizeIndex(
+        var sizeDataIndex = sizeIndex(
             uObject.uSizeIndexType, instanceIndex, groupIndex, groupInstanceIndex, vertexId, vertexInstanceIndex
         );
+        #if defined(dSites)
+            if (uObject.uSizeIndexType == 5) { sizeDataIndex = siteSizeIndex; }
+        #endif
         var size = unpackSize(read_tSize(sizeDataIndex));
     #endif
     size *= uMaterial.uSizeFactor;

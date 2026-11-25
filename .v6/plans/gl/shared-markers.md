@@ -61,7 +61,7 @@
    still write it into both merged layers: sharing saves the CPU (one apply), not those uploads. A merged layer reading
    a shared member range directly is out of scope.
 7. **Draw lists** (WebGPU render bundles): a shared range that moves (a larger layer, a new group) must advance
-   `drawResourcesVersion` as shared textures do (§7), so the other holders' recordings do not replay stale bindings.
+   `DrawLists.resourcesVersion` as shared textures do (§7), so the other holders' recordings do not replay stale bindings.
 
 ## Steps
 
@@ -75,7 +75,7 @@
    show the same layer; `Toggle` applied once; a highlight-only representation not sharing with a full one; a visual
    joining a share sees its marks; the last release frees it.
 3. **GPU sharing**: the data-page range by `DataArray` on WebGPU and WebGL, offsets per item, byte counts by holders,
-   `drawResourcesVersion` on a moved range. Tests: Dawn (two items, one range, one write per mark, read back), WebGL
+   `DrawLists.resourcesVersion` on a moved range. Tests: Dawn (two items, one range, one write per mark, read back), WebGL
    data pages.
 4. **Measure again**: hover and select per event, uploads per mark, data-page bytes; the many-structures bench and the
    step 1 scenes.

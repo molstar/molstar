@@ -15,7 +15,7 @@ import { ColorThemeCategory } from './categories.js';
 import { clamp, normalize } from '@molstar/core/math/interpolate';
 import { Color } from '@molstar/core/util/color/color';
 import { Grid } from '@molstar/model/model/volume/grid';
-import { isPositionLocation } from '@molstar/graphics/geo/util/location-iterator';
+import { isPositionLocation } from '@molstar/model/model/position-location';
 
 const Description = 'Assign color based on the given value of a volume cell.';
 

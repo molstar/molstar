@@ -10,7 +10,7 @@
 // (labels-heap-fixture.ts `placing`), with its positive control.
 
 import { expect, it } from 'vitest';
-import { quickCase } from '../../core/_test/model/quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 import { placing } from './labels-heap-fixture.js';
 
 it('placeLabel at a panned view each step', ({ task }) => {

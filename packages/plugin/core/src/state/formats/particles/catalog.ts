@@ -11,6 +11,7 @@ import { CryoEtDataPortalNdjsonParticlesProvider } from './ndjson.js';
 import { ArtiatomiEmParticlesProvider } from './em.js';
 import { MmcifParticlesProvider } from './mmcif-assembly.js';
 import { SimulariumParticlesProvider } from './simularium.js';
+import { ParticlePackProvider } from './pack.js';
 
 export const BuiltInParticlesFormats = [
   RelionStarParticlesProvider,
@@ -19,6 +20,7 @@ export const BuiltInParticlesFormats = [
   ArtiatomiEmParticlesProvider,
   MmcifParticlesProvider,
   SimulariumParticlesProvider,
+  ParticlePackProvider,
 ] as const;
 
 export type BuiltInParticlesFormat = (typeof BuiltInParticlesFormats)[number]['name'];

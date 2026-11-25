@@ -35,5 +35,6 @@ export function getWebGLCapabilities(gl: GLRenderingContext, extensions: WebGLEx
     atomicMinMax64: false,
     compute: false,
     parallelCompile: !!e.parallelShaderCompile,
+    instanceExpansion: webgl2,
   };
 }

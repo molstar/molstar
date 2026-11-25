@@ -13,7 +13,15 @@
 // by count. The cases are molecule-cases.ts's, shared with the quick twin (molecule.quick.ts).
 
 import { describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapGrowth, heapScaling, isFlat, LIMIT, leak } from './heap.js';
+import {
+  controlCaught,
+  describeScaling,
+  heapGrowth,
+  heapScaling,
+  isFlat,
+  LIMIT,
+  leak,
+} from '@molstar/test-harness/heap';
 import { buildCase, detectCase, SIZE } from './molecule-cases.js';
 
 describe('molecule build', () => {

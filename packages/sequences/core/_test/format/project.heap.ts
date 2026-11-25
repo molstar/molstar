@@ -13,7 +13,7 @@
 // The cases are project-cases.ts's, shared with the quick twin (project.quick.ts).
 
 import { beforeAll, describe, expect, it } from 'vitest';
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../model/heap.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '@molstar/test-harness/heap';
 import { type ProjectCases, projectCases } from './project-cases.js';
 
 /** Steps in the shorter run; the longer runs four times as many. */

@@ -13,7 +13,7 @@
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import { describe, expect, it } from 'vitest';
-import { itWithin } from '../../core/_test/model/timing.js';
+import { itWithin } from '@molstar/test-harness/timing';
 import { Pass, SkinToken } from '../src/draw/index.js';
 import type { SeqViewerContext } from '../src/index.js';
 import { opened, preparedRenderers } from './layout-fixtures.js';

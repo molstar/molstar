@@ -22,12 +22,12 @@ import { apply_marker_color } from './chunks/apply-marker-color.glsl.js';
 import { apply_fog } from './chunks/apply-fog.glsl.js';
 import { wboit_write } from './chunks/wboit-write.glsl.js';
 import { dpoit_write } from './chunks/dpoit-write.glsl.js';
+import { apply_occlusion } from './chunks/apply-occlusion.glsl.js';
 
 export const cylinders_frag = `
 precision highp float;
 precision highp int;
 
-varying mat4 vTransform;
 // the cylinder's start and size, end and cap, the same at every corner of its box: two flat varyings
 #if __VERSION__ == 100
     varying vec4 vCylinderStart;
@@ -336,6 +336,7 @@ void main() {
     #endif
 
     ${assign_material_color}
+    ${apply_occlusion}
     ${check_transparency}
 
     #if defined(dRenderVariant_pick)

@@ -77,7 +77,10 @@ export function createTransparency(
     Math.max(1, count),
     1,
     Uint8Array,
-    transparencyData && transparencyData.tTransparency.ref.value.array,
+    // its array reused, not the empty one: shared by every object (one's layer another's)
+    transparencyData && transparencyData.tTransparency.ref.value !== emptyTransparencyTexture
+      ? transparencyData.tTransparency.ref.value.array
+      : undefined,
   );
   if (transparencyData) {
     ValueCell.update(transparencyData.tTransparency, transparency);

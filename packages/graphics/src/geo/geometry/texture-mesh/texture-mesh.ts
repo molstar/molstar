@@ -10,7 +10,7 @@ import { ValueCell } from '@molstar/core/util';
 import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator.js';
-import type { TransformData } from '../transform-data.js';
+import { type TransformData, getInstanceRows } from '../transform-data.js';
 import { createColors } from '../color-data.js';
 import { createMarkers } from '../marker-data.js';
 import type { GeometryUtils } from '../geometry.js';
@@ -419,6 +419,8 @@ export namespace TextureMesh {
     const p = location.position;
     const n = location.normal;
     const m = transform.aTransform.ref.value;
+    // the instance's row: the grid stores them in its order (`getInstanceRows`)
+    const rows = getInstanceRows(transform);
     const getLocation = (groupIndex: number, instanceIndex: number) => {
       const data = getData();
       if (!data) return NullLocation;
@@ -427,8 +429,9 @@ export namespace TextureMesh {
         Vec3.fromArray(p, vertices, groupIndex * 4);
         Vec3.fromArray(n, normals, groupIndex * 4);
       } else {
-        Vec3.transformMat4Offset(p, vertices, m, 0, groupIndex * 4, instanceIndex * 16);
-        Vec3.transformDirectionOffset(n, normals, m, 0, groupIndex * 4, instanceIndex * 16);
+        const o = (rows ? rows[instanceIndex] : instanceIndex) * 16;
+        Vec3.transformMat4Offset(p, vertices, m, 0, groupIndex * 4, o);
+        Vec3.transformDirectionOffset(n, normals, m, 0, groupIndex * 4, o);
       }
       return location;
     };

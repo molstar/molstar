@@ -57,6 +57,12 @@ export const GraphicsFeatures = [
    * compiling ahead costs the main thread little
    */
   'parallelCompile',
+  /**
+   * instances composed in the vertex stage (`dInstanceExpansion`, `instance-expansion.ts`): an object's instances
+   * drawn once per pose of a list culled on the CPU, the instance and the pose by `gl_InstanceID` (WebGL2); WebGPU
+   * composes them in its cull (a page store's), WebGL1 has no instance id
+   */
+  'instanceExpansion',
 ] as const;
 export type GraphicsFeature = (typeof GraphicsFeatures)[number];
 

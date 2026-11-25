@@ -90,6 +90,12 @@ function ignoreDefineUnlit(name: string, variant: string, defines: ShaderDefines
 }
 
 export const PointsShaderCode = ShaderCode('points', { drawBuffers: 'optional' }, ignoreDefineUnlit, QuadItems);
+export const GaussianSplatsShaderCode = ShaderCode(
+  'gaussian-splats',
+  { drawBuffers: 'optional' },
+  ignoreDefineUnlit,
+  QuadItems,
+);
 export const SpheresShaderCode = ShaderCode(
   'spheres',
   { fragDepth: 'required', drawBuffers: 'optional' },

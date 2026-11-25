@@ -22,6 +22,7 @@ import { apply_marker_color } from './chunks/apply-marker-color.glsl.js';
 import { apply_fog } from './chunks/apply-fog.glsl.js';
 import { wboit_write } from './chunks/wboit-write.glsl.js';
 import { dpoit_write } from './chunks/dpoit-write.glsl.js';
+import { apply_occlusion } from './chunks/apply-occlusion.glsl.js';
 
 export const spheres_frag = `
 precision highp float;
@@ -69,7 +70,10 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
     vec3 cameraSphereDir = mix(cameraSpherePos, rayOrigin - cameraSpherePos, uIsOrtho);
 
     float B = dot(rayDirection, cameraSphereDir);
-    float det = B * B + vSphere.w * vSphere.w - dot(cameraSphereDir, cameraSphereDir);
+    // from the ray's distance to the center: \`B * B - dot(cameraSphereDir, cameraSphereDir)\` is rounding alone far from
+    // the camera, where it is far larger than the radius squared
+    vec3 toRay = cameraSphereDir - rayDirection * B;
+    float det = vSphere.w * vSphere.w - dot(toRay, toRay);
 
     if (det < 0.0) return false;
 
@@ -213,6 +217,7 @@ void main(void){
         }
     #endif
 
+    ${apply_occlusion}
     ${check_transparency}
 
     #if defined(dRenderVariant_pick)

@@ -1,0 +1,189 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import type { ViewLayout } from '@molstar/seqx-core/render';
+import type { SeqConfigItem, SeqExtension, SeqPorts } from '@molstar/seqx-core/context';
+import type { BindingTable, GestureBinding } from '@molstar/seqx-viewer/bindings';
+import type { ViewerConfig } from '@molstar/seqx-viewer/config';
+import type { SeqAnimationPort, SeqHistoryPort } from '@molstar/seqx-viewer/ports';
+import type { HeaderEntry, SeqViewerRegistryEntry } from './header-entries.js';
+import type { LegendModel } from './legends.js';
+import type { SeqNavigatorsPart } from './navigators.js';
+import type { SeqStoryPart } from './story.js';
+import type { SeqViewer, ViewerCommand } from './viewer.js';
+import type {
+  AddressModel,
+  HighlightModel,
+  HoverModel,
+  SelectionModel,
+  SpecModel,
+  StoreModel,
+  ViewModel,
+} from '@molstar/seqx-viewer/models';
+
+// The viewer's spec (_spec/README.md "Composition"): what a viewer contains, listed in one place, as a Mol* plugin's
+// spec does. Nothing registers on import; `DefaultSeqViewerSpec()` lists the built-in behaviors and ports, and an
+// application spreads it and changes what it needs.
+
+/** What a behavior is given: the models, the bindings and the configuration of the viewer it is part of. */
+export interface BehaviorContext {
+  readonly spec: SpecModel;
+  readonly view: ViewModel;
+  readonly hover: HoverModel;
+  readonly store: StoreModel;
+  readonly selection: SelectionModel;
+  readonly highlight: HighlightModel;
+  /** Addresses resolved in the spec shown, the actions on them, the refs, links, the session as addresses. */
+  readonly addresses: AddressModel;
+  readonly config: ViewerConfig;
+  readonly bindings: BindingTable;
+  /** The legends as derived, the hovered entry, the reader's color-blind substitution. */
+  readonly legends: LegendModel;
+  /** The last frame's layout (a rows band's state: its clades, its rows in view), undefined before the first. */
+  layout(): ViewLayout | undefined;
+}
+
+/** What every behavior's handle may have: its end, and its part over a mounted canvas. */
+export interface BehaviorHandle {
+  dispose?(): void;
+  /** The commands it provides: the viewer's (`SeqViewer.commands`) while it stands. */
+  readonly commands?: readonly ViewerCommand[];
+  /**
+   * Its part over the canvas (the hover card's adapter, the keys panel): `mountCanvas` calls it with the canvas's
+   * element; the function it returns takes the part away. A headless viewer never calls it.
+   */
+  attach?(container: HTMLElement, viewer: SeqViewer): () => void;
+  /**
+   * Called once every behavior is made, before the UI: what reads the viewer's commands or registry (the `headers`
+   * behavior's entries, checked against them). A throw retires what was made.
+   */
+  composed?(viewer: SeqViewer): void;
+  /**
+   * Resolves once the lazy chunks it asked for landed (the `headers` behavior's late parts and icons): `settle` waits
+   * for them, so a settled picture is the whole one and no import outlives the viewer's tests.
+   */
+  loaded?(): Promise<void>;
+}
+
+/** A behavior's provider: creates the policy over the models; what it makes is its handle (`dispose` ends it). */
+export interface BehaviorProvider<Params = unknown, Handle = unknown> {
+  readonly name: string;
+  create(context: BehaviorContext, params: Params): Handle & BehaviorHandle;
+}
+
+export interface SeqViewerBehavior<Params = any> {
+  readonly provider: BehaviorProvider<Params, any>;
+  readonly params?: Params;
+}
+
+export interface SeqViewerBindings {
+  /** The preset (`default` when absent, or the `bindings.preset` setting). */
+  readonly preset?: readonly GestureBinding[];
+  /** Layers over the preset, each replacing the bindings of the same gesture, modifiers and target. */
+  readonly overrides?: readonly (readonly GestureBinding[])[];
+  /** The ids of commands bindings may name besides the viewer's own (an extension's). */
+  readonly actions?: readonly string[];
+}
+
+/** The mounted UI's parts: the toolbar and the canvas stack (the section labels are drawn by the layout). */
+/** Mounts a toolbar for a viewer into a target (before the canvas); the function it returns takes it away. */
+export type ToolbarMount = (viewer: SeqViewer, target: HTMLElement) => () => void;
+
+export interface SeqViewerUI {
+  readonly canvas?: true;
+  /**
+   * The toolbar, a part the host places (like the legends): `mountToolbar` of `@molstar/seqx-viewer/mount-toolbar`, or
+   * its own, mounted into the target above the canvas. Not listed, not in the bundle: the toolbar is `@molstar/ui`'s
+   * and weighs far more than the two buttons it holds.
+   */
+  readonly toolbar?: ToolbarMount;
+  /**
+   * A mounted viewer with no `history` given gets a stack of its own from this factory (`uiHistory` of
+   * `@molstar/seqx-viewer/ui-history`, a `@molstar/ui/history` stack): the standalone viewer's Undo. A headless viewer
+   * never does. Not listed, not in the bundle.
+   */
+  readonly history?: () => SeqHistoryPort;
+  /**
+   * The legends, a part the host places (`mountLegend` of `@molstar/seqx-viewer/mount-legend`, or its own): mounted
+   * after the canvas in the standalone viewer. Seq* never draws a legend on its canvas.
+   */
+  readonly legends?: ToolbarMount;
+  /**
+   * The navigators, parts the host places (`navigatorsMount` of `@molstar/seqx-viewer/mount-navigator` places the
+   * view's declared navigators by their `place` around the canvas through `mountNavigator`; a host calls
+   * `mountNavigator` itself). On in the standalone viewer.
+   */
+  readonly navigators?: ToolbarMount;
+  /**
+   * A button in the canvas's corner that hides and shows the ruler rails (`railToggleMount`): the reader's session,
+   * never the spec. For a viewer embedded in a host's cell, where its room is the reader's.
+   */
+  readonly railToggle?: ToolbarMount;
+}
+
+/**
+ * An extension of the viewer (_spec/README.md "Composition", Extensions): the core's descriptor (its entries, params,
+ * settings) and the viewer's kinds, as the built-ins' are: behaviors, commands, bindings (their actions its commands'
+ * ids, or the viewer's), header entries. Its behaviors' and commands' names are its own (`<id>:<name>` by convention).
+ */
+export interface SeqViewerExtension extends SeqExtension {
+  readonly behaviors?: readonly SeqViewerBehavior[];
+  readonly commands?: readonly ViewerCommand[];
+  /**
+   * A layer over the spec's bindings (each replacing the binding of the same gesture, modifiers and target), naming the
+   * viewer's actions or its own (`<id>:…`).
+   */
+  readonly bindings?: readonly GestureBinding[];
+  /** Header entries beside the built-ins' (read when the viewer is composed: not by `extend`). */
+  readonly headerActions?: readonly HeaderEntry[];
+  /** Written by `defineViewerExtension` (`@molstar/seqx-viewer/extension`): a viewer's spec with its viewer parts added. */
+  readonly composeViewer?: (spec: SeqViewerSpec) => SeqViewerSpec;
+}
+
+export interface SeqViewerSpec {
+  /**
+   * Registry entries, in order: what the viewer can read, compute and draw (the core's kinds), and its header entries
+   * (`header-action`, the `headers` behavior's).
+   */
+  readonly registry?: readonly SeqViewerRegistryEntry[];
+  /** Behaviors with their params, initialized after the registry. */
+  readonly behaviors: readonly SeqViewerBehavior[];
+  /**
+   * Extensions (_spec/README.md "Composition", Extensions): the core's or the viewer's descriptors, each registered whole
+   * with the registry (the core's checks) and its behaviors, commands, bindings and header entries after the spec's.
+   */
+  readonly extensions?: readonly (SeqExtension | SeqViewerExtension)[];
+  readonly bindings?: SeqViewerBindings;
+  /** Settings as `[item, value]` pairs. */
+  readonly config?: readonly (readonly [SeqConfigItem<any>, unknown])[];
+  /** Port adapters, each a factory with ownership; unset ports take their default adapter. */
+  readonly ports?: SeqPorts;
+  /**
+   * The host's history (Seq*'s history port, _spec/README.md "Ports"): the spec's edits as steps of the host's stack.
+   * None: edits apply at once and nothing undoes them (a headless viewer, a test).
+   */
+  readonly history?: SeqHistoryPort;
+  /**
+   * The application's clock (Seq*'s animation port, _spec/README.md "Ports", Animation): Seq*'s own motions (a jump, a
+   * story step) are plans it runs. None: the page's frames (`frameAnimation`); headless, a fake clock
+   * (`headlessAnimation`).
+   */
+  readonly animation?: SeqAnimationPort;
+  /**
+   * Stories and transitions (_spec/README.md "Composition", Stories and Motion): story steps, a jump's motion and a
+   * step's (`StoryPart` of `@molstar/seqx-viewer/story`). None: every jump is a cut, no plan is made, and no story step
+   * can be entered (`seq.viewer.step.none`).
+   */
+  readonly story?: SeqStoryPart;
+  /**
+   * The navigators (_spec/README.md "Composition", Navigators): their models and their export (`NavigatorsPart` of
+   * `@molstar/seqx-viewer/navigators`). None: a declared navigator is not drawn, the ruler rail it would replace stays,
+   * and one issue says so (`seq.viewer.navigators.none`). Their gestures are the `navigator` behavior's.
+   */
+  readonly navigators?: SeqNavigatorsPart;
+  /** The UI's parts; none for a headless viewer (a target given without it is left empty). */
+  readonly ui?: SeqViewerUI;
+}

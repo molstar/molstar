@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { getFileNameInfo } from '@molstar/core/util/file-info';
@@ -150,7 +151,10 @@ export const LazyRemoteStates: LazyViewerExtension = {
   load: async () => (await import('../remote-states/index.js')).RemoteStatesFeature,
 };
 
-/** Mol*'s particle transformers (`ParticlesRegistry`), by id: a session holding one loads the particles feature */
+/**
+ * Mol*'s particle transformers (`ParticlesRegistry`) and the behavior the feature adds (the tiles following the camera),
+ * by id: a session holding one loads the particles feature
+ */
 const ParticleTransformers = [
   'parse-artiatomi-em',
   'particle-list-from-artiatomi-em',
@@ -159,13 +163,19 @@ const ParticleTransformers = [
   'particle-list-from-cryoet-data-portal-ndjson',
   'parse-simularium',
   'particle-trajectory-from-simularium',
+  'particle-list-from-pack',
   'particle-list-from-relion-star',
   'parse-dynamo-tbl',
   'particle-list-from-dynamo-tbl',
   'particle-list-from-trajectory',
   'particle-list-with-targets',
+  'transform-particle-list',
   'particles-representation-3d',
   'particle-list-unitcell-3d',
+  'particle-tile-set-from-list',
+  'particle-tile-set-from-pack',
+  'particle-tiles-view',
+  'particle-tiles-follow-camera',
 ].map((name) => `ms-plugin.${name}`);
 
 export const LazyParticles: LazyViewerExtension = {
@@ -182,6 +192,8 @@ export const LazyParticles: LazyViewerExtension = {
       { id: 'particles.color', title: 'Color particles by…' },
       { id: 'particles.focus', title: 'Focus the particles', history: false },
       { id: 'particles.unit-cell', title: 'Show the particle unit cell' },
+      { id: 'particles.transform', title: 'Move or rotate particles' },
+      { id: 'particles.transform-reset', title: 'Reset the particles’ transform' },
       { id: 'particles.source', title: 'Set how particles are read' },
       { id: 'particles.frame', title: 'Show a particle frame', history: false },
       { id: 'particles.play', title: 'Play the particle frames', history: false, modules: ['canvas'] },
@@ -200,6 +212,13 @@ export const LazyParticles: LazyViewerExtension = {
       { id: 'particles.color', title: 'Color particles by…', category: 'Particles', icon: 'palette' },
       { id: 'particles.focus', title: 'Focus the particles', category: 'Particles', icon: 'focus' },
       { id: 'particles.unit-cell', title: 'Show the particle unit cell', category: 'Particles', icon: 'box' },
+      { id: 'particles.transform', title: 'Move or rotate particles', category: 'Particles', icon: 'move-3d' },
+      {
+        id: 'particles.transform-reset',
+        title: 'Reset the particles’ transform',
+        category: 'Particles',
+        icon: 'rotate-ccw',
+      },
       { id: 'particles.targets', title: 'Set what the particles stand for…', category: 'Particles', icon: 'shapes' },
       { id: 'particles.frame', title: 'Show a particle frame…', category: 'Particles', icon: 'trajectory' },
       { id: 'particles.play', title: 'Play the particle frames', category: 'Particles', icon: 'play' },
@@ -214,8 +233,9 @@ export const LazyParticles: LazyViewerExtension = {
         'artiatomi_em_particles',
         'mmcif_particles',
         'simularium_particles',
+        'particle_pack',
       ],
-      fileExtensions: ['star', 'tbl', 'ndjson', 'em', 'simularium'],
+      fileExtensions: ['star', 'tbl', 'ndjson', 'em', 'simularium', 'mspk'],
       // CellPack and PetWorld assemblies are mmCIF: claimed by their content, other mmCIF stays a structure
       sniff: {
         extensions: ['cif', 'bcif'],

@@ -17,6 +17,7 @@ import { assign_clipping_varying } from './chunks/assign-clipping-varying.glsl.j
 import { assign_size } from './chunks/assign-size.glsl.js';
 import { clip_instance } from './chunks/clip-instance.glsl.js';
 import { assign_lod_factor } from './chunks/assign-lod-factor.glsl.js';
+import { assign_site_color } from './chunks/assign-site-color.glsl.js';
 
 export const spheres_vert = `
 precision highp float;
@@ -124,23 +125,26 @@ bool sphereNearProjection(const in vec3 p, const in float r, const in vec2 mappi
 void main(void){
     ${assign_quad_position_group}
 
-    position = applyWiggle(position, group, aInstance);
-    mat4 transform = applyTumble(aTransform);
+    position = applyWiggle(position, float(group), int(aInstance));
+    // the position transformed, not the matrices multiplied first (three 4x4 products a vertex): the instance's
+    // transform, the object's transient one, then the model and view
+    vec4 position4 = uObjectTransform * (applyTumble(aTransform) * vec4(position, 1.0));
 
     ${assign_color_varying}
     ${assign_marker_varying}
     ${assign_clipping_varying}
     ${assign_size}
 
-    vSphere.w = size * uModelScale;
+    // the instance's own scale (a pose's: a coarse node's particles drawn larger), as WebGPU's (spheres.wgsl.ts)
+    vSphere.w = size * length(aTransform[0].xyz) * uModelScale;
 
-    vec4 position4 = vec4(position, 1.0);
-    vModelPosition = (uModel * transform * position4).xyz; // for clipping in frag shader
+    vModelPosition = (uModel * position4).xyz; // for clipping in frag shader
 
     ${assign_lod_factor}
     vSphere.w *= lodFactor;
 
-    vec4 mvPosition = uModelView * transform * position4;
+    vec4 mvPosition = uModelView * position4;
+    ${assign_site_color}
 
     // through the near plane with none of it beyond
     bool nearNone = false;
@@ -176,18 +180,34 @@ void main(void){
         gl_Position.z = 2.0 * gl_Position.w;
     }
 
+    #if defined(dRenderVariant_marking)
+        // the marking depth draws unmarked spheres only (\`uMarkingType\` 1), the mask marked ones: the others moved out of
+        // [ -w, +w ], not shaded to be discarded
+        float vertexMarker = uMarker == -1.0 ? floor(vMarker * 255.0 + 0.5) : uMarker;
+        if ((uMarkingType == 1) == (vertexMarker > 0.0)) {
+            gl_Position.z = 2.0 * gl_Position.w;
+        }
+    #endif
+
     #if defined(dClipPrimitive) && !defined(dClipVariant_instance) && defined(dClipObjects)
-        if (clipTest(vModelPosition / uModelScale)) {
+        // the ghost pass (\`uClipGhost\`) keeps what the clip objects remove
+        if (clipTest(vModelPosition / uModelScale) != uClipGhost) {
             // move out of [ -w, +w ] to 'discard' in vert shader
             gl_Position.z = 2.0 * gl_Position.w;
         }
     #elif defined(dClipSphere)
-        // pixel clipping: a sphere clipped whole moved out of [ -w, +w ], one not cut not tested per fragment
-        int clipClass = clipSphereClass(vModelPosition / uModelScale, vSphere.w / uModelScale);
-        if (clipClass == 2) {
-            gl_Position.z = 2.0 * gl_Position.w;
+        if (uClipGhost) {
+            // the ghost pass: a sphere whole by its center, not tested per fragment
+            if (!clipTest(vModelPosition / uModelScale)) gl_Position.z = 2.0 * gl_Position.w;
+            vClipSome = 0.0;
+        } else {
+            // pixel clipping: a sphere clipped whole moved out of [ -w, +w ], one not cut not tested per fragment
+            int clipClass = clipSphereClass(vModelPosition / uModelScale, vSphere.w / uModelScale);
+            if (clipClass == 2) {
+                gl_Position.z = 2.0 * gl_Position.w;
+            }
+            vClipSome = clipClass == 1 ? 1.0 : 0.0;
         }
-        vClipSome = clipClass == 1 ? 1.0 : 0.0;
     #else
         ${clip_instance}
     #endif

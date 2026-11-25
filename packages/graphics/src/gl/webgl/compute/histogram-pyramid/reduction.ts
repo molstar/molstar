@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,11 +13,18 @@ import { ValueCell } from '@molstar/core/util';
 import { QuadSchema, QuadValues } from '../../../compute/util.js';
 import type { Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { getHistopyramidSum } from './sum.js';
-import type { Framebuffer } from '../../../framebuffer.js';
+import type { Framebuffer } from '../../framebuffer.js';
 import { isPowerOfTwo } from '@molstar/core/math/misc';
 import { RenderState } from '../../../render-state.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { setTexelScissor, setTexelViewport } from '../../render-pass-target.js';
+import { createScratch } from '../../../scratch.js';
+import { asGLTexture } from '../../texture.js';
+
+/** the scratch resources of this module, per context (`gl/scratch.ts`) */
+const ScratchTextures = createScratch<Texture>('histogram-pyramid/reduction textures');
+const ScratchFramebuffers = createScratch<Framebuffer>('histogram-pyramid/reduction framebuffers');
+const ScratchRenderables = createScratch<ComputeRenderable<any>>('histogram-pyramid/reduction renderables');
 
 export const HistopyramidReductionSchema = {
   ...QuadSchema,
@@ -37,21 +44,21 @@ function getHistopyramidReductionRenderable(
   inputLevel: Texture,
   previousLevel: Texture,
 ): ComputeRenderable<HistopyramidReductionValues> {
-  if (ctx.namedComputeRenderables[HistogramPyramidName]) {
-    const v = ctx.namedComputeRenderables[HistogramPyramidName].values as HistopyramidReductionValues;
+  if (ScratchRenderables.get(ctx, HistogramPyramidName)) {
+    const v = ScratchRenderables.get(ctx, HistogramPyramidName)!.values as HistopyramidReductionValues;
 
     ValueCell.update(v.tInputLevel, inputLevel);
     ValueCell.update(v.tPreviousLevel, previousLevel);
 
-    ctx.namedComputeRenderables[HistogramPyramidName].update();
+    ScratchRenderables.get(ctx, HistogramPyramidName)!.update();
   } else {
-    ctx.namedComputeRenderables[HistogramPyramidName] = createHistopyramidReductionRenderable(
+    ScratchRenderables.set(
       ctx,
-      inputLevel,
-      previousLevel,
+      createHistopyramidReductionRenderable(ctx, inputLevel, previousLevel),
+      HistogramPyramidName,
     );
   }
-  return ctx.namedComputeRenderables[HistogramPyramidName];
+  return ScratchRenderables.get(ctx, HistogramPyramidName)!;
 }
 
 function createHistopyramidReductionRenderable(ctx: WebGLContext, inputLevel: Texture, previousLevel: Texture) {
@@ -82,16 +89,13 @@ function getLevelTextureFramebuffer(ctx: WebGLContext, level: number) {
   if (!framebuffer) {
     framebuffer = getFramebuffer(name, ctx);
   }
-  texture.attachFramebuffer(framebuffer, 0);
+  asGLTexture(texture).attachFramebuffer(framebuffer, 0);
   return { texture, framebuffer };
 }
 
 function getFramebuffer(name: string, webgl: WebGLContext): Framebuffer {
   const _name = `${HistogramPyramidName}-${name}`;
-  if (!webgl.namedFramebuffers[_name]) {
-    webgl.namedFramebuffers[_name] = webgl.resources.framebuffer();
-  }
-  return webgl.namedFramebuffers[_name];
+  return ScratchFramebuffers.getOrCreate(webgl, () => webgl.resources.framebuffer(), _name);
 }
 
 function getTexture(
@@ -103,15 +107,12 @@ function getTexture(
   filter: TextureFilter,
 ): Texture {
   const _name = `${HistogramPyramidName}-${name}`;
-  if (!webgl.namedTextures[_name]) {
-    webgl.namedTextures[_name] = webgl.resources.texture(kind, format, type, filter);
-  }
-  return webgl.namedTextures[_name];
+  return ScratchTextures.getOrCreate(webgl, () => webgl.resources.texture(kind, format, type, filter), _name);
 }
 
 function tryGetFramebuffer(name: string, webgl: WebGLContext): Framebuffer | undefined {
   const _name = `${HistogramPyramidName}-${name}`;
-  return webgl.namedFramebuffers[_name];
+  return ScratchFramebuffers.get(webgl, _name)!;
 }
 
 export interface HistogramPyramid {
@@ -150,7 +151,7 @@ export function createHistogramPyramid(
   pyramidTex.define(maxSizeX, maxSizeY);
 
   const framebuffer = getFramebuffer('pyramid', ctx);
-  pyramidTex.attachFramebuffer(framebuffer, 0);
+  asGLTexture(pyramidTex).attachFramebuffer(framebuffer, 0);
 
   ctx.beginRenderPass(framebuffer, { label: 'histogram pyramid' });
   ctx.setRenderState(RenderState.Default);
@@ -186,7 +187,7 @@ export function createHistogramPyramid(
     renderable.render();
 
     // at texel row 0 (rectangles have a top-left origin)
-    pyramidTex.copyFromFramebuffer(
+    asGLTexture(pyramidTex).copyFromFramebuffer(
       tf.framebuffer,
       0,
       tf.texture.getHeight() - size,

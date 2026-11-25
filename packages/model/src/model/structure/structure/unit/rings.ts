@@ -208,7 +208,7 @@ namespace UnitRings {
 
   /**
    * The rings of a unit, over `bonds` when given: a bond provider perceiving orders passes the graph it is building, as
-   * reading `unit.bonds` from inside the provider would compute them again (bond-providers plan §2).
+   * reading `unit.bonds` from inside the provider would compute them again.
    */
   export function create(unit: Unit.Atomic, bonds?: IntraUnitBonds): UnitRings {
     if (Unit.Traits.is(unit.traits, Unit.Trait.Water) || Unit.Traits.is(unit.traits, Unit.Trait.CoarseGrained)) {

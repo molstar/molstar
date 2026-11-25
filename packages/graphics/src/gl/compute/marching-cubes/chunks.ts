@@ -77,7 +77,7 @@ const ArenaIdleMs = 3000;
 export interface VertexArena {
   /**
    * 3 `u32` per vertex (`IsosurfaceVertexBytes`): the position quantized in the surface's box, the normal octahedral
-   * and the packed group, see `iso_vertex_wgsl`
+   * and the group (32 bits), see `iso_vertex_wgsl`
    */
   readonly vertices: ValueCell<StorageBuffer>;
   /** the free page stack: its size, then the page ids */
@@ -680,15 +680,15 @@ export async function readChunkedVertices(
       vertices[i * 4 + 1] = box[1] + (w0 >>> 16) * box[4];
       vertices[i * 4 + 2] = box[2] + (w1 & 0xffff) * box[5];
       vertices[i * 4 + 3] = 1;
-      decodeOctahedral(normal, (w1 >>> 16) | ((w2 >>> 24) << 16));
+      decodeOctahedral(normal, w1 >>> 16);
       normals[i * 4] = normal[0];
       normals[i * 4 + 1] = normal[1];
       normals[i * 4 + 2] = normal[2];
-      // the bytes of the packed rgb, opaque as in group textures
+      // the group plus 1 as group textures hold it: its 24 low bits in rgb, the top byte in alpha (`packPickId`)
       groups[i * 4] = (w2 >>> 16) & 0xff;
       groups[i * 4 + 1] = (w2 >>> 8) & 0xff;
       groups[i * 4 + 2] = w2 & 0xff;
-      groups[i * 4 + 3] = 255;
+      groups[i * 4 + 3] = w2 >>> 24;
     }
     return { vertices, normals, groups, vertexCount };
   } finally {
@@ -696,10 +696,10 @@ export async function readChunkedVertices(
   }
 }
 
-/** The unit vector of the 24-bit octahedral `bits` (12 per axis, as `iso_vertex_wgsl`) */
+/** The unit vector of the 16-bit octahedral `bits` (8 per axis, as `iso_vertex_wgsl`) */
 export function decodeOctahedral(out: Vec3, bits: number) {
-  const x = ((bits & 0xfff) / 4095) * 2 - 1;
-  const y = ((bits >>> 12) / 4095) * 2 - 1;
+  const x = ((bits & 0xff) / 255) * 2 - 1;
+  const y = ((bits >>> 8) / 255) * 2 - 1;
   const z = 1 - Math.abs(x) - Math.abs(y);
   const t = Math.max(-z, 0);
   return Vec3.normalize(out, Vec3.set(out, x + (x >= 0 ? -t : t), y + (y >= 0 ? -t : t), z));

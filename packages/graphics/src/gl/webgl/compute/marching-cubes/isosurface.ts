@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,6 +19,13 @@ import { getTriIndices } from './tables.js';
 import { calcActiveVoxels, type ValueChannel } from './active-voxels.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { setTexelViewport } from '../../render-pass-target.js';
+import { createScratch } from '../../../scratch.js';
+import type { Framebuffer } from '../../framebuffer.js';
+import { asGLTexture } from '../../texture.js';
+
+/** the scratch resources of this module, per context (`gl/scratch.ts`) */
+const ScratchFramebuffers = createScratch<Framebuffer>('marching-cubes/isosurface framebuffers');
+const ScratchRenderables = createScratch<ComputeRenderable<any>>('marching-cubes/isosurface renderables');
 
 export const IsosurfaceSchema = {
   ...QuadSchema,
@@ -70,8 +77,8 @@ function getIsosurfaceRenderable(
   axisOrder: Vec3,
   constantGroup: boolean,
 ): ComputeRenderable<IsosurfaceValues> {
-  if (ctx.namedComputeRenderables[IsosurfaceName]) {
-    const v = ctx.namedComputeRenderables[IsosurfaceName].values as IsosurfaceValues;
+  if (ScratchRenderables.get(ctx, IsosurfaceName)) {
+    const v = ScratchRenderables.get(ctx, IsosurfaceName)!.values as IsosurfaceValues;
 
     ValueCell.update(v.tActiveVoxelsPyramid, activeVoxelsPyramid);
     ValueCell.update(v.tActiveVoxelsBase, activeVoxelsBase);
@@ -95,29 +102,33 @@ function getIsosurfaceRenderable(
     ValueCell.updateIfChanged(v.dAxisOrder, axisOrder.join(''));
     ValueCell.updateIfChanged(v.dConstantGroup, constantGroup);
 
-    ctx.namedComputeRenderables[IsosurfaceName].update();
+    ScratchRenderables.get(ctx, IsosurfaceName)!.update();
   } else {
-    ctx.namedComputeRenderables[IsosurfaceName] = createIsosurfaceRenderable(
+    ScratchRenderables.set(
       ctx,
-      activeVoxelsPyramid,
-      activeVoxelsBase,
-      volumeData,
-      valueChannel,
-      gridDim,
-      gridTexDim,
-      gridDataDim,
-      transform,
-      isoValue,
-      levels,
-      scale,
-      count,
-      invert,
-      packedGroup,
-      axisOrder,
-      constantGroup,
+      createIsosurfaceRenderable(
+        ctx,
+        activeVoxelsPyramid,
+        activeVoxelsBase,
+        volumeData,
+        valueChannel,
+        gridDim,
+        gridTexDim,
+        gridDataDim,
+        transform,
+        isoValue,
+        levels,
+        scale,
+        count,
+        invert,
+        packedGroup,
+        axisOrder,
+        constantGroup,
+      ),
+      IsosurfaceName,
     );
   }
-  return ctx.namedComputeRenderables[IsosurfaceName];
+  return ScratchRenderables.get(ctx, IsosurfaceName)!;
 }
 
 function createIsosurfaceRenderable(
@@ -203,10 +214,7 @@ export function createIsosurfaceBuffers(
   // console.log('iso', 'gridDim', gridDim, 'scale', scale, 'gridTexDim', gridTexDim);
   // console.log('iso volumeData', volumeData);
 
-  if (!ctx.namedFramebuffers[IsosurfaceName]) {
-    ctx.namedFramebuffers[IsosurfaceName] = resources.framebuffer();
-  }
-  const framebuffer = ctx.namedFramebuffers[IsosurfaceName];
+  const framebuffer = ScratchFramebuffers.getOrCreate(ctx, () => resources.framebuffer(), IsosurfaceName);
 
   if (capabilities.mixedAttachmentFormats) {
     if (!vertexTexture) {
@@ -243,9 +251,9 @@ export function createIsosurfaceBuffers(
   groupTexture.define(width, height);
   normalTexture.define(width, height);
 
-  vertexTexture.attachFramebuffer(framebuffer, 0);
-  groupTexture.attachFramebuffer(framebuffer, 1);
-  normalTexture.attachFramebuffer(framebuffer, 2);
+  asGLTexture(vertexTexture).attachFramebuffer(framebuffer, 0);
+  asGLTexture(groupTexture).attachFramebuffer(framebuffer, 1);
+  asGLTexture(normalTexture).attachFramebuffer(framebuffer, 2);
 
   const renderable = getIsosurfaceRenderable(
     ctx,

@@ -1,107 +1,122 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
 import { ConsoleLogger } from '@molstar/core/util/console-logger';
-import { LinkedList } from '@molstar/core/data/generic';
-import { ModelServerConfig as ServerConfig } from '@molstar/model-server/config';
 
 interface CacheEntry<T> {
   key: string;
   approximateSize: number;
-  timeoutId: NodeJS.Timeout | undefined;
+  timeoutId: ReturnType<typeof setTimeout> | undefined;
   item: T;
 }
 
-type CacheNode<T> = LinkedList.Node<CacheEntry<T>>;
-
 export interface CacheParams {
-  useCache: boolean;
-  maxApproximateSizeInBytes: number; // = 2 * 1014 * 1024 * 1024; // 2 GB
-  entryTimeoutInMs: number; // = 10 * 60 * 1000; // 10 minutes
+  /** Budget for the summed `approximateSize` of the entries; 0 turns the cache off. */
+  maxApproximateSizeInBytes: number;
+  /** An entry is dropped when it has not been accessed for this long. */
+  entryTimeoutInMs: number;
 }
 
+export interface CacheStats {
+  count: number;
+  approximateSize: number;
+}
+
+/**
+ * LRU cache with a size budget and an idle timeout per entry.
+ *
+ * The entries live in a `Map`, whose iteration order is insertion order: an access re-inserts its entry, so the
+ * first entry is always the least recently used one and eviction takes from the front.
+ */
 export class Cache<T> {
-  private entries = LinkedList<CacheEntry<T>>();
-  private entryMap = new Map<string, CacheNode<T>>();
+  private entries = new Map<string, CacheEntry<T>>();
   private approximateSize = 0;
 
-  private clearTimeout(e: CacheNode<T>) {
-    if (typeof e.value.timeoutId !== 'undefined') {
-      clearTimeout(e.value.timeoutId);
-      e.value.timeoutId = void 0;
-    }
+  private schedule(e: CacheEntry<T>) {
+    if (e.timeoutId !== void 0) clearTimeout(e.timeoutId);
+    e.timeoutId = setTimeout(() => this.remove(e, 'expired'), this.params().entryTimeoutInMs);
+    // cached entries must not keep the process alive (local CLI exits when its jobs are done)
+    e.timeoutId.unref?.();
   }
 
-  private dispose(e: CacheNode<T>) {
-    this.clearTimeout(e);
-
-    if (e.inList) {
-      this.entries.remove(e);
-      this.approximateSize -= e.value.approximateSize;
-    }
-    this.entryMap.delete(e.value.key);
+  private remove(e: CacheEntry<T>, reason?: 'expired' | 'evicted') {
+    // timer may fire for an entry that was replaced in the meantime
+    if (this.entries.get(e.key) !== e) return;
+    if (e.timeoutId !== void 0) clearTimeout(e.timeoutId);
+    e.timeoutId = void 0;
+    this.entries.delete(e.key);
+    this.approximateSize -= e.approximateSize;
+    if (reason) ConsoleLogger.log('Cache', `${e.key} ${reason} (${this.formatStats()}).`);
   }
 
-  private refresh(e: CacheNode<T>) {
-    this.clearTimeout(e);
-
-    e.value.timeoutId = setTimeout(() => this.expireNode(e), ServerConfig.cacheEntryTimeoutMs);
-    this.entries.remove(e);
-    this.entries.addFirst(e.value);
+  private formatStats() {
+    return `${this.entries.size} entries, ~${Math.round(this.approximateSize / (1024 * 1024))} MB`;
   }
 
-  private expireNode(e: CacheNode<T>, notify = true) {
-    if (notify) ConsoleLogger.log('Cache', `${e.value.key} expired.`);
-    this.dispose(e);
+  get stats(): CacheStats {
+    return { count: this.entries.size, approximateSize: this.approximateSize };
   }
 
   expireAll() {
-    for (let e = this.entries.first; e; e = e.next) this.expireNode(e, false);
+    for (const e of Array.from(this.entries.values())) this.remove(e);
   }
 
   expire(key: string) {
-    const entry = this.entryMap.get(key);
-    if (!entry) return;
-    this.expireNode(entry);
+    const e = this.entries.get(key);
+    if (e) this.remove(e, 'expired');
   }
 
+  /** Adds `item`, evicting the least recently used entries until it fits. An item larger than the whole budget is not cached. */
   add(item: T) {
     const key = this.keyGetter(item);
     const approximateSize = this.sizeGetter(item);
 
-    if (this.entryMap.has(key)) this.dispose(this.entryMap.get(key)!);
+    const existing = this.entries.get(key);
+    if (existing) this.remove(existing);
 
-    if (ServerConfig.cacheMaxSizeInBytes < this.approximateSize + approximateSize) {
-      if (this.entries.last) this.dispose(this.entries.last);
+    const { maxApproximateSizeInBytes } = this.params();
+    if (approximateSize > maxApproximateSizeInBytes) {
+      ConsoleLogger.log('Cache', `${key} not cached: larger than the cache (${this.formatStats()}).`);
+      return item;
     }
 
-    this.approximateSize += approximateSize;
+    for (const e of Array.from(this.entries.values())) {
+      if (this.approximateSize + approximateSize <= maxApproximateSizeInBytes) break;
+      this.remove(e, 'evicted');
+    }
+
     const entry: CacheEntry<T> = { key, approximateSize, timeoutId: void 0, item };
-    const e = this.entries.addFirst(entry);
-    this.entryMap.set(key, e);
-    this.refresh(e);
-    ConsoleLogger.log('Cache', `${key} added.`);
+    this.entries.set(key, entry);
+    this.approximateSize += approximateSize;
+    this.schedule(entry);
+    ConsoleLogger.log('Cache', `${key} added (${this.formatStats()}).`);
 
     return item;
   }
 
   has(key: string) {
-    return this.entryMap.has(key);
+    return this.entries.has(key);
   }
 
   get(key: string) {
-    if (!this.entryMap.has(key)) return void 0;
-    const e = this.entryMap.get(key)!;
-    this.refresh(e);
+    const e = this.entries.get(key);
+    if (!e) return void 0;
+    // re-insert: the entry becomes the most recent one
+    this.entries.delete(key);
+    this.entries.set(key, e);
+    this.schedule(e);
     ConsoleLogger.log('Cache', `${key} accessed.`);
-    return e.value.item;
+    return e.item;
   }
 
   constructor(
     private keyGetter: (i: T) => string,
     private sizeGetter: (i: T) => number,
+    /** Read on every use: the server configures itself after this module is loaded. */
+    private params: () => CacheParams,
   ) {}
 }

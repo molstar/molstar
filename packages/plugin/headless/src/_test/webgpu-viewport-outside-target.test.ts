@@ -11,7 +11,7 @@ import { CopySchema, CopyShaderCode, QuadValues } from '@molstar/graphics/gl/com
 import { createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import type { Values } from '@molstar/graphics/gl/renderable/schema';
 import { RenderState } from '@molstar/graphics/gl/render-state';
-import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { testViewportOutsideTarget } from '@molstar/graphics/gl/webgpu/viewport-outside-target';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
@@ -37,8 +37,7 @@ async function draw(viewportOutsideTarget: boolean, viewport?: (graphics: WebGPU
     white.load({ array: new Uint8Array(Size * Size * 4).fill(255), width: Size, height: Size });
     const target = graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
     target.define(Size, Size);
-    const framebuffer = graphics.resources.framebuffer();
-    target.attachFramebuffer(framebuffer, 'color0');
+    const attachments = graphics.resources.renderPassAttachments([target]);
     const values: Values<typeof CopySchema> = {
       ...QuadValues,
       uQuadScale: ValueCell.create(Vec2.create(0.5, 0.5)),
@@ -52,7 +51,7 @@ async function draw(viewportOutsideTarget: boolean, viewport?: (graphics: WebGPU
     );
     const pass = () => {
       graphics.disableScissor();
-      graphics.beginRenderPass(framebuffer, { label: 'viewport outside the target', clear: { color: [0, 0, 0, 1] } });
+      graphics.beginRenderPass(attachments, { label: 'viewport outside the target', clear: { color: [0, 0, 0, 1] } });
       graphics.setRenderState(RenderState.Default);
       // a viewport twice the target's size, starting left of and above it
       const [x, y, width, height] = viewport?.(graphics) ?? [-Size / 2, -Size, 2 * Size, 2 * Size];
@@ -67,7 +66,7 @@ async function draw(viewportOutsideTarget: boolean, viewport?: (graphics: WebGPU
     const array = await graphics.readTextureAsync(target, 0, 0, Size, Size);
     const errors = graphics.takeErrors();
     copy.dispose();
-    framebuffer.destroy();
+    attachments.destroy();
     target.destroy();
     white.destroy();
     return { red: (x: number, y: number) => array[(y * Size + x) * 4], errors };

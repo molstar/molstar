@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -228,6 +228,14 @@ class Index implements AtomicIndex {
   }
 
   findAtomsOnResidue(rI: ResidueIndex, label_atom_ids: Set<string>) {
+    const mask = this.getNameMask(label_atom_ids);
+    if (mask) {
+      const indices = this.nameIndices!;
+      for (let i = this.residueOffsets[rI], il = this.residueOffsets[rI + 1]; i < il; i++) {
+        if (mask[indices[i]]) return i as ElementIndex;
+      }
+      return -1 as ElementIndex;
+    }
     return findAtomByNames(
       this.residueOffsets[rI],
       this.residueOffsets[rI + 1],
@@ -240,9 +248,39 @@ class Index implements AtomicIndex {
     return findAtomByElement(this.residueOffsets[rI], this.residueOffsets[rI + 1], this.map.type_symbol, type_symbol);
   }
 
+  /** `label_atom_id`'s dictionary indices where it is one (a BinaryCIF model), else undefined */
+  private nameIndices: ArrayLike<number> | undefined;
+  private nameValues: ArrayLike<string> | undefined;
+  /** per set of names, whether each dictionary value is one of them (weak: a caller's set made per call goes with it) */
+  private nameMasks = new WeakMap<Set<string>, Uint8Array>();
+
+  /**
+   * The names of `names` as a flag per dictionary value: atoms tested by their index, not by a string lookup each
+   * (the derived data looks for a residue's trace and direction atoms, millions of atoms in a mesoscale model)
+   */
+  private getNameMask(names: Set<string>) {
+    if (!this.nameValues) return undefined;
+    let mask = this.nameMasks.get(names);
+    if (!mask) {
+      mask = Uint8Array.from(this.nameValues, (v) => (names.has(v) ? 1 : 0));
+      this.nameMasks.set(names, mask);
+    }
+    return mask;
+  }
+
   constructor(private map: Mapping) {
     this.entityIndex = map.entities.getEntityIndex;
     this.residueOffsets = this.map.segments.residueAtomSegments.offsets;
+    const { label_atom_id } = map;
+    const s = label_atom_id.storage?.();
+    if (
+      s?.kind === 'dictionary' &&
+      !(label_atom_id.schema as Column.Schema.Str).transform &&
+      (label_atom_id.rowCount === 0 || label_atom_id.value(0) === s.values[s.indices[0]])
+    ) {
+      this.nameIndices = s.indices;
+      this.nameValues = s.values as ArrayLike<string>;
+    }
   }
 }
 

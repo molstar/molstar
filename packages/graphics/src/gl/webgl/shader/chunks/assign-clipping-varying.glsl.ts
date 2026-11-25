@@ -7,5 +7,7 @@
 export const assign_clipping_varying = `
 #if defined(dClipObjects) && defined(dClipping)
     vClipping = read_tClipping(granularityIndex(aInstance, group)).r;
+    // an expanded instance's copy's own, where it has one (\`copyLayerOr\`)
+    vClipping = copyLayerOr1(2, vClipping);
 #endif
 `;

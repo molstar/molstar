@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { Tensor } from '@molstar/core/math/linear-algebra';
 import { computeMarchingCubesMesh } from '../algorithm.js';
-import { estimateIsosurfaceVertexCount } from '../estimate.js';
+import { estimateIsosurfaceVertexCount } from '@molstar/core/math/geometry/marching-cubes/estimate';
 import { createWrappedTensor } from '../../../../repr/volume/util.js';
 
 /** A density falling off from the grid center, `n` minus the distance: a sphere of radius `r` at iso value `n - r` */

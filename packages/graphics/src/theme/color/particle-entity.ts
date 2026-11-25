@@ -14,7 +14,13 @@ import { getPaletteParams, getPalette } from '@molstar/core/util/color/palette';
 import type { TableLegend, ScaleLegend } from '@molstar/core/util/legend';
 import { ColorLists, getColorListFromName } from '@molstar/core/util/color/lists';
 import { ColorThemeCategory } from './categories.js';
-import { Particle, type ParticleList } from '@molstar/model/model/particles/particle-list';
+import { fillByIndex, fillByLocation, getPagedPainting } from './particle-pages.js';
+import {
+  Particle,
+  type ParticleList,
+  type ParticleRuns,
+  ParticleValues,
+} from '@molstar/model/model/particles/particle-list';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xcccccc);
@@ -36,7 +42,8 @@ function getParticleList(ctx: ThemeDataContext): ParticleList | undefined {
 
 function getEntityCount(particles: ParticleList, by: Props['by']): number {
   const { entities, entityInfo } = particles;
-  if (!entities) return 0;
+  // a slot list's by its info (shared by its pages), its own entities none
+  if (!entities && !particles.pages) return 0;
 
   if (by === 'function') {
     const functions = new Set<string>();
@@ -47,16 +54,18 @@ function getEntityCount(particles: ParticleList, by: Props['by']): number {
   }
 
   if (entityInfo) return entityInfo.size;
+  if (!entities) return 0;
 
   const entitySet = new Set<number>();
-  for (let i = 0, il = entities.length; i < il; ++i) {
-    if (entities[i] >= 0) entitySet.add(entities[i]);
-  }
+  ParticleValues.forEachRun(entities, particles.count, (_start, _end, e) => {
+    if (e >= 0) entitySet.add(e);
+  });
   return entitySet.size;
 }
 
 interface EntityColorIndex {
-  colorIndex: Int32Array;
+  /** a particle's palette index, -1 without; in the entities' form (`ParticleValues`: runs a run, not a particle) */
+  colorIndex: ParticleValues<Int32Array> | undefined;
   entityCount: number;
 }
 
@@ -83,8 +92,7 @@ function getEntityColorIndex(particles: ParticleList, by: Props['by']): EntityCo
 
 function buildEntityColorIndex(particles: ParticleList, by: Props['by']): EntityColorIndex {
   const { count, entities, entityInfo } = particles;
-  const colorIndex = new Int32Array(count).fill(-1);
-  if (!entities) return { colorIndex, entityCount: 0 };
+  if (!entities) return { colorIndex: undefined, entityCount: 0 };
 
   if (by === 'function') {
     // Entities sharing a function get the same color, entities without one stay uncolored.
@@ -95,10 +103,7 @@ function buildEntityColorIndex(particles: ParticleList, by: Props['by']): Entity
       if (!functionSet.has(info.function)) functionSet.set(info.function, functionSet.size);
       entityToColorIdx.set(entityIdx, functionSet.get(info.function)!);
     });
-    for (let i = 0; i < count; ++i) {
-      const ci = entityToColorIdx.get(entities[i]);
-      if (ci !== undefined) colorIndex[i] = ci;
-    }
+    const colorIndex = mapByTable(entities, count, entityToColorIdx);
     return { colorIndex, entityCount: functionSet.size };
   }
 
@@ -111,16 +116,54 @@ function buildEntityColorIndex(particles: ParticleList, by: Props['by']): Entity
       }
     });
   } else {
-    for (let i = 0; i < count; ++i) {
-      const e = entities[i];
+    ParticleValues.forEachRun(entities, count, (_start, _end, e) => {
       if (e >= 0 && !entitySet.has(e)) entitySet.set(e, entitySet.size);
-    }
+    });
   }
-  for (let i = 0; i < count; ++i) {
-    const e = entities[i];
-    if (e >= 0) colorIndex[i] = entitySet.get(e) ?? -1;
-  }
+  const colorIndex = mapByTable(entities, count, entitySet);
   return { colorIndex, entityCount: entitySet.size };
+}
+
+/**
+ * the entities' palette indices (-1 an entity not in `toIndex`), by a table of the entities' indices where they are
+ * small (a map's lookup a run: the yeast tile-ordered 2.29 M runs)
+ */
+function mapByTable(entities: ParticleValues<Int32Array>, count: number, toIndex: Map<number, number>) {
+  let max = -1;
+  for (const e of toIndex.keys()) if (e > max) max = e;
+  if (max >= 1 << 20) return ParticleValues.map(entities, count, (e) => (e >= 0 ? (toIndex.get(e) ?? -1) : -1));
+  const table = new Int32Array(max + 1).fill(-1);
+  for (const [e, ci] of toIndex) if (e >= 0) table[e] = ci;
+  return ParticleValues.map(entities, count, (e) => (e >= 0 && e <= max ? table[e] : -1));
+}
+
+/**
+ * A target's color by its entity (`ParticleTargetInfo.entity`: every particle of it has that entity), the palette's
+ * index of the entity as the particles' (`buildEntityColorIndex`: by the entity info's order, or by function); none
+ * without an entity info or a target's entity
+ */
+function getTargetColor(particles: ParticleList, by: Props['by'], colors: readonly Color[]) {
+  const { entityInfo, targetInfo } = particles;
+  if (!entityInfo) return undefined;
+  const entityToColor = new Map<number, number>();
+  if (by === 'function') {
+    const functions = new Map<string, number>();
+    entityInfo.forEach((info, e) => {
+      if (e < 0 || info.function === undefined) return;
+      if (!functions.has(info.function)) functions.set(info.function, functions.size);
+      entityToColor.set(e, functions.get(info.function)!);
+    });
+  } else {
+    entityInfo.forEach((_, e) => {
+      if (e >= 0 && !entityToColor.has(e)) entityToColor.set(e, entityToColor.size);
+    });
+  }
+  return (target: number): Color | undefined => {
+    const e = targetInfo.get(target)?.entity;
+    if (e === undefined) return undefined;
+    const ci = entityToColor.get(e);
+    return ci !== undefined && ci >= 0 && ci < colors.length ? colors[ci] : DefaultColor;
+  };
 }
 
 export function getParticleEntityColorThemeParams(ctx: ThemeDataContext) {
@@ -145,10 +188,35 @@ export function ParticleEntityColorTheme(
 ): ColorTheme<ParticleEntityColorThemeParams> {
   let color: LocationColor;
   let legend: ScaleLegend | TableLegend | undefined;
+  let particleRuns: ParticleRuns | undefined;
+  let fillParticleColors: ColorTheme<ParticleEntityColorThemeParams>['fillParticleColors'];
+  let targetColor: ColorTheme<ParticleEntityColorThemeParams>['targetColor'];
 
   const particles = getParticleList(ctx);
-  if (particles) {
+  if (particles?.pages) {
+    // a slot list: the palette by its info (its pages', one for all), a page's index its own (the same entities' order)
+    const entityCount = getEntityCount(particles, props.by);
+    const palette = getPalette(entityCount, props);
+    legend = palette.legend;
+    const colors: Color[] = [];
+    for (let k = 0; k < entityCount; ++k) colors[k] = palette.color(k);
+    const painting = getPagedPainting((page) => {
+      const { colorIndex } = getEntityColorIndex(page, props.by);
+      return {
+        color: (i) => {
+          const ci = colorIndex ? ParticleValues.get(colorIndex, i) : -1;
+          return ci >= 0 ? colors[ci] : DefaultColor;
+        },
+        fill: (out, offset) => fillByIndex(colorIndex, colors, page.count, DefaultColor, out, offset),
+      };
+    }, DefaultColor);
+    color = painting.color;
+    fillParticleColors = painting.fill;
+    targetColor = getTargetColor(particles, props.by, colors);
+  } else if (particles) {
     const { colorIndex, entityCount } = getEntityColorIndex(particles, props.by);
+    // a color a run of the index (a pack's: a run a target)
+    if (colorIndex && ParticleValues.isRuns(colorIndex)) particleRuns = colorIndex;
     const palette = getPalette(entityCount, props);
     legend = palette.legend;
 
@@ -156,7 +224,7 @@ export function ParticleEntityColorTheme(
     const colors: Color[] = [];
     for (let k = 0; k < entityCount; ++k) colors[k] = palette.color(k);
     const pick = (particleIndex: number) => {
-      const ci = colorIndex[particleIndex];
+      const ci = colorIndex ? ParticleValues.get(colorIndex, particleIndex) : -1;
       return ci >= 0 ? colors[ci] : DefaultColor;
     };
 
@@ -166,6 +234,11 @@ export function ParticleEntityColorTheme(
       }
       return DefaultColor;
     };
+    fillParticleColors = (list, out, offset) =>
+      list === particles
+        ? fillByIndex(colorIndex, colors, list.count, DefaultColor, out, offset)
+        : fillByLocation(color, list, out, offset);
+    if (particles.entityInfo) targetColor = getTargetColor(particles, props.by, colors);
   } else {
     color = () => DefaultColor;
   }
@@ -177,6 +250,9 @@ export function ParticleEntityColorTheme(
     props,
     description: Description,
     legend,
+    particleRuns,
+    fillParticleColors,
+    targetColor,
   };
 }
 

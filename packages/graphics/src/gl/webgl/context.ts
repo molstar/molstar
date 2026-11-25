@@ -20,7 +20,7 @@ import { PixelData } from '@molstar/core/util/image';
 import { Mat4 } from '@molstar/core/math/linear-algebra';
 import { Viewport } from '@molstar/core/util/viewport';
 import { createNullTexture, type Texture, type TextureFilter } from '../texture.js';
-import type { Framebuffer } from '../framebuffer.js';
+import type { Framebuffer } from './framebuffer.js';
 import { createTimer } from './timer.js';
 import {
   type GraphicsContext,
@@ -55,6 +55,16 @@ import { WebGLGrid3dFragment } from './compute/grid3d.js';
 import { createWebGLTextureReader } from './texture-reader.js';
 import { registerRenderPassTargetHeight } from './render-pass-target.js';
 import { type DepthRangeConversion, ReversedMinusOneToOne, ReversedZeroToOne } from '../depth-range.js';
+import { createScratch } from '../scratch.js';
+import {
+  createFixedRenderPassAttachments,
+  isRenderPassAttachments,
+  type BackendRenderPassAttachments,
+} from '../render-pass-attachments.js';
+
+/** the scratch resources of this module, per context (`gl/scratch.ts`) */
+const ScratchTextures = createScratch<Texture>('webgl/context textures');
+const ScratchFramebuffers = createScratch<Framebuffer>('webgl/context framebuffers');
 
 export function getGLContext(canvas: HTMLCanvasElement, attribs?: WebGLContextAttributes): GLRenderingContext | null {
   function get(id: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -276,6 +286,14 @@ export type WebGLParameters = ReturnType<typeof createParameters>;
 //
 
 /** A WebGL context object, including the rendering context, resource caches and counts */
+/** a framebuffer of the backend (the WebGL compute), not a target of the neutral API */
+function isBackendFramebuffer(target: RenderPassTarget | Framebuffer): target is Framebuffer {
+  return typeof target === 'object' && !isRenderPassAttachments(target) && !('attachments' in target);
+}
+
+/** render pass attachments of this backend, on a framebuffer each */
+type GLRenderPassAttachments = BackendRenderPassAttachments<Framebuffer>;
+
 export interface WebGLContext extends GraphicsContext {
   readonly gl: GLRenderingContext;
   readonly isWebGL2: boolean;
@@ -285,6 +303,8 @@ export interface WebGLContext extends GraphicsContext {
   readonly extensions: WebGLExtensions;
   readonly state: WebGLState;
   readonly resources: WebGLResources;
+  /** also into a framebuffer of the backend (the WebGL compute) */
+  beginRenderPass: (target: RenderPassTarget | Framebuffer, options?: RenderPassOptions) => void;
 
   readonly shaderPrecisionFormats: { vertex: WebGLShaderPrecisionFormats; fragment: WebGLShaderPrecisionFormats };
   /**
@@ -339,12 +359,16 @@ const ReadRgbaName = 'read-texture-rgba';
 /** `texture` (ubyte, single-channel) copied into an rgba texture, the values in `r` */
 function copyToRgbaTexture(ctx: WebGLContext, texture: Texture, width: number, height: number) {
   const copy = getSharedCopyRenderable(ctx, texture);
-  ctx.namedFramebuffers[ReadRgbaName] ??= ctx.resources.framebuffer();
-  const framebuffer = ctx.namedFramebuffers[ReadRgbaName];
-  ctx.namedTextures[ReadRgbaName] ??= ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
-  const rgba = ctx.namedTextures[ReadRgbaName];
+  ScratchFramebuffers.getOrCreate(ctx, () => ctx.resources.framebuffer(), ReadRgbaName);
+  const framebuffer = ScratchFramebuffers.get(ctx, ReadRgbaName)!;
+  ScratchTextures.getOrCreate(
+    ctx,
+    () => ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest'),
+    ReadRgbaName,
+  );
+  const rgba = ScratchTextures.get(ctx, ReadRgbaName)!;
   rgba.define(width, height);
-  rgba.attachFramebuffer(framebuffer, 'color0');
+  asGLTexture(rgba).attachFramebuffer(framebuffer, 'color0');
   ctx.beginRenderPass(framebuffer, { label: 'read texture (rgba copy)' });
   ctx.setRenderState(RenderState.Default);
   ctx.setViewport(0, 0, width, height);
@@ -393,7 +417,21 @@ export function createContext(gl: GLRenderingContext, props: Partial<WebGLContex
 
   // rectangles have a top-left origin in the neutral API, GL's a bottom-left one: viewport and scissor are kept as
   // given and applied flipped with the height of the render pass target, when set in a pass and when a pass begins
-  let passTarget: RenderPassTarget = 'drawing-buffer';
+  /** the target of the open pass, render pass attachments as their framebuffer */
+  /** render targets of the drawing buffer, see `createDrawTarget` */
+  const drawTargets = new WeakSet<RenderTarget>();
+  /** binds `target` (its framebuffer, or the drawing buffer) */
+  const bindTarget = (target: RenderTarget | Framebuffer) => {
+    if ('attachments' in target) {
+      if (drawTargets.has(target)) bindDrawingBuffer(gl, xr.layer);
+      else (target.attachments as GLRenderPassAttachments).getBackendTarget().bind();
+    } else {
+      target.bind();
+    }
+  };
+  let passTarget: RenderTarget | Framebuffer | 'drawing-buffer' = 'drawing-buffer';
+  /** the label of the render pass begun last, for its GL errors (debug mode) */
+  let passLabel = 'none';
   const getRenderPassTargetHeight = () => {
     if (passTarget === 'drawing-buffer') return getDrawingBufferSize(gl, xr.layer, xr.session?.interactionMode).height;
     if ('getHeight' in passTarget) return passTarget.getHeight();
@@ -479,10 +517,6 @@ export function createContext(gl: GLRenderingContext, props: Partial<WebGLContex
     get shaderPrecisionFormats() {
       return shaderPrecisionFormats;
     },
-
-    namedComputeRenderables: Object.create(null),
-    namedFramebuffers: Object.create(null),
-    namedTextures: Object.create(null),
 
     isProgramSupported: () => true,
     createGraphicsRenderItem: (drawMode, shaderCode, schema, values, materialId, transparency) => {
@@ -609,22 +643,21 @@ export function createContext(gl: GLRenderingContext, props: Partial<WebGLContex
       return createRenderTarget(gl, resources, width, height, depthStencil, type, filter, format);
     },
     createDrawTarget: () => {
-      return {
+      const target: RenderTarget = {
         id: -1,
         texture: createNullTexture(),
-        framebuffer: createNullFramebuffer(),
         depthRenderbuffer: null,
+        attachments: createFixedRenderPassAttachments(createNullFramebuffer()),
 
         getByteCount: () => 0,
 
         getWidth: () => getDrawingBufferSize(gl, xr.layer, xr.session?.interactionMode).width,
         getHeight: () => getDrawingBufferSize(gl, xr.layer, xr.session?.interactionMode).height,
-        bind: () => {
-          bindDrawingBuffer(gl, xr.layer);
-        },
         setSize: () => {},
         destroy: () => {},
       };
+      drawTargets.add(target);
+      return target;
     },
     bindDrawingBuffer: () => bindDrawingBuffer(gl, xr.layer),
     getDrawingBufferSize: () => getDrawingBufferSize(gl, xr.layer, xr.session?.interactionMode),
@@ -641,7 +674,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<WebGLContex
     waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),
     readRenderTarget: async (target: RenderTarget, x: number, y: number, width: number, height: number) => {
       endRenderPass(state);
-      target.bind();
+      bindTarget(target);
       const array = new Uint8Array(width * height * 4);
       // the rectangle has a top-left origin, GL's a bottom-left one
       readPixels(gl, x, target.getHeight() - y - height, width, height, array);
@@ -652,7 +685,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<WebGLContex
     readTextureAsync: async (texture: Texture, x: number, y: number, width: number, height: number) => {
       endRenderPass(state);
       readFramebuffer ??= resources.framebuffer();
-      texture.attachFramebuffer(readFramebuffer, 'color0');
+      asGLTexture(texture).attachFramebuffer(readFramebuffer, 'color0');
       readFramebuffer.bind();
       const array = new Uint8Array(width * height * 4);
       // the rectangle has a top-left origin, GL's a bottom-left one
@@ -679,7 +712,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<WebGLContex
         source = copyToRgbaTexture(ctx, texture, width, height);
       }
       readFramebuffer ??= resources.framebuffer();
-      source.attachFramebuffer(readFramebuffer, 'color0');
+      asGLTexture(source).attachFramebuffer(readFramebuffer, 'color0');
       readFramebuffer.bind();
       const array = isFloat ? new Float32Array(width * height * 4) : new Uint8Array(width * height * 4);
       readPixels(gl, 0, 0, width, height, array);
@@ -719,10 +752,15 @@ export function createContext(gl: GLRenderingContext, props: Partial<WebGLContex
       renderState.disableScissor();
     },
     describeTarget: () => WebGLTarget,
-    beginRenderPass: (target: RenderPassTarget, options?: RenderPassOptions) => {
-      timer.passBegin(target, options?.label);
+    beginRenderPass: (passTo: RenderPassTarget | Framebuffer, options?: RenderPassOptions) => {
+      const target = isRenderPassAttachments(passTo) ? (passTo as GLRenderPassAttachments).getBackendTarget() : passTo;
+      // GL errors by pass, not by draw: `getError` waits for the GPU process (the commands of all its contexts)
+      if (isDebugMode) checkError(gl, `GL error in or after render pass '${passLabel}'`);
+      passLabel = options?.label ?? 'unlabeled';
+      // a framebuffer of the backend: a pass of the WebGL compute
+      timer.passBegin(isBackendFramebuffer(passTo) ? 'compute' : passTo, options?.label);
       if (target === 'drawing-buffer') bindDrawingBuffer(gl, xr.layer);
-      else target.bind();
+      else bindTarget(target);
       passTarget = target;
       applyViewport();
       applyScissor();

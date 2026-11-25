@@ -25,20 +25,14 @@ import { type Loci, isEveryLoci, EmptyLoci } from '@molstar/model/model/loci';
 import { Interval, OrderedSet } from '@molstar/core/data/int';
 import { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import { Visual } from '../visual.js';
-import { type RuntimeContext, Task } from '@molstar/core/task';
+import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { isDebugMode } from '@molstar/core/util/debug';
 import { getGeometrySignatures, type SignatureContext } from '../signatures.js';
+import type { ShapeGetter } from '@molstar/graphics/geo/shape/provider';
 
 export interface ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>>
   extends Representation<D, P> {}
-
-export type ShapeGetter<D, G extends Geometry, P extends Geometry.Params<G>> = (
-  ctx: RuntimeContext,
-  data: D,
-  props: PD.Values<P>,
-  shape?: Shape<G>,
-) => Shape<G> | Promise<Shape<G>>;
 
 export interface ShapeBuilder<G extends Geometry, P extends Geometry.Params<G>> {
   /** Hook to modify representation props */
@@ -46,10 +40,18 @@ export interface ShapeBuilder<G extends Geometry, P extends Geometry.Params<G>> 
   /** Hook to modify representation state */
   modifyState?: (state: Partial<Representation.State>) => Partial<Representation.State>;
   /**
+   * The shape its loci are of, picked and marked (overpaint, transparency, highlight), its groups this shape's: a part
+   * standing in for another (a hit area, `State.pickOnly`; thin handles drawn as lines) reports and takes the loci of
+   * what it stands in for, so that hover, highlight and clicks are one; this shape by default
+   */
+  lociShape?: () => Shape;
+  /**
    * The graphics context the shape is drawn with: geometry relying on what it lacks is changed (see
    * `GeometryUtils.isCompatible`); `setGraphics` replaces it
    */
   graphics?: GraphicsContext;
+  /** Releases what the shape's geometry owns on the GPU, when the representation is destroyed */
+  dispose?: (geometry: G) => void;
 }
 
 export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Params<G>>(
@@ -71,6 +73,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
   let locationIt: LocationIterator;
   let positionIt: LocationIterator;
   let graphics = builder.graphics;
+  /** the data of the last shape, its getter called again for a new context (`isCompatible` false, no `makeCompatible`) */
+  let _data: D | undefined;
 
   if (builder.modifyState) Representation.updateState(_state, builder.modifyState(_state));
 
@@ -122,7 +126,16 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
     const task = Task.create('ShapeRepresentation.create', async (runtime) => {
       const newProps = Object.assign(currentProps, props);
-      const shape = data ? await getShape(runtime, data, newProps, _shape) : undefined;
+      if (data !== undefined) _data = data;
+      // geometry made on the previous context (e.g. GPU textures) made again on this one, by the getter
+      const remake =
+        data === undefined &&
+        _data !== undefined &&
+        !!graphics &&
+        !!_shape &&
+        !geometryUtils.makeCompatible &&
+        geometryUtils.isCompatible?.(_shape.geometry, graphics) === false;
+      const shape = data || remake ? await getShape(runtime, (data ?? _data)!, newProps, _shape, graphics) : undefined;
 
       prepareUpdate(props, shape);
 
@@ -245,13 +258,18 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     return changed;
   }
 
+  /** The shape this representation's loci are of: its own, or the one it stands in for (`ShapeBuilder.lociShape`) */
+  function lociShape() {
+    return builder.lociShape?.() ?? _shape;
+  }
+
   function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
     const instanceGranularity = resolveInstanceGranularity(
       currentProps.instanceGranularity,
       _shape.groupCount,
       _shape.transforms.length,
     );
-    if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {
+    if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === lociShape())) {
       if (instanceGranularity) {
         return apply(Interval.ofBounds(0, _shape.transforms.length));
       } else {
@@ -259,9 +277,9 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
       }
     } else {
       if (instanceGranularity) {
-        return eachInstance(loci, _shape, apply);
+        return eachInstance(loci, lociShape(), apply);
       } else {
-        return eachShapeGroup(loci, _shape, apply);
+        return eachShapeGroup(loci, lociShape(), apply);
       }
     }
   }
@@ -297,16 +315,17 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
           _shape.groupCount,
           _shape.transforms.length,
         );
+        const shape = lociShape();
         if (groupId === PickingId.Null || instanceGranularity) {
-          return Shape.Loci(_shape);
+          return Shape.Loci(shape);
         } else {
-          return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId), instance: instanceId }]);
+          return ShapeGroup.Loci(shape, [{ ids: OrderedSet.ofSingleton(groupId), instance: instanceId }]);
         }
       }
       return EmptyLoci;
     },
     getAllLoci() {
-      return [Shape.Loci(_shape)];
+      return [Shape.Loci(lociShape())];
     },
     eachLocation: (cb: LocationCallback) => {
       locationIt.reset();
@@ -318,7 +337,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     mark(loci: Loci, action: MarkerAction) {
       if (!MarkerActions.is(_state.markerActions, action)) return false;
       if (ShapeGroup.isLoci(loci) || Shape.isLoci(loci)) {
-        if (loci.shape !== _shape) return false;
+        if (loci.shape !== lociShape()) return false;
       } else if (!isEveryLoci(loci)) {
         return false;
       }
@@ -331,6 +350,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         if (state.visible !== undefined) Visual.setVisibility(_renderObject, state.visible);
         if (state.pickable !== undefined) Visual.setPickable(_renderObject, state.pickable);
         if (state.colorOnly !== undefined) Visual.setColorOnly(_renderObject, state.colorOnly);
+        if (state.pickOnly !== undefined) Visual.setPickOnly(_renderObject, state.pickOnly);
         if (state.overpaint !== undefined) {
           Visual.setOverpaint(_renderObject, state.overpaint, lociApply, true);
         }
@@ -341,6 +361,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
           Visual.setSubstance(_renderObject, state.substance, lociApply, true);
         }
         if (state.transform !== undefined) Visual.setTransform(_renderObject, state.transform);
+        if (state.previewTransform !== undefined) Visual.setPreviewTransform(_renderObject, state.previewTransform);
       }
 
       Representation.updateState(_state, state);
@@ -358,6 +379,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     getSignatures: (props: PD.Values<P>, ctx: SignatureContext) =>
       getGeometrySignatures(geometryUtils, { ...PD.getDefaultValues(currentParams), ...props }, ctx),
     destroy() {
+      if (_shape) builder.dispose?.(_shape.geometry);
       renderObjects.length = 0;
       if (_renderObject) {
         _renderObject.state.disposed = true;

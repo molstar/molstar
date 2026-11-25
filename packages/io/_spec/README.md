@@ -6,9 +6,14 @@ record of tables and columns), never a model. Building models, volumes and shape
 things are, the contracts a reader keeps, and the decisions (the rule, then why). Code comments cite sections
 (`cif.md §3`). The code is the truth for how.
 
-| File             | What it covers                                                                             |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| [cif.md](cif.md) | CIF: the data model, `CIF.parse`, the text tokenizer, BinaryCIF decoding, schemas, writing |
+| File               | What it covers                                                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------ |
+| [cif.md](cif.md)   | CIF: the data model, `CIF.parse`, the text tokenizer, BinaryCIF decoding, schemas, writing             |
+| [bgzf.md](bgzf.md) | BGZF read whole and by virtual offset; TBI and CSI indexes, a region's lines and extents; their bounds |
+
+MessagePack (the encoder and decoder, and the repr tree's codec on them) is `@molstar/core`'s (`data/msgpack`,
+`repr/codecs/msgpack`; core's repr spec, "Codecs"); io re-exports both at their old paths (`common/msgpack/decode`,
+`common/msgpack/encode`, `repr/msgpack`), so BinaryCIF and every reader of those paths are unchanged.
 
 ## Map
 
@@ -23,8 +28,11 @@ things are, the contracts a reader keeps, and the decisions (the rule, then why)
 | `src/reader/common/text/byte-string-cache.ts`   | `ByteStringCache`: one string per repeated short value of a byte column (cif.md §3)                                |
 | `src/reader/common/decode.ts`                   | base64 to bytes (from bytes or a `StringLike`)                                                                     |
 | `src/common/binary-cif/`                        | BinaryCIF: `encoding.ts` (file and encoding types), `decoder.ts`, `array-encoder.ts`, `classifier.ts`, `header.ts` |
-| `src/common/msgpack/`                           | MessagePack decode (with extensions and skipping) and encode                                                       |
+| `src/common/msgpack/`                           | MessagePack decode and encode: re-exports of `@molstar/core/data/msgpack`                                          |
+| `src/repr/msgpack.ts`                           | `MsgPackCodec`: a re-export of `@molstar/core/repr/codecs/msgpack`                                                 |
 | `src/common/netcdf/`                            | NetCDF reader (NCTRAJ)                                                                                             |
+| `src/common/bgzf.ts`, `src/common/tabix.ts`     | BGZF and tabix (bgzf.md); their implementation in `src/common/internal/` (not published)                           |
+| `src/common/image.ts`                           | images decoded by the browser as stored (`decodeImage`, `decodeImageBitmap`: not premultiplied, no color change)   |
 | `src/common/` (rest)                            | `FileHandle` (random-access reads), `SimpleBuffer` and `IOBuffer` (endian-aware), typed-array reads, ASCII helpers |
 | `src/writer/cif.ts`, `src/writer/cif/`          | `CifWriter`: categories and fields to text or BinaryCIF (cif.md §6)                                                |
 | `src/utils/short-string-pool.ts`                | string interning for short strings                                                                                 |
@@ -51,6 +59,12 @@ things are, the contracts a reader keeps, and the decisions (the rule, then why)
 
 ## Decisions
 
+- **Images decode as stored, read back through WebGL** (`common/image.ts`). A format's image channels may be data, not
+  colors (SOG's codebook indices, an opacity in alpha): decoded without premultiplying or converting colors
+  (`createImageBitmap`), and read back through a texture of its own WebGL context (WebGL2, else WebGL1: all it needs),
+  not a 2D canvas, which premultiplies and so changes the rgb of every pixel whose alpha is below 255. Only in a
+  browser: Node has no image decoder, so a reader takes its decoder as an argument (SOG's `SogImageDecoder`) and tests
+  pass their own.
 - **Text is tokenized as bytes.** A downloaded or read file is its bytes; a byte tokenizer neither decodes the whole
   text nor holds a string of it, and indexing bytes is about 2× faster than `charCodeAt` (slower still at a call site
   that has seen a `ChunkedBigString`). The delimiters of every text format here are ASCII, which never occurs inside a

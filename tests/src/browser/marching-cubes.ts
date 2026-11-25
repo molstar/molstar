@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,7 +8,7 @@ import './index.html';
 import { resizeCanvas } from '@molstar/graphics/canvas3d/util';
 import { Canvas3DParams, Canvas3D } from '@molstar/graphics/canvas3d/canvas3d';
 import { createWebGLCanvas3DContext } from '@molstar/graphics/canvas3d/webgl';
-import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isWebGLContext } from '@molstar/graphics/gl/contexts/webgl';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { type PositionData, Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { OrderedSet } from '@molstar/core/data/int';

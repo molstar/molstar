@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
@@ -7,6 +7,7 @@
  */
 
 import type { ElementSymbol } from '@molstar/model/model/structure/model/types';
+import { AtomicNumbers } from '@molstar/model/model/structure/model/properties/atomic/measures';
 import { Color, ColorMap } from '@molstar/core/util/color';
 import { StructureElement, Unit, Bond } from '@molstar/model/model/structure';
 import type { Location } from '@molstar/model/model/location';
@@ -195,6 +196,19 @@ type ElementSymbolColorThemeProps = PD.Values<ElementSymbolColorThemeParams>;
 export function elementSymbolColor(colorMap: ElementSymbolColors, element: ElementSymbol): Color {
   const c = colorMap[element as keyof ElementSymbolColors];
   return c === undefined ? DefaultElementSymbolColor : c;
+}
+
+/** The element symbols by atomic number: `AtomicNumbers`' first of each (H, not D or T) */
+const ElementSymbolOfNumber = (() => {
+  const out: string[] = [];
+  for (const [symbol, n] of Object.entries(AtomicNumbers)) if (n !== undefined && out[n] === undefined) out[n] = symbol;
+  return out;
+})();
+
+/** The color of the element of atomic number `n` (a particle target's sites, `ParticleSites.elements`), the default for none */
+export function elementNumberColor(colorMap: ElementSymbolColors, n: number): Color {
+  const symbol = ElementSymbolOfNumber[n];
+  return symbol === undefined ? DefaultElementSymbolColor : elementSymbolColor(colorMap, symbol as ElementSymbol);
 }
 
 function getCarbonTheme(ctx: ThemeDataContext, props: ElementSymbolColorThemeProps['carbonColor']) {

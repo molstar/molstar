@@ -1,0 +1,59 @@
+LOCUS       misread                 1200 bp    DNA     linear   SYN 22-NOV-2026
+DEFINITION  A misread GenBank record (generated).
+ACCESSION   MR000001
+VERSION     MR000001.1
+KEYWORDS    .
+SOURCE      synthetic construct
+  ORGANISM  synthetic construct
+            other sequences; artificial sequences.
+REFERENCE   1  (bases 1 to 1200)
+  TITLE     Generated
+FEATURES             Location/Qualifiers
+     gene            101..400
+                     /gene="good"
+     CDS             join(101..200,301..400)
+                     /gene="good"
+                     /product="a protein"
+                     /translation="MKV"
+     gene            J00194.1:100..202
+                     /gene="remote"
+     misc_feature    450^451
+                     /label="site between bases"
+     gene            1100..1300
+                     /gene="past the end"
+     gene            join(500..600
+                     /gene="malformed"
+     misc_feature    700.710
+                     /label="approximate"
+     repeat_region   <900..>1000
+                     /label="partial"
+ORIGIN
+        1 agtctgtcct tgtagtgggt gctccgctcg tatacgggtg taagatacct atgcgagggt
+       61 cctccagttc ccgaattgga gttgacctag gtgatcgttt aagaaaagat cgcctttcag
+      121 taacttgctg gattcttggc tcctaagctg actacaacgg ggcctcggtt ccatacggta
+      181 ctggtaagtt tgatgcttgg gaattacgtg agccacctgt ctacggcgct gaagccatac
+      241 ccgctctgtc attgcctagg catagaaggc tataggataa tcagccaaga ccgccgcgtc
+      301 ggtaaaaaat aaatatgagt tccagttatc ctggttagga atatcaaagg tgtagcaccc
+      361 agctctccac cacttgatgc cgctgcgtgc agctcccctg atagtcacga cctcccctca
+      421 acgccttgta aggatgacat ctgagcttag atgccagtgt cagcgttggc ccataatatc
+      481 ctccttttag agacgcttgt gtacggcata ttggccacca ccgaattcta tgcccctcta
+      541 ttcaattcca aagcccacca ccccccgatc ctcacggaca tgactatctg tgaacaaccg
+      601 tctgagctca gtatagcgac cgactggggt cgcgcaacag gataattacc atatcaagcc
+      661 attcataagt agaagctagg attgtcgata cataagggca ttatcaatgc cgtttacggt
+      721 tacgaacttt cgtacacgtg tattatcact gcaagtagcg cacgttgaat atatgagcta
+      781 ttgcatcggt attagcggag aagaggtcag acacagatta gtgcatcgac gatgtaatga
+      841 acccgtacaa gccccccaca gtttgttagt gcctgccaat ctctttgcgt agtcctacaa
+      901 cggagattcg ccataaactg gttaaatgat gtacgccact ttccaaagta ctcgattcaa
+      961 atgaagccca tagtcgaggg gccaccagga acccccagct tattgtccct gttggaggtg
+     1021 ctgggtaacc gaattgtcta ggtagttcta cgtctcaaag ccgggtcctt gcaaaagtat
+     1081 aaggtggaga caacgaaggt tgtcctggaa acgttcggag ccggtttaag aacgtccgag
+     1141 acaagagtcc cgatcagcac gccatgtcgt acttgtctat tcccagcgga aatgcaaagt
+     1201 gatcgacccc cccaatactg gctgatttca aggcatgaac gcatggttat atggcgtatc
+//
+LOCUS       assembly               50000 bp    DNA     linear   CON 22-NOV-2026
+DEFINITION  An assembly of other records.
+CONTIG      join(AB000001.1:1..25000,gap(100),AB000002.1:1..24900)
+//
+LOCUS       cut                       60 bp    DNA     linear   SYN 22-NOV-2026
+ORIGIN
+        1 agtctgtcct

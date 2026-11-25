@@ -6,6 +6,8 @@
 
 import { describe, expect, it } from 'vitest';
 import { ValueCell } from '@molstar/core/util';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { ClipGhostParams } from '@molstar/graphics/canvas3d/passes/clip-ghost';
 import {
   createSignatureProgramItem,
   getObjectSignature,
@@ -257,6 +259,29 @@ describe.skipIf(!WebGPU.module)('object signatures on WebGPU', () => {
       a.plugin.dispose();
       b.plugin.dispose();
       c.plugin.dispose();
+    }
+  });
+
+  it('a precompile list plans the ghost of what clip objects remove, its scenes counts only', async () => {
+    const a = await createPlugin();
+    const b = await createPlugin();
+    try {
+      const canvasA = a.plugin.canvas3d!;
+      canvasA.resetPrecompileList();
+      await addRepresentations(a.plugin);
+      const list = JSON.parse(JSON.stringify(canvasA.getPrecompileList()));
+
+      // the planned scenes hold no renderables: the ghost may draw there (its depth variant, its composite planned)
+      const clipGhost = { name: 'on' as const, params: PD.getDefaultValues(ClipGhostParams) };
+      const canvasB = b.plugin.canvas3d!;
+      await canvasB.precompile(list, [
+        { clipGhost },
+        { clipGhost, multiSample: { ...canvasB.props.multiSample, mode: 'temporal' } },
+      ]);
+      await b.graphics.resources.pending.whenReady();
+    } finally {
+      a.plugin.dispose();
+      b.plugin.dispose();
     }
   });
 });

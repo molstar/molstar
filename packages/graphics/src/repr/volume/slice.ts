@@ -19,7 +19,7 @@ import { EmptyLoci, type Loci } from '@molstar/model/model/loci';
 import { transformPositionArray } from '@molstar/graphics/geo/util';
 import { Color } from '@molstar/core/util/color';
 import { ColorTheme } from '@molstar/graphics/theme/color';
-import { packIntToRGBArray } from '@molstar/core/util/number-packing';
+import { packIntToRGBAArray } from '@molstar/core/util/number-packing';
 import { createPeriodicVolume, createVolumeSliceCellLocationIterator, eachVolumeLoci } from './util.js';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Quat } from '@molstar/core/math/linear-algebra/3d/quat';
@@ -304,7 +304,7 @@ function getSampledImage(
       valueArray[i] = val;
 
       if (ix >= 0 && ix < mx && iy >= 0 && iy < my && iz >= 0 && iz < mz) {
-        packIntToRGBArray(i, groupArray, i4);
+        packIntToRGBAArray(i, groupArray, i4);
 
         if (periodicMapping) {
           const pm = periodicMapping.get(ix, iy, iz);
@@ -515,7 +515,7 @@ async function createGridImage(
           imageArray[i4 + 2] *= val;
         }
         valueArray[i] = val;
-        packIntToRGBArray(i, groupArray, i4);
+        packIntToRGBAArray(i, groupArray, i4);
 
         if (periodicMapping) {
           const pm = periodicMapping.get(ix, iy, iz);

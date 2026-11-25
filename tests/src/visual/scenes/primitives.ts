@@ -12,6 +12,10 @@ import { LinesBuilder, StripLinesBuilder } from '@molstar/graphics/geo/geometry/
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { Points } from '@molstar/graphics/geo/geometry/points/points';
+import { GaussianSplats } from '@molstar/graphics/geo/geometry/gaussian-splats/gaussian-splats';
+import { encodeSplatSh, setSplat } from '@molstar/graphics/geo/geometry/gaussian-splats/splat-data';
+import { int32ToFloatBits } from '@molstar/graphics/geo/geometry/center-group';
+import { createSogMeansReader } from '@molstar/model/formats/shape/gaussian-splat/sog';
 import { PointsBuilder } from '@molstar/graphics/geo/geometry/points/points-builder';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '@molstar/graphics/geo/geometry/spheres/spheres-builder';
@@ -167,6 +171,28 @@ export function sphereGrid(n: number, spacing: number): Spheres {
   return builder.getSpheres();
 }
 
+/**
+ * `sphereGrid` from quantized centers (`Spheres.fromSites`: int16 by an origin and a scale, exact for spacings of
+ * multiples of 0.25), its floats where `graphics` draws no sites (WebGL1)
+ */
+export function sphereSitesGrid(n: number, spacing: number, graphics: GraphicsContext): Spheres {
+  if (!Spheres.isSitesSupported(graphics)) return sphereGrid(n, spacing);
+  const offset = ((n - 1) * spacing) / 2;
+  const origin = Vec3.create(-offset, -offset, -offset);
+  const scale = 0.25;
+  const data = new Int16Array(n * n * n * 4);
+  let g = 0;
+  for (let i = 0; i < n; ++i) {
+    for (let j = 0; j < n; ++j) {
+      for (let k = 0; k < n; ++k) {
+        data.set([(i * spacing) / scale, (j * spacing) / scale, (k * spacing) / scale, 0], g * 4);
+        g++;
+      }
+    }
+  }
+  return Spheres.fromSites({ data, origin, scale }, n * n * n);
+}
+
 /** Cylinders from the origin along 8 directions with alternating caps */
 export function cylinderStar(length: number): Cylinders {
   const builder = CylindersBuilder.create(8, 1);
@@ -213,6 +239,159 @@ export function pointSphere(count: number, radius: number): Points {
   return builder.getPoints();
 }
 
+/**
+ * Gaussian splats on a Fibonacci sphere, a group each of 8: flat ellipsoids (scales 3:1.2:0.4 of `size`, a little
+ * larger toward the poles) turned about their own axes, opacities from 0.5 to 1, deterministic
+ */
+export function splatSphere(count: number, radius: number, size: number, shDegree: 0 | 1 | 2 | 3 = 0): GaussianSplats {
+  const { positionGroup, splatData } = GaussianSplats.createArrays(count);
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < count; ++i) {
+    const y = 1 - (i / (count - 1)) * 2;
+    const r = Math.sqrt(1 - y * y);
+    const t = golden * i;
+    positionGroup.set([Math.cos(t) * r * radius, y * radius, Math.sin(t) * r * radius, int32ToFloatBits(i % 8)], i * 4);
+    const s = size * (1 + 0.5 * Math.abs(y));
+    // a turn of `t` about an axis by the index (unit length: normalized by `setSplat`)
+    const half = t / 2;
+    const ax = Math.sin(i * 0.7);
+    const ay = Math.cos(i * 1.3);
+    const az = Math.sin(i * 0.4 + 1);
+    const sin = Math.sin(half);
+    setSplat(
+      splatData,
+      i,
+      Math.log(3 * s),
+      Math.log(1.2 * s),
+      Math.log(0.4 * s),
+      ax * sin,
+      ay * sin,
+      az * sin,
+      Math.cos(half),
+      0.5 + (0.5 * ((i * 7) % 11)) / 10,
+    );
+  }
+  // view-dependent color of a fixed pattern by splat, basis function and channel
+  const sh = encodeSplatSh(count, shDegree, (i, k, c) => 0.6 * Math.sin(i * 0.37 + k * 1.3 + c * 2.1));
+  return GaussianSplats.create(positionGroup, splatData, count, undefined, sh);
+}
+
+/** Linear codebook of 256 entries over `[min, max]` and the byte of `v` in it */
+function linearCodebook(min: number, max: number) {
+  const range = max > min ? max - min : 1;
+  const values = Array.from({ length: 256 }, (_, i) => min + (range * i) / 255);
+  const code = (v: number) => Math.max(0, Math.min(255, Math.round(((v - min) / range) * 255)));
+  return { values, code };
+}
+
+/** Version 3's exponential map of a unit rotation `x, y, z, w` (w made positive), as splat-transform writes it */
+function sogExpMap(x: number, y: number, z: number, w: number) {
+  if (w < 0) [x, y, z, w] = [-x, -y, -z, -w];
+  const sv = Math.sqrt(x * x + y * y + z * z);
+  const k = sv > 1e-12 ? Math.atan2(sv, w) / sv / (Math.PI / 2) : 1 / (Math.PI / 2);
+  return [x, y, z].map((v) => Math.min(255, Math.max(0, Math.round(v * k * 127 + 128))));
+}
+
+/**
+ * The splats of `splatSphere` as SOG (version 3, its images uploaded to `graphics` and read in place, the `sog`
+ * encoding): base colors of the palette by index, view-dependent color of `shDegree` as a palette of 8 entries
+ */
+export function splatSphereSog(
+  graphics: GraphicsContext,
+  count: number,
+  radius: number,
+  size: number,
+  shDegree: 0 | 1 | 2 | 3 = 0,
+): GaussianSplats {
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  const width = Math.ceil(Math.sqrt(count));
+  const height = Math.ceil(count / width);
+  const image = () => new Uint8Array(width * height * 4);
+  const [meansLow, meansHigh, scales, quats, sh0, labels] = [image(), image(), image(), image(), image(), image()];
+  const log = (x: number) => Math.sign(x) * Math.log(Math.abs(x) + 1);
+  const meansMin = Vec3.create(-log(radius * 1.1), -log(radius * 1.1), -log(radius * 1.1));
+  const meansMax = Vec3.negate(Vec3(), meansMin);
+  const scaleCodes = linearCodebook(Math.log(0.4 * size), Math.log(3 * 1.5 * size));
+  const colorCodes = linearCodebook(-2, 2);
+  const shCodes = linearCodebook(-0.6, 0.6);
+  const SH_C0 = 0.28209479177387814;
+  for (let i = 0; i < count; ++i) {
+    const y = 1 - (i / (count - 1)) * 2;
+    const r = Math.sqrt(1 - y * y);
+    const t = golden * i;
+    const p = [Math.cos(t) * r * radius, y * radius, Math.sin(t) * r * radius];
+    const o = i * 4;
+    for (let c = 0; c < 3; ++c) {
+      const v = Math.round(((log(p[c]) - meansMin[c]) / (meansMax[c] - meansMin[c])) * 65535);
+      meansLow[o + c] = v & 0xff;
+      meansHigh[o + c] = v >> 8;
+    }
+    const s = size * (1 + 0.5 * Math.abs(y));
+    scales.set([Math.log(3 * s), Math.log(1.2 * s), Math.log(0.4 * s)].map(scaleCodes.code), o);
+    const half = t / 2;
+    const axis = Vec3.normalize(Vec3(), Vec3.create(Math.sin(i * 0.7), Math.cos(i * 1.3), Math.sin(i * 0.4 + 1)));
+    const sin = Math.sin(half);
+    quats.set(sogExpMap(axis[0] * sin, axis[1] * sin, axis[2] * sin, Math.cos(half)), o);
+    const color = Color.toRgbNormalized(Palette[i % Palette.length]);
+    sh0.set(
+      [0, 1, 2].map((c) => colorCodes.code((color[c] - 0.5) / SH_C0)),
+      o,
+    );
+    const opacity = 0.5 + (0.5 * ((i * 7) % 11)) / 10;
+    sh0[o + 3] = Math.round(Math.sqrt(opacity) * 204);
+    labels[o] = i % 8;
+  }
+  const coefficients = [0, 3, 8, 15][shDegree];
+  const centroids = new Uint8Array(64 * Math.max(1, coefficients) * 4);
+  for (let e = 0; e < 8; ++e) {
+    for (let k = 0; k < coefficients; ++k) {
+      for (let c = 0; c < 3; ++c) {
+        centroids[(e * coefficients + k) * 4 + c] = shCodes.code(0.6 * Math.sin(e * 0.37 + k * 1.3 + c * 2.1));
+      }
+    }
+  }
+  const codebook = new Float32Array(256 * 4);
+  for (let i = 0; i < 256; ++i) {
+    codebook.set([scaleCodes.values[i], colorCodes.values[i], shCodes.values[i], 0], i * 4);
+  }
+  const upload = (array: Uint8Array, w = width, h = height) => {
+    const texture = graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+    texture.load({ array, width: w, height: h });
+    return texture;
+  };
+  // the centers as the shaders decode them
+  const meta = { means: { mins: Array.from(meansMin), maxs: Array.from(meansMax) } } as Parameters<
+    typeof createSogMeansReader
+  >[0];
+  const position = createSogMeansReader(meta, meansLow, meansHigh);
+  const positionGroup = new Float32Array(count * 4);
+  for (let i = 0; i < count; ++i) {
+    positionGroup.set([position(i, 0), position(i, 1), position(i, 2), int32ToFloatBits(i % 8)], i * 4);
+  }
+  return GaussianSplats.createSog({
+    graphics,
+    count,
+    positionGroup,
+    // the means' ranges out of the log domain: a box of 1.1 radius a side
+    centersBounds: Sphere3D.create(Vec3(), 1.1 * radius * Math.sqrt(3)),
+    textures: {
+      meansLow: upload(meansLow),
+      meansHigh: upload(meansHigh),
+      scales: upload(scales),
+      quats: upload(quats),
+      sh0: upload(sh0),
+      shLabels: shDegree > 0 ? upload(labels) : undefined,
+      shCentroids: shDegree > 0 ? upload(centroids, 64 * coefficients, 1) : undefined,
+    },
+    meansMin,
+    meansMax,
+    codebook,
+    version: 3,
+    sh: shDegree > 0 ? { degree: shDegree, coefficients, count: 8 } : undefined,
+    maxScale: Math.exp(scaleCodes.values[255]),
+  });
+}
+
 export function lineCages(): Lines {
   const builder = LinesBuilder.create();
   builder.addCage(translateScale(-2, 0, 0, 1.5), DodecahedronCage(), 0);
@@ -245,7 +424,7 @@ export function textLabels(props: Partial<PD.Values<Text.Params>>): Text {
   builder.add('Mol*', 0, 2, 0, 1, 1, 0);
   builder.add('Visual', -2, 0, 0, 1, 1, 1);
   builder.add('Test', 2, 0, 0, 1, 1, 2);
-  builder.add('Ã…Ã„Ã– 123', 0, -2, 0, 1, 1, 3);
+  builder.add('ÅÄÖ 123', 0, -2, 0, 1, 1, 3);
   return builder.getText();
 }
 

@@ -1,0 +1,45 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A row's height on its own (md); a control in a form row (sm, styles §4: 20px, centered in its row). Its text at the
+   control inset (§5), where a plain value's is. */
+.input {
+  min-width: 0;
+  height: var(--msui-row);
+  margin: 0;
+  padding: 0 var(--msui-control-inset);
+  border: 0;
+  border-radius: var(--msui-radius-md);
+  background: var(--msui-control);
+  /* Its edge where contrast matters (foundations, --msui-field-edge). */
+  box-shadow: inset 0 0 0 1px var(--msui-field-edge);
+  color: var(--msui-text);
+  font: inherit;
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+
+  &[data-size="sm"] {
+    height: var(--msui-control-height);
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--msui-control-hover);
+  }
+
+  /* Inside the field: a field at a scrolling panel's edge would have a ring outside it cut off. */
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+
+  &::placeholder {
+    color: var(--msui-text-subtle);
+  }
+
+  &:disabled {
+    color: var(--msui-text-subtle);
+  }
+}

@@ -232,9 +232,8 @@
    `attribute`. Released and resident are counted separately, and so are the slack and the scratch arenas.
 10. **Quick wins found on the way, done regardless of the policy**:
    - done: spheres and points keep center and group in one array (`positionGroup`, `center-group.ts`), which the
-     shaders read (`tPositionGroup`): 16 instead of 32 CPU bytes per item. With levels of detail it is in the levels'
-     order, reordered in place from the strides applied before (`orderPositionGroup`), so the order depends on the
-     strides only; the bounding sphere is computed in the items' order. Shared with
+     shaders read (`tPositionGroup`): 16 instead of 32 CPU bytes per item. With levels of detail the items keep their
+     order: a level draws every stride-th (the strides nested, `screen-space-lod.md`), no reorder. Shared with
      [primitive-expansion.md](primitive-expansion.md) (per-item data of the quad primitives);
    - left as it is: `Mesh.meta.originalData` (the index buffer before `uniformTriangleGroup`, for geometry export).
      The split only runs without flat interpolation (WebGL1 and a switch to it, `makeCompatible`), so it is absent
@@ -264,7 +263,7 @@
    measurably, its outputs part if the output arrays dominate, the scratch arena for the producers whose intermediates
    do.
 2. The quick wins (item 10; done for spheres and points). Tests: builders give the same content (`builders.test.ts`),
-   the levels' order depends on the strides only and the bounding sphere is the items' (`spheres.test.ts`), images
+   the items keep their order with levels and the bounding sphere is the items' (`spheres.test.ts`), images
    unchanged on all profiles.
 3. Release and acquire for meshes and spheres and their theme layers (items 1-5): the release at the end of each
    purpose, the released state, the version-neutral swap, the dev check, read back and recompute, the readers through

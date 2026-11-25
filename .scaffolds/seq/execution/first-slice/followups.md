@@ -1,0 +1,82 @@
+# Followups (draft; filed in packages/seq/TODO.md or core's TODO at finalize)
+
+From lane A:
+- `repr`: `checkRefs` (the resolve pass), `composeLanguage`, `patch` and `diff`, `descriptors`, issue dedupe (EC-86),
+  catalog docs generation, a version-migration hook, `fallback` handling, a read-side `ParamValue` with typed columns
+  only.
+- The MessagePack codec in io runs `checkCodec`.
+- A "Repr" section in `packages/core/TODO.md`.
+
+From lane A's review (follow-ups, not blockers): union normalization re-validating slot subtrees (O(depth × size));
+spelling checks of kinds and ids on trees built in code.
+
+From lane B: `index.ts` re-exports `SeqLanguageVersion` as `LanguageVersion` (one definition); the core `_spec`'s language
+section; a strand column check; codon exons against the protein's length (stop codons); a section's `range` revisited
+with Locations.
+
+From lane B's review: `repr` needs a version-aware validate (an unknown kind in a newer minor version is a warning,
+format.md); the theme sublanguage slot for `layer.color`; the `refs` and `snapshots` levels in `SeqLanguage`.
+
+From lane C: the `rect`, `row` and `chain` forms; lane E's static model implements `QueryModel` (the fixture tests become
+conformance); per-key element access with access plans; EC-8 across a codon step (lane E); the `_spec` "Queries" section
+(lane C's settled semantics: `not`'s universe, rect complement refused, zero-length overlap, snapping by label order,
+missing ends as the system's ends).
+
+From lane C's review: the tree core unions staged `pending` across segments (repr); dynamic nodes in `not`'s universe; a
+Location limit (what it counts); whether range-set operations move to `@molstar/core/data/int` (the author's call); open
+or streamed systems in `(all)` and `not` (lane E).
+
+From lane C2's review: `HalfOpenRanges.combine` as a linear two-pointer merge into a presized array (today it sorts the
+cuts and builds number arrays); core tests for `Empty`, non-integers and `overlaps` without a length.
+
+From lane E: `QuerySystem.length` optional (pending) in the query model instead of `openQueryLength`; the isoform half
+of EC-30; NCBI codes beyond 1, 2, 11; projecting rects; reverse paths carried across models; an allocation check of
+`projectRanges` at a checkpoint.
+
+## From lane F (render)
+
+- An overlay type for tier 2 (only a version is used now).
+- Highlight channels (the pass exists, empty).
+- A canvas adapter for the text port (lane H).
+- A summary pyramid for inline values zoomed out (inline data is level 1 only; a large inline system zoomed out hits the
+  store's tile cap).
+- An allocation check of the draw and hover loops (`layout` still allocates small arrays).
+- A legend's place in the chrome.
+- The Nightingale reference adapter.
+
+## From lane G (viewer models)
+
+- `SpecModel.applyPatch(patch, { against, context })` once the tree core has patches.
+- EC-113 scroll groups across viewers or views; EC-114 ring windows.
+- EC-143 re-hit of a resting pointer each frame the view moves (lane H); trackpad pinch onto `pinch`/`wheel` (lane H).
+- Wrapping pans on a cyclic axis (only clamped now).
+- An allocation guard for `hover.set` and the bindings' resolve (opt-in tier).
+- `ParamDefinition`s for the config items.
+
+## From lane H (viewer and views)
+
+- Registry: a `types` option on `renderSvg`, then layer-type, theme and palette entries; atomic, counted, undoable
+  run-time registration.
+- Touch pinch (two pointers); the Mol* structure port; the `@molstar/ui` keymap and command manager.
+- An allocation check by hand of the canvas draw and hover loops.
+- `vitest` in the storybook package's dev dependencies; move the Vite plugin's test under `src`.
+- `packages/seq/TODO.md`: drop the examples package and the thin Canvas2D viewer; add the items above.
+- The Features and Examples pages in Storybook.
+
+## From lane I (by region)
+
+- Shown placements, the selection and highlights hold their nodes (only `store.hold` does now).
+- A static layer whose `data` names a dynamic node waits for it instead of reporting `seq.view.layer.data`.
+- Per-template re-expansion; instance layers kept across overlay versions (preparation cached).
+- The overlay's sync issues in the viewer's `layoutIssues`.
+- `summaries` in `ViewerConfig`; summaries for systems of unknown length or past `maxLength`.
+- Mixed strands within an item checked (the first row's strand is taken).
+- Dynamic nodes in `not`'s universe.
+
+
+## From the stage 6 drift fold
+
+- EC-143 (re-hit a resting pointer once per frame in which the layout was rebuilt) is in no catalog: add it to
+  `sources/seqstar/edge-cases.md` (the author's records) or to the designs' own list.
+- Not yet in the designs: a source-backed leader's length fed to the `ViewModel`; the registry holding format runtimes
+  only in this slice; the canvas and SVG pass order (labels above emphasis, a third canvas).

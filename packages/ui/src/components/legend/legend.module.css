@@ -1,0 +1,102 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Transparent: the text color is the surrounding one, so it reads on a light or a dark canvas. Lines are the UI's 12/16
+   (styles §2); items stack a unit apart (styles §3). */
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msui-space-1);
+  min-width: 0;
+  color: var(--msui-text);
+  font: var(--msui-text-sm) / var(--msui-leading-sm) var(--msui-font-sans);
+}
+
+.title {
+  color: var(--msui-text-muted);
+  font-weight: var(--msui-weight-strong);
+}
+
+/* A mark's slot, then the label: the labels share one column whatever the glyph (styles §5, icon slots). */
+.item {
+  display: grid;
+  grid-template-columns: var(--msui-icon-slot) minmax(0, 1fr);
+  column-gap: var(--msui-icon-gap);
+  align-items: center;
+  min-width: 0;
+}
+
+.slot {
+  display: grid;
+  place-items: center;
+  width: var(--msui-icon-slot);
+  height: var(--msui-icon);
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  /* Cut off: it fades out (reset.css, msui-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msui-fade)), transparent);
+  animation-name: msui-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.mark {
+  background: var(--msui-legend-color, transparent);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--msui-radius-sm);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.line {
+  width: var(--msui-icon);
+  height: 4px;
+  border-radius: var(--msui-radius-sm);
+}
+
+/* No color (missing data): an empty mark, quiet. */
+.none {
+  background: color-mix(in oklab, currentColor, transparent 85%);
+}
+
+.ramp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msui-space-1);
+}
+
+.caption {
+  color: var(--msui-text-muted);
+}
+
+.bar {
+  display: block;
+  height: 8px;
+  border-radius: var(--msui-radius-sm);
+}
+
+/* The ends: small text (11/16), numbers by place. */
+.ends {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--msui-space-3);
+  color: var(--msui-text-muted);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+  font-variant-numeric: tabular-nums;
+}

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
@@ -32,6 +32,16 @@ export function is_iOS() {
   const isAppleDevice = navigator.userAgent.includes('Macintosh');
   const isTouchScreen = navigator.maxTouchPoints >= 4; // true for iOS 13 (and hopefully beyond)
   return !(window as any).MSStream && (isIOS || (isAppleDevice && isTouchScreen));
+}
+
+/**
+ * Is this an Apple platform (macOS, iOS, iPadOS), where ⌘ is the command key? Reads the platform the browser reports
+ * (`userAgentData` where available, else `platform`); false outside a browser.
+ */
+export function isApplePlatform() {
+  if (typeof navigator === 'undefined') return false;
+  const platform = (navigator as any).userAgentData?.platform ?? navigator.platform ?? '';
+  return /mac|iphone|ipad|ipod/i.test(platform);
 }
 
 export function isStandaloneHmd() {

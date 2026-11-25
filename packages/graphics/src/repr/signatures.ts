@@ -8,8 +8,10 @@ import type { ParamDefinition as PD } from '@molstar/core/util/param-definition'
 import { Color } from '@molstar/core/util/color';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Geometry, GeometryUtils } from '@molstar/graphics/geo/geometry/geometry';
-import { type ColorType, getColorTypeDefine } from '@molstar/graphics/geo/geometry/color-data';
-import { getSizeTypeDefine, type SizeType } from '@molstar/graphics/geo/geometry/size-data';
+import { getColorTypeDefine } from '@molstar/graphics/geo/geometry/color-data';
+import type { ColorType } from '@molstar/graphics/theme/color';
+import { getSizeTypeDefine } from '@molstar/graphics/geo/geometry/size-data';
+import type { SizeType } from '@molstar/graphics/theme/size';
 import { getRenderableProgramSource, type RenderObjectType } from '@molstar/graphics/gl/render-object';
 import { isComputeIsosurfaceSupported } from '@molstar/graphics/gl/compute/marching-cubes/compute';
 import { canCullOnGpu, isMergeableType } from '@molstar/graphics/gl/renderable/merged';

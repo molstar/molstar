@@ -12,7 +12,7 @@
 // milliseconds; a Stockholm file is read at 3 rows instead of the guard's 2,000 (TABLE).
 
 import { describe, expect, it } from 'vitest';
-import { quickCase } from '../model/quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 import { delimited, stockholm, tileStep } from './load-cases.js';
 
 /** A step of many milliseconds: few steps, in small windows. */

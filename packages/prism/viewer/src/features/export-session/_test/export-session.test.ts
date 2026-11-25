@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as fs from 'node:fs';
@@ -11,6 +12,10 @@ import * as path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer } from '../../../_test/harness.js';
 import { ExportSessionFeature } from '../index.js';
+import { Asset } from '@molstar/core/util/assets';
+import { PluginConfig } from '@molstar/plugin/config';
+
+import { ApiResult } from '../../../api/area.js';
 
 // The `export-session` feature: `session.save` in the core's `session` area, headless (the download is the page's).
 
@@ -64,6 +69,18 @@ describe('export session', () => {
     expect(state.value!.blob.size).toBeGreaterThan(0);
     expect(JSON.parse(await state.value!.blob.text()).entries.length).toBeGreaterThan(0);
     expect(v.managers.history.steps.value.length).toBe(steps);
+  });
+
+  it('saves no session whose files are past what it holds: fails naming them, a state saved still', async () => {
+    const v = await headlessViewer({ extensions: [ExportSessionFeature], files: [cbs()] });
+    // a limit below a held file's size (`PluginConfig.State.MaxSessionAssetBytes`, the host's)
+    v.plugin.config.set(PluginConfig.State.MaxSessionAssetBytes, 1024);
+    const big = new File([new Uint8Array(2048)], 'cell.mspk');
+    v.plugin.managers.asset.set(Asset.File(big), big);
+    const session = await v.api.session.save!({ kind: 'session' });
+    expect(session).toMatchObject({ ok: false, code: 'failed' });
+    expect(ApiResult.isFailure(session) && session.message).toMatch(/cell\.mspk \(2\.00 KB\).*\.molj/);
+    expectOk(await v.api.session.save!({ kind: 'state' }));
   });
 
   it('saves what the Save options say: no canvas settings or interactivity when they are off', async () => {

@@ -40,4 +40,8 @@ export const WebGPU: { module?: WebGPUModule; skipReason?: string } = await (asy
   return { module };
 })();
 
+// CI's WebGPU job requires them (`MOLSTAR_REQUIRE_WEBGPU`): skipped, the job would pass having run none
+if (WebGPU.skipReason && process.env.MOLSTAR_REQUIRE_WEBGPU) {
+  throw new Error(`WebGPU tests required (MOLSTAR_REQUIRE_WEBGPU) but cannot run: ${WebGPU.skipReason}.`);
+}
 if (WebGPU.skipReason) console.warn(`Skipping WebGPU tests: ${WebGPU.skipReason}.`);

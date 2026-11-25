@@ -14,6 +14,7 @@ not).
 | `packages/plugin/{core,ui,headless}`         | the plugin runtime, its classic React UI, Node capture                                                                                                                                                                   |
 | `packages/mvs/{builder,runtime}`             | MolViewSpec: standalone builder, Mol\* runtime                                                                                                                                                                           |
 | `packages/query-language`                    | MolScript and the PyMOL, VMD and Jmol transpilers                                                                                                                                                                        |
+| `packages/ui`                                | a JSX DOM runtime on core's reactive states (`@molstar/ui/dom`, [_spec](packages/ui/src/dom/_spec/README.md))                                                                                                            |
 | `packages/prism/*`                           | Prism, the new UI ([AGENTS.md](packages/prism/AGENTS.md), [_spec](packages/prism/viewer/_spec/README.md))                                                                                                                |
 | `packages/ai/*`                              | the agent harness and what runs on it ([AGENTS.md](packages/ai/AGENTS.md), [_spec](packages/ai/_spec/README.md))                                                                                                         |
 | `packages/sequences/*`                       | Seq\*, the sequence viewer and SeqViewSpec ([AGENTS.md](packages/sequences/AGENTS.md), [_spec](packages/sequences/_spec/README.md))                                                                                      |
@@ -23,7 +24,9 @@ not).
 | `apps/docs`                                  | the documentation site (Astro Starlight): the v5 and v6 docs in `src/content/docs/`                                                                                                                                      |
 | `storybook/`                                 | Storybook for the packages registered in `storybook/packages.ts` (stories in `_stories/` folders)                                                                                                                        |
 | `.v6/`                                       | v6-wide designs and plans (`designs/`, `plans/`); a package's own decisions are in its `_spec/`                                                                                                                          |
+| `.scaffolds/`                                | development scaffolds: a principles package, and one folder per scaffold (`seq/`: Seq\*'s designs, sources, work and records); agent context, never cited by code ([AGENTS.md](.scaffolds/AGENTS.md))                    |
 | `scripts/workspace/`                         | the package inventory (`inventory.json`) and the workspace checks                                                                                                                                                        |
+| `test-harness/`                              | the allocation, heap, scaling and timing guards the packages' opt-in tiers share (`@molstar/test-harness/*`, a dev dependency)                                                                                           |
 
 ## Commands
 
@@ -97,9 +100,9 @@ can hold its tests.
 | heavy (`{ tags: ['heavy'] }`, `// @module-tag heavy`)    | wall-clock bounds and ratios, scaling by size, full-size fuzz and oracles, a million rows, CLIs in a process (built first), Chrome                                                                                 | `pnpm test:heavy`  | nightly, by hand, and on a PR labelled `heavy tests` (`tests-heavy.yml`)   |
 
 - **A test slow by nature moves, and keeps a quick representative**: one layer of a sweep, the smaller fixtures, a short
-  fuzz, a smaller scale. A wall-clock bound goes in `itWithin` (`packages/sequences/core/_test/model/timing.ts`): the
-  test runs quick without the bound and heavy with it. Coverage is never dropped: medium runs on every PR. Why: the PR
-  checks finish in minutes, and the edit loop in seconds.
+  fuzz, a smaller scale. A wall-clock bound goes in `itWithin` (`test-harness/src/timing.ts`): the test runs quick
+  without the bound and heavy with it, the best of three runs (`tries: 1` for a test about one run's time). Coverage is
+  never dropped: medium runs on every PR. Why: the PR checks finish in minutes, and the edit loop in seconds.
 - **A test slow by waste is fixed, not moved**: a fixture computed once per file, not per `describe`; fake timers where
   real ones only wait; no rebuild per test.
 - **Tag in the test's own file**, inline or by `@module-tag` on a line of its own: the config reads the files to decide
@@ -111,9 +114,14 @@ can hold its tests.
   every lane; `pnpm check:publish` runs quick and medium (the GL suite skips without `gl`). Run the quick lane in the
   edit loop, the medium lane when you touch what it covers, the heavy lane when you touch what it bounds and at
   checkpoints.
-- **Not lanes**: the packages' opt-in tiers, by hand at checkpoints and never in CI: `test:perf` (allocation, the
-  `*.quick.ts` cases: not the quick lane), `test:scaling`, `test:browser` and the heap guards (`test:heap`,
-  `*.heap.ts`). See the [Seq\*](packages/sequences/AGENTS.md) and [Prism](packages/prism/AGENTS.md) guides.
+- **WebGPU in CI**: the headless WebGPU tests (quick-lane files, skipped without Dawn) run on every push in a job of
+  their own (`WebGPU tests (Dawn)`, a software Vulkan, required: they fail instead of skipping,
+  `MOLSTAR_REQUIRE_WEBGPU`); the visual smoke tests (`pnpm test:visual --tags smoke`, WebGPU against WebGL2) nightly, by
+  hand and on a PR labelled `visual tests` (`visual-tests.yml`).
+- **Not lanes**: the packages' opt-in tiers on the shared harness (`test-harness/`), by hand at checkpoints and never in
+  CI: `test:perf` (allocation, the `*.quick.ts` cases: not the quick lane), `test:scaling`, `test:browser` and the heap
+  guards (`test:heap`, `*.heap.ts`). See the [Seq\*](packages/sequences/AGENTS.md) and [Prism](packages/prism/AGENTS.md)
+  guides.
 - **Files share their worker's module registry** (`isolate: false`: importing the libraries again per file was about a
   third of the run's CPU). So a file restores the module state it changes (a registry, a config default);
   `vitest.setup.ts` restores spies, stubbed globals and env and real timers after every file. No `export *` inside an

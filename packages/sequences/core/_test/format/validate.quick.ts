@@ -13,7 +13,7 @@
 // accounting's noise (about 1 KB a step) hides `leak`'s 88 bytes (it read -759).
 
 import { describe, expect, it } from 'vitest';
-import { quickCase } from '../model/quick.js';
+import { quickCase } from '@molstar/test-harness/quick';
 import { CELL_COLUMNS, cellStep, genome } from './validate-cases.js';
 
 describe('table validation, quick', () => {

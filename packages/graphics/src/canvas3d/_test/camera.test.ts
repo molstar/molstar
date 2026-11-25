@@ -9,7 +9,9 @@ import { Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Camera } from '../camera.js';
 import { Viewport, cameraProject, cameraUnproject } from '../camera/util.js';
-import { setJitter } from '../passes/jitter.js';
+import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
+import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
+import { clearJitter, setJitter } from '../passes/jitter.js';
 
 describe('camera', () => {
   it('project/unproject', () => {
@@ -90,5 +92,65 @@ describe('camera', () => {
         expect(cropped.getPixelSize(points[1])).toBeCloseTo(full.getPixelSize(points[1]), 9);
       });
     }
+  });
+
+  it("tells no change for a sample's jitter, the projection jittered and restored; a move told", () => {
+    const camera = new Camera(
+      { position: Vec3.create(2, 3, 20), target: Vec3.create(0, 0, 0), radiusMax: 20 },
+      Viewport.create(0, 0, 300, 200),
+    );
+    camera.update();
+    const unjittered = Mat4.copy(Mat4(), camera.projection);
+    let changes = 0;
+    const sub = camera.changed.subscribe(() => ++changes);
+    setJitter(camera, [0.25, -0.375]);
+    expect(Mat4.areEqual(camera.projection, unjittered, 0)).toBe(false);
+    clearJitter(camera);
+    expect(Array.from(camera.projection)).toEqual(Array.from(unjittered));
+    // the frame's update after the samples: nothing changed since the last told
+    expect(camera.update()).toBe(false);
+    expect(changes).toBe(0);
+    camera.position = Vec3.create(2, 3, 25);
+    expect(camera.update()).toBe(true);
+    expect(changes).toBe(1);
+    sub.unsubscribe();
+  });
+
+  it('culls jittered samples as the camera unjittered, to the bit, until the jitter is cleared', () => {
+    const camera = new Camera(
+      { position: Vec3.create(2, 3, 20), target: Vec3.create(0, 0, 0), radiusMax: 20 },
+      Viewport.create(0, 0, 300, 200),
+    );
+    camera.update();
+    // as the renderer makes them (`Renderer.update`)
+    const frustum = Frustum3D.fromProjectionMatrix(Frustum3D(), camera.projectionView);
+    const cameraPlane = Plane3D.copy(Plane3D(), frustum[Frustum3D.PlaneIndex.Near]);
+    cameraPlane.constant -= Plane3D.distanceToPoint(
+      cameraPlane,
+      Mat4.getTranslation(Vec3(), Mat4.invert(Mat4(), camera.view)),
+    );
+    const unjittered = Mat4.copy(Mat4(), camera.projectionView);
+    expect(camera.cullView).toBeUndefined();
+    for (const offset of [
+      [0, 0],
+      [0.25, -0.375],
+      [-0.5, 0.125],
+    ]) {
+      setJitter(camera, offset);
+      const view = camera.cullView!;
+      expect(view).toBeDefined();
+      for (let i = 0; i < 6; ++i) {
+        expect(Array.from(view.frustum[i as Frustum3D.PlaneIndex].normal)).toEqual(
+          Array.from(frustum[i as Frustum3D.PlaneIndex].normal),
+        );
+        expect(view.frustum[i as Frustum3D.PlaneIndex].constant).toBe(frustum[i as Frustum3D.PlaneIndex].constant);
+      }
+      expect(Array.from(view.cameraPlane.normal)).toEqual(Array.from(cameraPlane.normal));
+      expect(view.cameraPlane.constant).toBe(cameraPlane.constant);
+    }
+    // the samples drawn jittered all the same
+    expect(Mat4.areEqual(camera.projectionView, unjittered, 1e-9)).toBe(false);
+    clearJitter(camera);
+    expect(camera.cullView).toBeUndefined();
   });
 });

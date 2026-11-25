@@ -18,7 +18,7 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { PluginSpec } from '@molstar/plugin/spec';
 import type { ReadFile } from '../matrix.js';
 
-// The Node side of the shader variants (`.v6/plans/gl/shader-analysis.md`): the repository's files, a headless plugin,
+// The Node side of the shader variants: the repository's files, a headless plugin,
 // the optional native modules. Test helpers, not a test file itself.
 
 setFSModule(fs);

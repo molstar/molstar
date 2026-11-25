@@ -4,8 +4,10 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { describe, expect, it } from 'vitest';
 import { cbs, expectOk, headlessViewer, until } from '../../../_test/harness.js';
 import type { SceneNode } from '../../../model/scene.js';
@@ -42,7 +44,31 @@ function nodes(v: PrismViewer): SceneNode[] {
   return out;
 }
 
+/** The center of a shape's first representation as drawn (its bounds as placed) */
+const drawnCenter = (v: PrismViewer, ref: string) => {
+  const repr = (v.plugin.state.data.cells.get(ref)!.obj!.data as any).repr;
+  return repr.renderObjects[0].values.boundingSphere.ref.value.center as number[];
+};
+
 describe('the shape area', () => {
+  it('moves a shape as a whole, puts it back, and keeps it one shape with its representations', async () => {
+    const v = await withMeshes([MeshFiles.torus()]);
+    const [torus] = await shapes(v);
+    const rep = torus.representations[0].ref;
+    const before = [...drawnCenter(v, rep)];
+    expectOk(await v.api.shape.transform({ node: torus.ref, translation: Vec3.create(0, 7, 0) }));
+    const [moved] = await shapes(v);
+    expect(moved.ref).toBe(torus.ref);
+    expect(moved.representations.map((r) => r.ref)).toEqual([rep]);
+    expect(drawnCenter(v, rep)[1]).toBeCloseTo(before[1] + 7, 3);
+    // a turn about its center keeps the center
+    expectOk(await v.api.shape.transform({ node: torus.ref, axis: Vec3.create(0, 0, 1), angle: 90, compose: true }));
+    expect(drawnCenter(v, rep)[1]).toBeCloseTo(before[1] + 7, 0);
+    expectOk(await v.api.shape.transformReset({ node: torus.ref }));
+    expect(drawnCenter(v, rep)[1]).toBeCloseTo(before[1], 3);
+    expect(((await v.api.shape.transformReset({ node: torus.ref })) as any).unchanged).toBe(true);
+  });
+
   it('lists the meshes loaded, by their files, with their representations; not the unit cell', async () => {
     const v = await withMeshes();
     const list = await shapes(v);

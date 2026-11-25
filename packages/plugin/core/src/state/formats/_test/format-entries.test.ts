@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { describe, expect, it } from 'vitest';
@@ -43,12 +44,14 @@ import { Xsc } from '../coordinates/xsc.js';
 import { Ply } from '../shape/ply.js';
 import { Obj } from '../shape/obj.js';
 import { Vtp } from '../shape/vtp.js';
+import { Sog, Splat, Spz } from '../shape/gaussian-splat.js';
 import { ParticleListFromRelionStar, RelionStarParticles } from '../particles/star.js';
 import { DynamoTblParticles, ParticleListFromDynamoTbl } from '../particles/tbl.js';
 import { CryoEtDataPortalNdjsonParticles, ParticleListFromCryoEtDataPortalNdjson } from '../particles/ndjson.js';
 import { ArtiatomiEmParticles, ParticleListFromArtiatomiEm } from '../particles/em.js';
 import { MmcifParticles, ParticleListFromMmcifAssembly } from '../particles/mmcif-assembly.js';
 import { ParticleTrajectoryFromSimularium, SimulariumParticles } from '../particles/simularium.js';
+import { ParticleListFromPack, ParticlePack } from '../particles/pack.js';
 import { Mmcif, TrajectoryFromMmCif } from '../trajectory/mmcif.js';
 import { CifCore, TrajectoryFromCifCore } from '../trajectory/cif-core.js';
 import { Pdb, Pdbqt, Pqr, TrajectoryFromPDB } from '../trajectory/pdb.js';
@@ -99,6 +102,9 @@ const Shape: Spec[] = [
   { entry: Ply, provider: BuiltInShapeFormats[0] },
   { entry: Obj, provider: BuiltInShapeFormats[1] },
   { entry: Vtp, provider: BuiltInShapeFormats[2] },
+  { entry: Splat, provider: BuiltInShapeFormats[3] },
+  { entry: Spz, provider: BuiltInShapeFormats[4] },
+  { entry: Sog, provider: BuiltInShapeFormats[5] },
 ];
 const Particles: Spec[] = [
   {
@@ -135,6 +141,12 @@ const Particles: Spec[] = [
     entry: SimulariumParticles,
     provider: BuiltInParticlesFormats[5],
     actions: [ParticleTrajectoryFromSimularium],
+    visuals: ComplexParticleVisuals,
+  },
+  {
+    entry: ParticlePack,
+    provider: BuiltInParticlesFormats[6],
+    actions: [ParticleListFromPack],
     visuals: ComplexParticleVisuals,
   },
 ];

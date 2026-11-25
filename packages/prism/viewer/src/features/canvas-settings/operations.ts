@@ -13,6 +13,7 @@ import { type ApiContext, ApiResult, type ApiFailure, type OperationDefinition }
 import { OptionalParam, SwitchParam, type SwitchValue } from '../../api/params.js';
 import { checkValues } from '../../api/run.js';
 import { changeWords } from '../../api/change-words.js';
+import { graphicsBackendIds } from '../../sources/viewer-sources.js';
 
 // The `canvas-settings` feature's operations (api.md §2, the `canvas` row; viewer-spec.md §3.1): added to the
 // core's `canvas` area, as only built-in features may. The card's sections edit through `canvas.settings` (one section's
@@ -153,6 +154,23 @@ export const CameraParams = {
   ),
   fov: OptionalParam(
     PD.Numeric(45, { min: 10, max: 130, step: 1 }, { label: 'Field of view', description: 'Field of view in degrees' }),
+  ),
+};
+/** The graphics backends by id, as said ("Switched to WebGPU."); the classic simple settings' labels. */
+export const BackendLabels: Readonly<Record<string, string>> = {
+  webgpu: 'WebGPU',
+  webgl2: 'WebGL 2',
+  webgl: 'WebGL 1',
+};
+export const BackendParams = {
+  backend: PD.Select<string>(
+    'webgpu',
+    [
+      ['webgpu', BackendLabels.webgpu],
+      ['webgl2', BackendLabels.webgl2],
+      ['webgl', BackendLabels.webgl],
+    ],
+    { description: 'The graphics backend: webgpu, webgl2 or webgl (WebGL 1); the scene is kept' },
   ),
 };
 export const XrParams = {
@@ -301,6 +319,43 @@ export const canvasSettingsOperations = (): {
         if (JSON.stringify(change) === JSON.stringify(before)) return ApiResult.already('The lighting is already so.');
         const said = keys.map((k) => `${k} ${v[k]!.name}`);
         return set(ctx, change as PartialCanvas3DProps, `Lighting: ${said.join(', ')}.`);
+      },
+    }),
+  },
+  // The graphics backend, switched with the scene kept (`PluginContext.setGraphicsBackends`): the representations are
+  // made again on the new context, so not a history step (the scene is as it was), as XR's view is not.
+  {
+    area: 'canvas',
+    name: 'backend',
+    operation: typed({
+      id: 'canvas.backend',
+      title: 'Switch the graphics backend',
+      params: BackendParams,
+      modules: canvasModule,
+      history: false,
+      // Without a canvas the `canvas` module says so; with one, whether there is another backend to switch to.
+      when: (ctx) =>
+        !ctx.plugin.canvas3d || graphicsBackendIds(ctx.plugin).length > 1
+          ? true
+          : 'This viewer has one graphics backend.',
+      async run({ backend }, ctx) {
+        const canvas = ctx.plugin.canvas3d;
+        if (!canvas) return ApiResult.fail('unavailable', 'There is no canvas.');
+        const ids = graphicsBackendIds(ctx.plugin);
+        const label = BackendLabels[backend] ?? backend;
+        if (!ids.includes(backend)) {
+          return ApiResult.fail(
+            'invalid',
+            `This viewer has no ${label} backend.`,
+            `Backends: ${ids.map((id) => BackendLabels[id] ?? id).join(', ')}.`,
+          );
+        }
+        if (canvas.graphics?.capabilities.backend === backend) return ApiResult.already(`Already drawn with ${label}.`);
+        const descriptors = ctx.plugin.graphicsBackends.filter((b) => b.id === backend);
+        if (!(await ctx.plugin.setGraphicsBackends(descriptors))) {
+          return ApiResult.fail('failed', `Could not switch to ${label}: this browser or device cannot create it.`);
+        }
+        return ApiResult.ok(`Switched to ${label}.`, { view: true });
       },
     }),
   },

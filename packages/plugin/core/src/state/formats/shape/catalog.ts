@@ -8,8 +8,16 @@
 import { PlyProvider } from './ply.js';
 import { ObjProvider } from './obj.js';
 import { VtpProvider } from './vtp.js';
+import { SogProvider, SplatProvider, SpzProvider } from './gaussian-splat.js';
 
-export const BuiltInShapeFormats = [PlyProvider, ObjProvider, VtpProvider] as const;
+export const BuiltInShapeFormats = [
+  PlyProvider,
+  ObjProvider,
+  VtpProvider,
+  SplatProvider,
+  SpzProvider,
+  SogProvider,
+] as const;
 
 export type BuiltInShapeFormat = (typeof BuiltInShapeFormats)[number]['name'];
 

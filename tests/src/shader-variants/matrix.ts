@@ -25,9 +25,9 @@ import { getIsosurfaceKernels } from '@molstar/graphics/gl/compute/marching-cube
 import { PrefixSumKernels } from '@molstar/graphics/gl/compute/prefix-sum';
 import { MergedCullKernels } from '@molstar/graphics/gl/renderable/merged-culler';
 import { SphereRasterKernels } from '@molstar/graphics/gl/compute/sphere-raster';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { WebGLContext } from '@molstar/graphics/gl/contexts/webgl';
 import { getGlslProgramNames } from '@molstar/graphics/gl/webgl/programs';
-import { isWebGPUContext, type WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
+import { isWebGPUContext, type WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { getWgslKernelNames } from '@molstar/graphics/gl/webgpu/shader/kernels';
 import { getWgslProgramNames } from '@molstar/graphics/gl/webgpu/shader/programs';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -38,7 +38,7 @@ import { uniqueSignatures as unique } from '@molstar/graphics/repr/signatures';
 import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 
-// The variants of the shaders that scenes reach (`.v6/plans/gl/shader-analysis.md`, phase 1): the precompile lists
+// The variants of the shaders that scenes reach: the precompile lists
 // (object signatures, `getTreePrecompileList`) and the canvas props of three sources, the default presets, the
 // MolViewSpec examples and mesoscale scenes, then each define and each canvas option varied alone; and a walk that
 // compiles them on a plugin's canvas. For Node (the Dawn and native `gl` tests) and the browser (the visual suite):
@@ -163,7 +163,7 @@ export function getMesoscaleSource(plugin: PluginContext, structureRef: string):
   const builder = plugin.build();
   const modes = ['ultra', 'quality', 'balanced', 'performance'] as const;
   for (const mode of modes) {
-    const { lodLevels, lodPixelSize } = Spheres.LodPixelPresets[mode];
+    const lodPixelSize = Spheres.LodPixelPresets[mode];
     for (const variant of ['instance', 'pixel'] as const) {
       builder.to(structureRef).apply(StructureRepresentation3D, {
         type: {
@@ -173,7 +173,6 @@ export function getMesoscaleSource(plugin: PluginContext, structureRef: string):
             ignoreHydrogens: true,
             instanceGranularity: true,
             ignoreLight: true,
-            lodLevels,
             lodPixelSize,
             quality: 'lowest',
             clip: { variant, objects: [] },

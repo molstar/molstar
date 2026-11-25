@@ -1,0 +1,311 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A toolbar (styles §4.1, Toolbars): blocks of square buttons in a row or a column, the gaps between blocks the
+   grouping. */
+.toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--msui-space-2);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+
+  /* A column: its blocks as wide as the widest (a captioned button can be wider than square). */
+  &[data-orientation="vertical"] {
+    flex-direction: column;
+    align-items: stretch;
+    width: max-content;
+  }
+}
+
+/* A block: a surface (styles §6), padded by the surface's pad; its buttons are concentric with it (--msui-radius-md). */
+.group {
+  /* In a toolbar the icon is the label: the object size (styles §4.1). */
+  --msui-icon-size: var(--msui-icon);
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: var(--msui-surface-pad);
+  border-radius: var(--msui-radius-lg);
+  background: var(--msui-surface);
+  box-shadow: var(--msui-surface-edge);
+
+  [data-orientation="vertical"] > & {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Floating over content (a canvas): raised, a hairline and a shadow (styles §6: elevation for what floats). */
+  [data-elevated] > & {
+    background: var(--msui-surface-raised);
+    box-shadow:
+      inset 0 0 0 1px var(--msui-line),
+      var(--msui-shadow-float);
+  }
+
+  /* Every button hidden: no empty block (and no gap for it). */
+  &:not(:has(> .button:not([hidden]))) {
+    display: none;
+  }
+}
+
+/* One surface for the bar (`grouping="separators"`): the toolbar is the block, its groups plain runs of buttons; a
+   hairline between a group and the visible one before it, an icon long and centered in a unit of space on each side. */
+.toolbar[data-grouping="separators"] {
+  gap: 0;
+  padding: var(--msui-surface-pad);
+  border-radius: var(--msui-radius-lg);
+  background: var(--msui-surface);
+  box-shadow: var(--msui-surface-edge);
+
+  &[data-elevated] {
+    background: var(--msui-surface-raised);
+    box-shadow:
+      inset 0 0 0 1px var(--msui-line),
+      var(--msui-shadow-float);
+  }
+
+  & > .group {
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  & > .group:has(> .button:not([hidden])) ~ .group::before {
+    content: "";
+    flex: none;
+    align-self: center;
+    width: 1px;
+    height: var(--msui-icon);
+    margin-inline: var(--msui-space-1);
+    background: var(--msui-line-strong);
+  }
+
+  &[data-orientation="vertical"] > .group:has(> .button:not([hidden])) ~ .group::before {
+    width: var(--msui-icon);
+    height: 1px;
+    margin: var(--msui-space-1) 0;
+  }
+}
+
+/* A button: square on the grid, a header's height (32), the 16px icon centered. */
+.button {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--msui-space-1);
+  min-width: var(--msui-header);
+  height: var(--msui-header);
+  padding: 0;
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text-muted);
+  white-space: nowrap;
+  transition:
+    background var(--msui-motion-fast) var(--msui-ease),
+    color var(--msui-motion-fast) var(--msui-ease);
+
+  &:hover:not([aria-disabled="true"]),
+  &[aria-expanded="true"] {
+    background: var(--msui-control-hover);
+    color: var(--msui-text);
+  }
+
+  &:active:not([aria-disabled="true"]) {
+    background: var(--msui-control-active);
+  }
+
+  /* A toggle that is on: the accent, and an edge where contrast matters (--msui-selected-edge). */
+  &[aria-pressed="true"] {
+    background: var(--msui-control-active);
+    box-shadow: inset 0 0 0 1px var(--msui-selected-edge);
+    color: var(--msui-accent-strong);
+  }
+
+  /* Subtle text is a few percent from muted text, too near to tell a disabled button from an enabled one in either
+     theme (its token is shared, so it stays): the dimming separates them. */
+  &[aria-disabled="true"] {
+    color: var(--msui-text-subtle);
+    cursor: default;
+    opacity: 0.4;
+  }
+
+  /* Inside the button: a ring outside it would cross its neighbor. */
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+/* A caption beside the icon (a horizontal bar): the icon where a square button has it, the text after it. */
+[data-captions="beside"] .button[data-captioned] {
+  padding-inline: var(--msui-space-2);
+}
+
+/* A caption under the icon (a vertical bar): the 16px icon, xs text under it; a unit taller than a square button. */
+[data-captions="below"] .button[data-captioned] {
+  flex-direction: column;
+  gap: 0;
+  height: calc(var(--msui-header) + var(--msui-space-2));
+  padding: var(--msui-space-1);
+}
+
+.face {
+  display: inline-flex;
+}
+
+.caption {
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A button with a menu: a small corner mark in place of a tooltip. */
+.mark {
+  position: absolute;
+  right: var(--msui-space-1);
+  bottom: var(--msui-space-1);
+  border-top: var(--msui-space-1) solid transparent;
+  border-right: var(--msui-space-1) solid currentColor;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* The open menu and its submenus (their floating parts are in the top layer). */
+.menuRoot,
+.level {
+  display: grid;
+}
+
+/* A menu: a raised surface padded by the surface's pad; 24px rows (styles §4) whose text is on the inset plus a level
+   (the icon slot's column), whose icons mark commands (12px, styles §4.1). Placed by `Floating`. */
+.menu {
+  --msui-icon-size: var(--msui-icon-sm);
+
+  display: grid;
+  min-width: calc(40 * var(--msui-unit));
+  max-height: calc(100vh - var(--msui-space-4));
+  overflow-y: auto;
+  padding: var(--msui-space-1) var(--msui-surface-pad);
+  border-radius: var(--msui-radius-lg);
+  background: var(--msui-surface-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--msui-line),
+    var(--msui-shadow-overlay);
+  color: var(--msui-text);
+  font-size: var(--msui-text-sm);
+  line-height: var(--msui-leading-sm);
+  /* Its entrance is its floating layer's (styles §7.1). */
+}
+
+/* A row: the icon slot at the inset, the label a level in (inset + --msui-indent), the hint, and in a menu with checks
+   or submenus a 12px end column on the inner right edge. Labels are whole (styles §2): the menu is as wide as its
+   longest. */
+.row {
+  display: grid;
+  grid-template-columns: var(--msui-icon-slot) 1fr auto;
+  align-items: center;
+  column-gap: var(--msui-icon-gap);
+  height: var(--msui-row);
+  padding-inline: var(--msui-inner);
+  border-radius: var(--msui-radius-md);
+  color: var(--msui-text-muted);
+  text-align: left;
+  white-space: nowrap;
+
+  [data-ends] > & {
+    grid-template-columns: var(--msui-icon-slot) 1fr auto var(--msui-icon-sm);
+  }
+
+  &:hover:not([aria-disabled="true"]),
+  &:focus-visible,
+  &[aria-expanded="true"] {
+    background: var(--msui-control-hover);
+    color: var(--msui-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msui-focus);
+    outline-offset: -2px;
+  }
+
+  /* The chosen one of a choice: the accent text, not bold. */
+  &[role="menuitemradio"][aria-checked="true"] {
+    color: var(--msui-accent-strong);
+  }
+
+  &[aria-disabled="true"] {
+    color: var(--msui-text-subtle);
+    cursor: default;
+  }
+}
+
+.slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--msui-icon-slot);
+}
+
+.label {
+  white-space: nowrap;
+}
+
+/* Quiet, clear of the label by the space between groups (styles §3). */
+.hint {
+  padding-inline-start: var(--msui-space-2);
+  color: var(--msui-text-subtle);
+  font-size: var(--msui-text-xs);
+
+  &:empty {
+    padding: 0;
+  }
+}
+
+.end {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check {
+  visibility: hidden;
+
+  [aria-checked="true"] > .end > & {
+    visibility: visible;
+  }
+}
+
+.chevron {
+  color: var(--msui-text-subtle);
+}
+
+/* A hairline between groups of rows, from the inset to the inner right edge. */
+.divider {
+  height: 1px;
+  margin: var(--msui-space-1) var(--msui-inner);
+  background: var(--msui-line);
+}
+
+/* A group's heading: xs muted on the text column, a unit over its rows (the group before it ends a unit above). */
+.heading {
+  padding: var(--msui-space-2) var(--msui-inner) var(--msui-space-1) calc(var(--msui-inner) + var(--msui-indent));
+  color: var(--msui-text-muted);
+  font-size: var(--msui-text-xs);
+  line-height: var(--msui-leading-xs);
+
+  &[data-first] {
+    padding-top: var(--msui-space-1);
+  }
+}

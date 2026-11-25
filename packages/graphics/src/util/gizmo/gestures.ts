@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Quat, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -10,8 +11,9 @@ import type { Face, Handle } from './handle.js';
 
 // What a drag on a handle does to an item's pose, as pure functions of the drag: pixels moved, the camera's axes and how
 // many Å a pixel is at the item (`DragFrame`). Each gesture starts from the pose as it was when the drag began and the
-// drag's total so far, so it never accumulates rounding. The part held stays under the cursor where a gesture can keep
-// it (a move, a slide, a scale by distance from a pivot); a turn goes at a rate.
+// drag's total so far, so it never accumulates rounding; a `turn`, a `roll` and a `rotate` go by steps, each from the
+// last one's pose (the path matters, as the camera's trackball; a roll and a ring go on past half a turn). The part held stays under the cursor where a gesture can keep it (a move, a
+// slide, a scale by distance from a pivot); a turn goes at a rate.
 
 /** Where an item is, which way it is turned, how large */
 export interface GizmoPose {
@@ -30,6 +32,8 @@ export interface DragFrame {
   readonly grab?: readonly [number, number];
   /** The point grabbed on the handle, in the world (the hover's pick): what a rotation's grabbed part is */
   readonly grabPoint?: Vec3;
+  /** Radians a `turn` goes a CSS pixel (the trackball's rate); none: `TurnPerPixel` */
+  readonly turnRate?: number;
 }
 
 /** Degrees of turn a pixel of drag */
@@ -96,50 +100,86 @@ export function inPlane(from: GizmoPose, localNormal: Vec3, frame: DragFrame, dx
 }
 
 /**
- * Turned about `local` (as the pose turns it) through its position, so the point grabbed on the ring
- * (`frame.grabPoint`) follows the cursor:
- * - the ring's plane facing the viewer (even obliquely): the cursor taken onto that plane along the view, the angle
- *   from the grabbed point to it about the axis (exact, past large angles too);
- * - the plane nearly edge-on (that projection runs away): the cursor's way along the ring's tangent at the grabbed point
- *   (foreshortening corrected, capped) over the ring's radius there.
- * Both read where the grabbed point goes, so their directions agree (no flip between them, nor between the near and the
- * far side of a ring). Without a grabbed point: by the angle around the axis's place on the screen, or a rate across it.
+ * How a drag on a ring turns about its axis:
+ * - `around` (Blender's): the angle the cursor goes around the item's place on the screen (`frame.grab`: the last
+ *   cursor from it; by steps, so on past half a turn), counterclockwise as seen a turn about an axis toward the viewer;
+ *   where the axis lies in the screen (the ring edge-on), `tangent`;
+ * - `tangent`: the drag along the grabbed point's tangent on the screen, at the trackball's rate; where that tangent
+ *   vanishes (it points along the view), `across`;
+ * - `across`: the drag across the axis on the screen, the way its near side goes, whichever part is grabbed; where
+ *   that vanishes (the axis toward the viewer), `tangent`.
  */
-export function rotateAbout(from: GizmoPose, local: Vec3, frame: DragFrame, dx: number, dy: number): GizmoPose {
+export type RingRule = 'around' | 'tangent' | 'across';
+export const RingRule: RingRule = 'around';
+
+/**
+ * Turned about `local` (as the pose turns it) through its position by one step of a drag, by `rule` (`RingRule`).
+ * Where a rule has no way on the screen: by the angle around the axis's place on the screen, or a rate across it.
+ */
+export function rotateAbout(
+  from: GizmoPose,
+  local: Vec3,
+  frame: DragFrame,
+  dx: number,
+  dy: number,
+  rule: RingRule = RingRule,
+): GizmoPose {
   const a = worldAxis(from, local);
-  const rad = frame.grabPoint
-    ? angleOfGrab(from.position, a, frame.grabPoint, frame, dx, dy)
-    : angleOnScreen(a, frame, dx, dy);
-  const q = Quat.setAxisAngle(Quat(), a, rad);
+  const grab = frame.grabPoint;
+  const tangent = () => (grab && alongTangent(from.position, a, grab, frame, dx, dy)) ?? acrossAxis(a, frame, dx, dy);
+  let rad: number | undefined;
+  if (rule === 'around') rad = aroundCenter(a, frame, dx, dy) ?? tangent();
+  else if (rule === 'tangent') rad = tangent();
+  else rad = acrossAxis(a, frame, dx, dy) ?? (grab && alongTangent(from.position, a, grab, frame, dx, dy));
+  const q = Quat.setAxisAngle(Quat(), a, rad ?? angleOnScreen(a, frame, dx, dy));
   return { ...from, rotation: Quat.normalize(Quat(), Quat.multiply(Quat(), q, from.rotation)) };
 }
 
-/** The ring's plane facing the viewer at least this much (|cos|) is projected onto; less, the tangent is followed */
-const PlaneFacing = 0.25;
+/** `around`: the angle the cursor goes around the item's place on the screen, as the axis faces the viewer; none edge-on */
+function aroundCenter(a: Vec3, frame: DragFrame, dx: number, dy: number) {
+  const toViewer = Vec3.cross(Vec3(), frame.right, frame.up);
+  const facing = Vec3.dot(a, toViewer);
+  const g = frame.grab;
+  if (Math.abs(facing) < MinOnScreen || !g || Math.hypot(g[0], g[1]) < MinGrab) return undefined;
+  return angleSwept(g, dx, dy) * Math.sign(facing);
+}
 
-function angleOfGrab(center: Vec3, a: Vec3, grab: Vec3, frame: DragFrame, dx: number, dy: number): number {
-  // the grabbed point from the axis, across it
+/** The angle from `g` to `g + (dx, dy)` around the origin on the screen (y down), counterclockwise as seen */
+function angleSwept(g: readonly [number, number], dx: number, dy: number) {
+  const [x0, y0] = [g[0], -g[1]];
+  const [x1, y1] = [g[0] + dx, -(g[1] + dy)];
+  return Math.atan2(x0 * y1 - y0 * x1, x0 * x1 + y0 * y1);
+}
+
+/** A way on the screen shorter than this (a unit vector's part across the view) has none: the next rule */
+const MinOnScreen = 0.05;
+
+/** Radians a ring turns a pixel: the trackball's (`DragFrame.turnRate`), so a gizmo and the camera turn alike */
+function ringRate(frame: DragFrame) {
+  return frame.turnRate ?? (TurnPerPixel * Math.PI) / 180;
+}
+
+/** The drag along `dir` (world) as the screen shows it, normalized (y down), times the rate; none where it vanishes */
+function alongScreen(dir: Vec3, frame: DragFrame, dx: number, dy: number): number | undefined {
+  const sx = Vec3.dot(dir, frame.right);
+  const sy = -Vec3.dot(dir, frame.up);
+  const len = Math.hypot(sx, sy);
+  if (len < MinOnScreen) return undefined;
+  return ((dx * sx + dy * sy) / len) * ringRate(frame);
+}
+
+/** `tangent`: the way the grabbed point goes when turned (positive about `a`), on the screen */
+function alongTangent(center: Vec3, a: Vec3, grab: Vec3, frame: DragFrame, dx: number, dy: number) {
   const v = Vec3.sub(Vec3(), grab, center);
   Vec3.scaleAndAdd(v, v, a, -Vec3.dot(v, a));
-  const r = Vec3.magnitude(v);
-  if (r < 1e-6) return 0;
+  if (Vec3.magnitude(v) < 1e-6) return undefined;
+  return alongScreen(Vec3.normalize(v, Vec3.cross(v, a, v)), frame, dx, dy);
+}
+
+/** `across`: the way the ring's near side goes when turned (positive about `a`), on the screen */
+function acrossAxis(a: Vec3, frame: DragFrame, dx: number, dy: number) {
   const toViewer = Vec3.cross(Vec3(), frame.right, frame.up);
-  const facing = Vec3.dot(toViewer, a);
-  if (Math.abs(facing) >= PlaneFacing) {
-    // the cursor at the grabbed point's depth, then along the view onto the ring's plane
-    const q = Vec3.add(Vec3(), grab, worldDelta(frame, dx, dy));
-    const s = Vec3.dot(Vec3.sub(Vec3(), center, q), a) / facing;
-    Vec3.scaleAndAdd(q, q, toViewer, s);
-    const w = Vec3.sub(Vec3(), q, center);
-    Vec3.scaleAndAdd(w, w, a, -Vec3.dot(w, a));
-    if (Vec3.magnitude(w) < 1e-6) return 0;
-    // signed angle from v to w about a
-    const cross = Vec3.cross(Vec3(), v, w);
-    return Math.atan2(Vec3.dot(cross, a), Vec3.dot(v, w));
-  }
-  // the way the grabbed point goes when turned (positive about a), on the screen
-  const tangent = Vec3.normalize(Vec3(), Vec3.cross(Vec3(), a, v));
-  return alongAxis(tangent, frame, dx, dy) / r;
+  return alongScreen(Vec3.cross(toViewer, a, toViewer), frame, dx, dy);
 }
 
 function angleOnScreen(a: Vec3, frame: DragFrame, dx: number, dy: number): number {
@@ -160,15 +200,31 @@ function angleOnScreen(a: Vec3, frame: DragFrame, dx: number, dy: number): numbe
   return (((-sy / len) * dx + (sx / len) * -dy) * TurnPerPixel * Math.PI) / 180;
 }
 
-/** Turned about its position: a sideways drag about the screen's up, an upward one about its right */
+/**
+ * Turned about its position by one step of a drag, as the trackball turns what it looks at: about the axis in the
+ * screen's plane across the step, the near side going with the cursor
+ */
 export function turn(from: GizmoPose, frame: DragFrame, dx: number, dy: number): GizmoPose {
-  const rad = (d: number) => (d * TurnPerPixel * Math.PI) / 180;
-  const about = Quat.multiply(
-    Quat(),
-    Quat.setAxisAngle(Quat(), frame.up, rad(dx)),
-    Quat.setAxisAngle(Quat(), frame.right, rad(dy)),
-  );
+  const axis = Vec3.scale(Vec3(), frame.up, dx);
+  Vec3.scaleAndAdd(axis, axis, frame.right, dy);
+  const pixels = Vec3.magnitude(axis);
+  const rate = frame.turnRate ?? (TurnPerPixel * Math.PI) / 180;
+  const about = pixels ? Quat.setAxisAngle(Quat(), Vec3.scale(axis, axis, 1 / pixels), pixels * rate) : Quat.identity();
   return { ...from, rotation: Quat.normalize(Quat(), Quat.multiply(Quat(), about, from.rotation)) };
+}
+
+/**
+ * Turned about the view axis through its position by one step of a drag: the angle from the last cursor to this one
+ * around the position on the screen (`frame.grab`: the last cursor from it), counterclockwise as seen. By steps (the
+ * controller's, as `turn`'s): a drag around the position goes on past half a turn. None at the position (`MinGrab`)
+ */
+export function roll(from: GizmoPose, frame: DragFrame, dx: number, dy: number): GizmoPose {
+  const g = frame.grab;
+  if (!g || Math.hypot(g[0], g[1]) < MinGrab) return from;
+  const rad = angleSwept(g, dx, dy);
+  const toViewer = Vec3.cross(Vec3(), frame.right, frame.up);
+  const q = Quat.setAxisAngle(Quat(), Vec3.normalize(toViewer, toViewer), rad);
+  return { ...from, rotation: Quat.normalize(Quat(), Quat.multiply(Quat(), q, from.rotation)) };
 }
 
 /** `axes` (all when absent) scaled by `ratio`, none below `MinExtent` */
@@ -210,6 +266,8 @@ export function poseGesture(
       return inPlane(from, handle.normal, frame, dx, dy);
     case 'turn':
       return turn(from, frame, dx, dy);
+    case 'roll':
+      return roll(from, frame, dx, dy);
     case 'rotate':
       return rotateAbout(from, handle.axis, frame, dx, dy);
     case 'scale':

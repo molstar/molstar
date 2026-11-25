@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Sphere3D } from '@molstar/core/math/geometry';
@@ -66,6 +67,9 @@ interface ClipVolumesData {
   readonly props: ClipVolumesProps;
 }
 
+/** How far (of the radius of what they cut) the walls are drawn in front of the caps, in depth only */
+const WallDepthOffset = 0.002;
+
 type ClipVolumesShape3D = typeof ClipVolumesShape3D;
 const ClipVolumesShape3D = PluginStateTransform.BuiltIn({
   name: 'clip-volumes-shape-3d',
@@ -98,7 +102,11 @@ const ClipVolumesShape3D = PluginStateTransform.BuiltIn({
         {
           label,
           data,
-          params: Mesh.Params,
+          // the walls lie on the solid-interior caps they cut: in front of them, past the walls' facets
+          params: {
+            ...Mesh.Params,
+            depthOffset: { ...Mesh.Params.depthOffset, defaultValue: WallDepthOffset * data.around.radius },
+          },
           // into the previous shape's mesh: the representation's buffers are that mesh's (an update gives new counts,
           // not new buffers), so a new mesh would be drawn with the old one's vertices
           getShape: (_, d: ClipVolumesData, __, previous) =>

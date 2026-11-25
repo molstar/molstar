@@ -8,7 +8,12 @@
 
 import { UUID } from '@molstar/core/util/uuid';
 import type { StructureSequence } from './properties/sequence.js';
-import { type AtomicHierarchy, type AtomicConformation, type AtomicRanges, VdwRadius } from './properties/atomic.js';
+import {
+  type AtomicHierarchy,
+  type AtomicConformation,
+  type AtomicRanges,
+  VdwRadiusOfNumber,
+} from './properties/atomic.js';
 import type { CoarseHierarchy, CoarseConformation } from './properties/coarse.js';
 import type { Entities, ChemicalComponentMap, MissingResidues, StructAsymMap } from './properties/common.js';
 import type { CustomProperties } from '../../custom-property.js';
@@ -217,10 +222,10 @@ export namespace Model {
   export function getAtomicRadii(model: Model): Float32Array {
     if (model._staticPropertyData[AtomicRadiiProp]) return model._staticPropertyData[AtomicRadiiProp];
     const nAtoms = model.atomicHierarchy.atoms._rowCount;
-    const type_symbol = model.atomicHierarchy.atoms.type_symbol.value;
+    const { atomicNumber } = model.atomicHierarchy.derived.atom;
     const radii = new Float32Array(nAtoms);
     for (let i = 0; i < nAtoms; i++) {
-      radii[i] = VdwRadius(type_symbol(i));
+      radii[i] = VdwRadiusOfNumber(atomicNumber[i]);
     }
     model._staticPropertyData[AtomicRadiiProp] = radii;
     return radii;

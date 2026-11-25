@@ -90,7 +90,8 @@ Split into sub-steps, each validated by type checks, unit tests, the guard tests
 - **3a neutral resource types (done):** `gl/texture.ts` (texture kinds/types/formats/filters/attachments, neutral
   `Texture` without GL fields and texture-unit binding, `Textures`/`TextureValues`, `getBytesPerElement`,
   `createNullTexture()`/`isNullTexture` (WeakSet marker, bound as an empty 2D texture by the WebGL program),
-  `loadImageTexture`, `CubeFaces`), `gl/framebuffer.ts`, `gl/renderbuffer.ts`, `gl/render-target.ts`, `gl/buffer.ts`
+  `loadImageTexture`, `CubeFaces`), `gl/framebuffer.ts` (since internal to the backends, render pass attachments
+  instead: graphics-review W1), `gl/renderbuffer.ts`, `gl/render-target.ts`, `gl/buffer.ts`
   (array/attribute/elements types), `gl/timer.ts` (`GraphicsTimer`, `TimerResult`, `printTimerResults`),
   `gl/render-item.ts` (`DrawMode`, `Transparency`, render variants). `webgl/texture.ts` has `GLTexture extends Texture`
   (target/format/internalFormat/type/filter, `bind`/`unbind`); `WebGLResources.texture` returns it, WebGL-only code
@@ -177,7 +178,7 @@ Done:
   attachments with `clearBufferiv` (attachment recorded per GL framebuffer by `GLTexture.attachFramebuffer`).
 - `Framebuffer.setDrawBuffers(count)` replaces `extensions.drawBuffers` and is re-applied on context restore;
   `Texture.copyFromFramebuffer(framebuffer, x, y, width, height, dstX, dstY)` replaces `GLTexture.bind` +
-  `copyTexSubImage2D` (hi-z, histogram pyramid).
+  `copyTexSubImage2D` (hi-z, histogram pyramid; since `Texture.copyFromTexture(source, …)`, graphics-review W1).
 - Renderer: per-pass state constants (opaque, back depth, emissive, blended, volume, WBOIT, DPOIT) instead of
   `enable`/`blendFunc`/`depthFunc` sequences; `drawObject` derives cull mode and front face per object (cached variants
   per pass state); solid-interior caps use stencil states and `clear({ stencil })`/`clear({ depth })`. The WBOIT/DPOIT

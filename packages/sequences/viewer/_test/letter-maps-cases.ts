@@ -13,7 +13,7 @@
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import { vi } from 'vitest';
-import type { AllocOptions } from '../../core/_test/model/alloc.js';
+import type { AllocOptions } from '@molstar/test-harness/alloc';
 import type { LayerRenderer } from '../src/index.js';
 
 /**

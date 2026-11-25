@@ -6,7 +6,8 @@
   several targets, an ANGLE compile once per browser) analysed and accepted. Step 7 (precompiling when a
   representation transform applies or updates): 7a measured (adding: 60–190 ms after the commit to hide, up to 1.1 s;
   updates: frames to hold rather than compiles to start earlier, done); 7b and 7c done: representations prepared with
-  their data while they build; 7d (particle targets) done.
+  their data while they build; 7d (particle targets) done and measured: a mesoscale load compiles nothing after its
+  commit; what it waits for there is the commit's own work.
 - Step 6f done, measured in Chrome (RTX 4070 Ti, 1280x800, the Viewer, `kinase-story` and a fade story of three
   snapshots), loading the story and playing it right away:
 
@@ -600,7 +601,7 @@ Steps:
   instances) waited 230–250 ms after its commit for spheres derived as merged and culled on the GPU, drawn unmerged:
   the draws per object count their levels of detail, and the objects' values may not merge (`canMergeRenderObjects`,
   known once built), so where merging resolves on, both are prepared; now 0 (three runs).
-- **7d Particle targets** (done but for a measured load): the particle target representation (`repr/particles/representation/target`:
+- **7d Particle targets** (done): the particle target representation (`repr/particles/representation/target`:
   particles drawn as the structures, shapes or volumes their targets are, a visual per target, merged by type) has no
   `getSignatures`, so neither precompile lists (mesoscale states, stories) nor `prepareRepresentation` cover it: its
   objects compile when first drawn, after the build.
@@ -626,7 +627,23 @@ Steps:
     await now (a microtask: less batching across representations, but never late). Test on Dawn
     (`webgpu-prepare-particle-targets.test.ts`): RELION particles with a structure (1crn), a volume (a DX grid) and a
     shape (an OBJ cube) target each: the lists with data cover what their first frame records, which compiles no
-    pipeline (all three fail without the signatures). Not measured: a mesoscale state's load (no such data here).
+    pipeline (all three fail without the signatures).
+  - **Measured** (Chrome, RTX 4070 Ti, 1280x800, the Viewer, a fresh browser per run, three runs): loading
+    `mmcif_particles` files (its format's parse, then its visuals: the particle target representation), the time from
+    the visuals' return (built and committed) to the first frame that skips no draw (WebGPU) or the first frame (WebGL,
+    which waits for linking), prepared and with `prepareObjects` off:
+
+    | file (parse, build)                     | WebGPU prepared | WebGPU not  | WebGL2 prepared | WebGL2 not |
+    | --------------------------------------- | --------------- | ----------- | --------------- | ---------- |
+    | PetWorld postsyn (1.4–1.8 s, 1.2–1.6 s) | 340–370 ms      | 650–730 ms  | 160–230 ms      | 290–310 ms |
+    | MG_1184 cellpack (2.0–2.3 s, 2.1–2.4 s) | 980–1000 ms     | 1.7–1.8 s   | 360–370 ms      | 480–500 ms |
+
+    Prepared, the 16 pipelines (5 sphere variants, postprocessing, SSAO, Hi-Z, the culling's and the raster's kernels)
+    are requested as the build starts and none after the commit; they are known ready only when frames run (their
+    promises settle once the main thread yields). What the wait is then: the commit's own work before the first frame
+    (PetWorld 255 ms, MG_1184 880 ms, of it the scene commit about 480 ms with 137 ms of buffer writes), and a first
+    frame of 70–90 ms. Not prepared, the pipelines are requested after that work and the wait grows by their compile
+    (WebGPU 0.3–0.8 s). What is left belongs to the load's work, not to compiling.
 
 ## Open questions
 

@@ -21,6 +21,15 @@ import {
 import { ShaderStage } from './constants.js';
 import { DataLayerPagesName, getDataLayerAccessors, getReadDataPages } from './data-layers.js';
 import {
+  CulledDefine,
+  CulledPagedDefine,
+  CulledStorageNames,
+  getCulledVertexInputDeclaration,
+  InstanceStorageNames,
+  wrapCulledVertexMain,
+} from './culled.js';
+import { InstanceStorageDefine } from '../instance-storage.js';
+import {
   getWgslDrawBinding,
   getWgslDrawLayout,
   getWgslStorageBindings,
@@ -138,6 +147,10 @@ const Visibility = ShaderStage.VERTEX | ShaderStage.FRAGMENT;
 function getVertexFormat(itemSize: number, kind: AttributeKind = 'float32'): GPUVertexFormat {
   // unit vectors encoded in two normalized shorts (`oct-normals.ts`)
   if (kind === 'oct16') return 'snorm16x2';
+  if (kind === 'uint32' || kind === 'int32') {
+    const scalar = kind === 'uint32' ? 'uint32' : 'sint32';
+    return (itemSize === 1 ? scalar : `${scalar}x${itemSize}`) as GPUVertexFormat;
+  }
   switch (itemSize) {
     case 1:
       return 'float32';
@@ -259,16 +272,26 @@ export function createWebGPUProgram(
 ): WebGPUProgram {
   const defines = getWgslDefines(defineValues);
   const lookup = getWgslDefineLookup(defines);
-  const body = preprocessShader(source, defines, { expandMacros: true });
+  const preprocessed = preprocessShader(source, defines, { expandMacros: true });
+  // culled programs read their instances' data from storage (see `culled.ts`), objects of poses too (`dInstanceStorage`)
+  const indexed = !!lookup(CulledDefine);
+  const culled = indexed || !!lookup(InstanceStorageDefine);
+  const storageNames = indexed ? CulledStorageNames : InstanceStorageNames;
+  const body = culled ? wrapCulledVertexMain(preprocessed) : preprocessed;
+  const vertexInput = culled
+    ? getCulledVertexInputDeclaration(schema, lookup, indexed, indexed && !!lookup(CulledPagedDefine))
+    : undefined;
 
-  const identifiers = new Set(body.match(/\b[A-Za-z_]\w*\b/g) ?? []);
+  // the generated input reader's too (its helpers' bindings: a copy's layers, `copyLayerOr`)
+  const identifiers = new Set(`${body}\n${vertexInput ?? ''}`.match(/\b[A-Za-z_]\w*\b/g) ?? []);
   // the data layers' pages are read by the generated accessors (`getDataLayerAccessors`), each layer from its page
   const dataPages = Number(defineValues[DataLayerPagesName]?.ref.value ?? 0);
   const readPages = getReadDataPages(schema, (n) => identifiers.has(n), dataPages);
-  const isReferenced = (n: string) => identifiers.has(n) || readPages.has(n);
+  // and the culled instances' storage by the generated input reader
+  const isReferenced = (n: string) => identifiers.has(n) || readPages.has(n) || (culled && storageNames.has(n));
 
   const bindingLayout = getBindingLayout(schema, lookup);
-  const declarations = getWgslDeclarations(schema, bindingLayout, lookup, isReferenced);
+  const declarations = getWgslDeclarations(schema, bindingLayout, lookup, isReferenced, vertexInput);
   if (declarations.unsupported.length > 0) {
     throw new Error(`uniforms without a block are not supported by WebGPU: ${declarations.unsupported.join(', ')}`);
   }
