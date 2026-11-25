@@ -8,44 +8,69 @@ import type { ComputeContext, StorageBuffer } from '@molstar/graphics/gl/compute
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 
 /**
- * A mesh's vertices on the GPU for kernels (the smoothing's sampling): its positions as `f32` xyz in a storage buffer of
- * the compute context, written once a version of its position cell (`aPosition`), not once a layer. Not the render
- * item's vertex buffer: the geometry pages are not storage, a slot's attributes may be interleaved, and it is written
- * at the first draw. Kept by the mesh's values until `releaseGpuMeshVertices` (where the values are dropped).
+ * A mesh's vertices on the GPU for kernels (the smoothing's splat and sampling): its positions as `f32` xyz and its
+ * groups as `u32` in storage buffers of the compute context, written once a version of its cells (`aPosition`,
+ * `aGroup`), not once a layer. Not the render item's vertex buffers: the geometry pages are not storage, a slot's
+ * attributes may be interleaved, and they are written at the first draw. Kept by the mesh's values until
+ * `releaseGpuMeshVertices` (where the values are dropped).
  */
 export interface GpuMeshVertices {
   readonly compute: ComputeContext;
-  /** the positions of the cell's version `version`, `vertexCount` of them */
+  /** the positions of the cell's version `positionVersion`, `vertexCount` of them */
   readonly positions: StorageBuffer;
+  /** the groups of the cell's version `groupVersion` */
+  readonly groups: StorageBuffer;
   readonly vertexCount: number;
-  readonly version: number;
+  readonly positionVersion: number;
+  readonly groupVersion: number;
 }
 
 const Vertices = new WeakMap<object, GpuMeshVertices>();
 
+/** `data` in `buffer` where it fits, else in a new buffer (`buffer` destroyed) */
+function write(compute: ComputeContext, buffer: StorageBuffer | undefined, data: ArrayBufferView, label: string) {
+  const byteLength = Math.max(4, data.byteLength);
+  if (buffer && buffer.byteLength < byteLength) {
+    buffer.destroy();
+    buffer = undefined;
+  }
+  buffer ??= compute.createBuffer(byteLength, label);
+  if (data.byteLength > 0) buffer.write(data);
+  return buffer;
+}
+
 /**
  * The vertices of the mesh of `values` on the GPU of `compute`: uploaded where there are none, of another context or
- * an older version of the positions; the buffer kept where it fits
+ * an older version of a cell (that buffer only); a buffer kept where it fits
  */
 export function getGpuMeshVertices(values: MeshValues, compute: ComputeContext): GpuMeshVertices {
-  const cell = values.aPosition;
   const vertexCount = values.uVertexCount.ref.value;
-  const current = Vertices.get(values);
-  if (current?.compute === compute && current.version === cell.ref.version && current.vertexCount === vertexCount) {
+  const positionVersion = values.aPosition.ref.version;
+  const groupVersion = values.aGroup.ref.version;
+  let current = Vertices.get(values);
+  // of another context (a restore, a backend switch): its buffers released with it
+  if (current && current.compute !== compute) {
+    releaseGpuMeshVertices(values);
+    current = undefined;
+  }
+  const sameCount = current?.vertexCount === vertexCount;
+  if (current && sameCount && current.positionVersion === positionVersion && current.groupVersion === groupVersion) {
     return current;
   }
-  const data = cell.ref.value.subarray(0, vertexCount * 3);
-  const byteLength = Math.max(4, data.byteLength);
-  let positions = current?.compute === compute ? current.positions : undefined;
-  if (positions && positions.byteLength < byteLength) {
-    positions.destroy();
-    positions = undefined;
-  }
-  // of another context (a restore, a backend switch): its buffer released with it
-  if (current && current.compute !== compute) current.positions.destroy();
-  positions ??= compute.createBuffer(byteLength, 'mesh vertices positions');
-  if (data.byteLength > 0) positions.write(data);
-  const vertices = { compute, positions, vertexCount, version: cell.ref.version };
+  const positions =
+    current && sameCount && current.positionVersion === positionVersion
+      ? current.positions
+      : write(
+          compute,
+          current?.positions,
+          values.aPosition.ref.value.subarray(0, vertexCount * 3),
+          'mesh vertices positions',
+        );
+  const groups =
+    current && sameCount && current.groupVersion === groupVersion
+      ? current.groups
+      : write(compute, current?.groups, values.aGroup.ref.value.subarray(0, vertexCount), 'mesh vertices groups');
+  const vertices = { compute, positions, groups, vertexCount, positionVersion, groupVersion };
   Vertices.set(values, vertices);
   return vertices;
 }
@@ -55,5 +80,6 @@ export function releaseGpuMeshVertices(values: object) {
   const vertices = Vertices.get(values);
   if (!vertices) return;
   vertices.positions.destroy();
+  vertices.groups.destroy();
   Vertices.delete(values);
 }

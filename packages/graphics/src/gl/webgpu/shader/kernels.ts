@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { color_accumulate_wgsl, color_normalize_wgsl } from './color-smoothing.wgsl.js';
+import { color_accumulate_mesh_wgsl, color_accumulate_wgsl, color_normalize_wgsl } from './color-smoothing.wgsl.js';
 import { layer_sample_vertices_wgsl } from './layer-sampling.wgsl.js';
 import { gd_accumulate_wgsl, gd_group_wgsl, gd_write_wgsl } from './gaussian-density.wgsl.js';
 import {
@@ -55,6 +55,7 @@ const BuiltInKernels: [name: string, source: string][] = [
   ['mc-chunk-free', mc_chunk_free_wgsl],
   ['mc-chunk-push', mc_chunk_push_wgsl],
   ['color-smoothing-accumulate', color_accumulate_wgsl],
+  ['color-smoothing-accumulate-mesh', color_accumulate_mesh_wgsl],
   ['color-smoothing-normalize', color_normalize_wgsl],
   ['layer-sample-vertices', layer_sample_vertices_wgsl],
   ['gd-accumulate', gd_accumulate_wgsl],

@@ -15,6 +15,7 @@ import {
   createDataArray,
   type DataArray,
   type GpuDataWriter,
+  getDataTextureImage,
   getSharedZeros,
   type TextureImage,
 } from '@molstar/graphics/gl/renderable/util';
@@ -27,7 +28,17 @@ import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
 import { ValueCell } from '@molstar/core/util';
 import { getInstanceMatrices } from '../transform-data.js';
-import { getGpuMeshVertices } from './gpu-vertices.js';
+import { type GpuMeshVertices, getGpuMeshVertices } from './gpu-vertices.js';
+import {
+  computeMeshColorSmoothing,
+  isComputeMeshColorSmoothingSupported,
+} from '@molstar/graphics/gl/compute/color-smoothing';
+import { createScratch } from '@molstar/graphics/gl/scratch';
+
+/** The colors of the GPU splat (`computeMeshColorSmoothing`) by format, a texture each per context */
+const ScratchTextures = createScratch<Texture>('mesh/color-smoothing colors');
+/** The grids of the GPU splat: rgba for every layer */
+const RgbaGrids = new WeakSet<Texture>();
 
 interface ColorSmoothingInput {
   vertexCount: number;
@@ -42,6 +53,11 @@ interface ColorSmoothingInput {
   boundingSphere: Sphere3D;
   invariantBoundingSphere: Sphere3D;
   itemSize: 4 | 1;
+  /**
+   * the mesh's vertices on the GPU (`getGpuMeshVertices`): with a context of compute kernels for meshes (WebGPU), the
+   * splat on the GPU (`computeMeshColorSmoothing`) into the same grid, the CPU's otherwise
+   */
+  gpuVertices?: GpuMeshVertices;
 }
 
 export type ColorSmoothingOptions = {
@@ -475,6 +491,80 @@ export function calcMeshColorSmoothing(
         !graphics,
       )
     : undefined;
+
+  // the splat on the GPU: the same grid, instances and region, the sums of the kernels (`computeMeshColorSmoothing`)
+  const gpuVertices = input.gpuVertices;
+  if (
+    graphics &&
+    gpuVertices &&
+    gpuVertices.compute === graphics.compute &&
+    isComputeMeshColorSmoothingSupported(graphics)
+  ) {
+    // an rgba texture also for single-channel layers: `r8unorm` is no storage format in core WebGPU (the readers read
+    // red); a single-channel one of the CPU's (`r`) not reused
+    if (texture && itemSize === 1 && !RgbaGrids.has(texture)) texture = undefined;
+    if (!texture) {
+      texture = graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+      RgbaGrids.add(texture);
+    }
+    const colorTexture = ScratchTextures.getOrCreate(
+      graphics,
+      () => graphics.resources.texture('image-uint8', itemSize === 4 ? 'rgba' : 'r', 'ubyte', 'nearest'),
+      itemSize === 4 ? 'rgba' : 'r',
+    );
+    colorTexture.load(getDataTextureImage(input.colorData, itemSize));
+    let splatCount = 0;
+    const splat = instances?.splat;
+    for (let i = 0; i < instanceCount; ++i) if (!splat || splat[i]) splatCount += 1;
+    const transforms = new Float32Array(Math.max(1, splatCount) * 16);
+    const rows = new Uint32Array(Math.max(1, splatCount));
+    for (let i = 0, k = 0; i < instanceCount; ++i) {
+      if (splat && !splat[i]) continue;
+      if (isInstanceType) transforms.set(transformBuffer.subarray(i * 16, i * 16 + 16), k * 16);
+      else Mat4.toArray(Mat4.id, transforms, k * 16);
+      rows[k] = instanceRow(i);
+      k += 1;
+    }
+    const empty = [0, 0, 0, 0, 0, 0];
+    computeMeshColorSmoothing(
+      graphics.compute,
+      {
+        vertexCount,
+        stride,
+        sampleCount: Math.ceil(vertexCount / stride),
+        instanceCount: splatCount,
+        groupCount,
+        transformBuffer: transforms,
+        instanceBuffer: rows,
+        colorData: colorTexture,
+        colorType,
+        positions: gpuVertices.positions,
+        groups: gpuVertices.groups,
+        vertexOffset: 0,
+      },
+      {
+        gridDim,
+        texCols: width / gridDim[0],
+        width,
+        height,
+        bboxMin: min,
+        bboxSize: Vec3.scale(Vec3(), gridDim, resolution),
+        resolution,
+        region: vertexBox && instances?.region ? instances.region : empty,
+      },
+      texture,
+    );
+    return {
+      kind: 'volume' as const,
+      texture,
+      gridTexDim: Vec2.create(width, height),
+      gridDim,
+      gridTransform: Vec4.create(min[0], min[1], min[2], scaleFactor),
+      type: isInstanceType ? ('volumeInstance' as const) : ('volume' as const),
+      splatCount,
+      reached: instances?.read,
+    };
+  }
 
   /** the instances splatted (perf-audit 13/P1) */
   let splatCount = 0;

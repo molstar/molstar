@@ -1,6 +1,6 @@
 # Smoothed layers sampled on the GPU (merged surfaces)
 
-Status: steps 1 to 3 and the follow-ups done; step 4 (the splat on the GPU): 4a and 4b done, 4c next. Follows [merged-units-core.md](merged-units-core.md) step
+Status: steps 1 to 3 and the follow-ups done; step 4 (the splat on the GPU): 4a to 4c done, 4d next. Follows [merged-units-core.md](merged-units-core.md) step
 4b.
 
 ## Why
@@ -80,8 +80,11 @@ atlas), from the isosurface's vertex arena; CPU meshes have no vertices on the G
   buffers: the geometry pages are `VERTEX | INDEX`, not `STORAGE` (the usage on every page, and bindings of
   `maxStorageBufferBindingSize`), a slot's attributes may be interleaved, the vertex buffers are written at the first
   draw (after the layer's write) and the transforms are a vertex buffer or instance storage by context.
-- **One accumulate kernel, two vertex sources** (`dVertexSource`: `arena`, the texture meshes'; `buffers`, the
-  vertices above at a vertex offset): the weights (`2 - distance` within 2) and the fixed-point sums as they are. The
+- **One splat, two vertex sources**: `color-smoothing-accumulate` (the texture meshes' arena, within the WebGL point
+  sprite's cells) and `color-smoothing-accumulate-mesh` (the vertices above from a vertex offset, every `stride`-th from
+  0 as the CPU: `ceil(vertexCount / stride)` samples), sharing the splat (`splat` in `color-smoothing.wgsl.ts`): the
+  weights (`2 - distance` within 2) and the fixed-point sums as they were. Two kernels, not a define: their storage
+  bindings differ. The
   colors as the texture meshes' path loads them (a `group` or `groupInstance` texture of the layer or the color theme),
   the instances splatted as `getSplatInstances` picks them (the subset's transforms and rows, as
   `getTextureMeshSplatInstances`).
@@ -97,7 +100,9 @@ atlas), from the isosurface's vertex arena; CPU meshes have no vertices on the G
   ones (the sampling kernel), layers and the color theme's smoothing (`applyMeshColorSmoothing`). The merged visual's
   color smoothing without a context (`processValues`, per vertex on the CPU) stays.
 - **Equal to the CPU splat within the rounding**: the same cells and weights; the CPU sums bytes in `f32` in vertex
-  order, the GPU unorm colors in fixed point (1/16384) in any order, so a cell's byte within 1.
+  order, the GPU unorm colors in fixed point (1/16384) in any order, so a cell's byte within 1; but where a cell's
+  weight is near zero (one vertex at the splat's radius), the fixed point's step a part of it: measured one cell of
+  27k off by 4 (its color uniform). Not seen; a larger scale would risk the sums' `u32`.
 
 ### Steps
 
@@ -124,9 +129,14 @@ atlas), from the isosurface's vertex arena; CPU meshes have no vertices on the G
   representation (not without `releaseGpuMeshVertices`); step 3's tests (bytes as drawn, a geometry made again, a device
   loss) unchanged. Not measurable on the benchmark: the splat's 2 s hides the upload (all units merged 2.19 to 2.31 s
   against per group 2.17 to 2.25 in the same runs).
-- **4c. The kernels**: `dVertexSource` and the region offset in `color-smoothing-accumulate` and `-normalize`. Tested
-  (headless WebGPU): a mesh's grid against `calcMeshColorSmoothing`'s CPU grid, `rgba8` and `r8`, within a byte, the
-  cells outside the region zero; the texture meshes' grids unchanged (their visual cases).
+- **4c. The kernels** (done): `color-smoothing-accumulate-mesh` (`computeMeshColorSmoothing`), the region
+  (`uRegionMin`, `uRegionMax`) in both accumulates and the normalize (the texture meshes': the whole grid, as before),
+  `GpuMeshVertices` with the groups; `calcMeshColorSmoothing` splatting on the GPU where its input has the mesh's
+  vertices there (`gpuVertices`, of the context's compute): the same grid, instances and region, an rgba texture (a
+  single-channel one of the CPU's not reused). Tested (headless WebGPU, `webgpu-mesh-color-smoothing`): three copies, a
+  layer on one, `rgba8` and `r8` grids as the CPU's (layout, transform, instances splatted), within a byte but cells of
+  near-zero weight (at most one in a thousand, by up to 8), none outside the region; the texture meshes' visual cases
+  (17 on WebGPU) and their test unchanged.
 - **4d. The meshes' smoothing on the GPU**: `calcMeshColorSmoothing` with a compute context splatting by the kernels,
   per group and merged, colors and layers. Tested: images as step 3's (merged and per group against the CPU splat),
   the export's grids read back, the visual geometry cases on WebGPU.
