@@ -11,8 +11,9 @@ import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
  * A mesh's vertices on the GPU for kernels (the smoothing's splat and sampling): its positions as `f32` xyz and its
  * groups as `u32` in storage buffers of the compute context, written once a version of its cells (`aPosition`,
  * `aGroup`), not once a layer. Not the render item's vertex buffers: the geometry pages are not storage, a slot's
- * attributes may be interleaved, and they are written at the first draw. Kept by the mesh's values until
- * `releaseGpuMeshVertices` (where the values are dropped).
+ * attributes may be interleaved, and they are written at the first draw. Kept by the values' `aPosition` cell until
+ * `releaseGpuMeshVertices` (where the values are dropped): by the cell, not the values object, as the cell is what the
+ * values made for a merged segment and its record (`createSegment`) share, so one upload for both and one release.
  */
 export interface GpuMeshVertices {
   readonly compute: ComputeContext;
@@ -26,6 +27,9 @@ export interface GpuMeshVertices {
 }
 
 const Vertices = new WeakMap<object, GpuMeshVertices>();
+
+/** the key of `values`' vertices: their `aPosition` cell */
+const keyOf = (values: object): object | undefined => (values as { aPosition?: object }).aPosition;
 
 /** `data` in `buffer` where it fits, else in a new buffer (`buffer` destroyed) */
 function write(compute: ComputeContext, buffer: StorageBuffer | undefined, data: ArrayBufferView, label: string) {
@@ -47,7 +51,8 @@ export function getGpuMeshVertices(values: MeshValues, compute: ComputeContext):
   const vertexCount = values.uVertexCount.ref.value;
   const positionVersion = values.aPosition.ref.version;
   const groupVersion = values.aGroup.ref.version;
-  let current = Vertices.get(values);
+  const key = values.aPosition;
+  let current = Vertices.get(key);
   // of another context (a restore, a backend switch): its buffers released with it
   if (current && current.compute !== compute) {
     releaseGpuMeshVertices(values);
@@ -71,15 +76,16 @@ export function getGpuMeshVertices(values: MeshValues, compute: ComputeContext):
       ? current.groups
       : write(compute, current?.groups, values.aGroup.ref.value.subarray(0, vertexCount), 'mesh vertices groups');
   const vertices = { compute, positions, groups, vertexCount, positionVersion, groupVersion };
-  Vertices.set(values, vertices);
+  Vertices.set(key, vertices);
   return vertices;
 }
 
 /** Releases the vertices of the mesh of `values` on the GPU, if any */
 export function releaseGpuMeshVertices(values: object) {
-  const vertices = Vertices.get(values);
-  if (!vertices) return;
+  const key = keyOf(values);
+  const vertices = key && Vertices.get(key);
+  if (!key || !vertices) return;
   vertices.positions.destroy();
   vertices.groups.destroy();
-  Vertices.delete(values);
+  Vertices.delete(key);
 }

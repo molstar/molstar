@@ -218,6 +218,38 @@ describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', (
     expect(withVertices - compute.getStorageBufferByteCount()).toBeGreaterThanOrEqual(first.positions.byteLength);
   }, 60_000);
 
+  it('uploads the vertices of segments made while a layer is set once, released with them', async () => {
+    const plugin = await sharedPlugin();
+    const { structureCell, overpaint } = await setup(plugin);
+    const compute = plugin.canvas3d!.graphics.compute!;
+    const before = compute.getStorageBufferByteCount();
+    const cell = await plugin.builders.structure.representation.addRepresentation(structureCell, {
+      type: 'gaussian-surface',
+      typeParams: { resolution: 0.5, tryUseGpu: false, smoothColors: Smooth } as never,
+    });
+    const repr = cell!.obj!.data.repr;
+    repr.setState({ overpaint });
+    plugin.canvas3d!.update(repr);
+    await plugin.getImageRaw({ width: Size, height: Size });
+    const drawn = compute.getStorageBufferByteCount();
+    // another instance granularity, merged as well: its segments made again, the layer applied to their values as made
+    // (before their record), then written again
+    for (const instanceGranularity of [false, 'auto'] as const) {
+      await plugin
+        .build()
+        .to(cell!)
+        .update((old: any) => ({ ...old, type: { ...old.type, params: { ...old.type.params, instanceGranularity } } }))
+        .commit();
+      plugin.canvas3d!.update(repr);
+      await plugin.getImageRaw({ width: Size, height: Size });
+      expect(gpuMembers(repr).length).toBeGreaterThan(0);
+      // the old segments' vertices gone, the new ones' uploaded once (not by their values and again by their records)
+      expect(compute.getStorageBufferByteCount()).toBe(drawn);
+    }
+    await plugin.build().delete(cell!).commit();
+    expect(compute.getStorageBufferByteCount()).toBe(before);
+  }, 60_000);
+
   it(
     'prepares the sampling kernels by a precompile list naming a merged surface, in another context',
     { tags: ['medium'] },
