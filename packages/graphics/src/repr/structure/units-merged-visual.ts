@@ -44,6 +44,7 @@ import {
 import { RenderableState } from '@molstar/graphics/gl/renderable';
 import { type DataArray, releaseGpuData } from '@molstar/graphics/gl/renderable/util';
 import { prepareLayerSampling } from '@molstar/graphics/gl/compute/layer-sampling';
+import { releaseGpuMeshVertices } from '@molstar/graphics/geo/geometry/mesh/gpu-vertices';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
@@ -312,6 +313,8 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
   /** `seg` dropped: its geometry, and what writes its layers on the GPU (`DataArray.gpu`) */
   function disposeSegment(seg: Segment<G>) {
     builder.dispose?.(seg.geometry);
+    // its mesh's vertices on the GPU (the smoothed layers' sampling), kept by its values across layers
+    releaseGpuMeshVertices(seg.values);
     const values = seg.values as unknown as { [k: string]: ValueCell<DataArray<any>> | undefined };
     for (const kind of SmoothedLayerKinds) releaseGpuData(values[SmoothedLayerTextures[kind]]?.ref.value);
   }

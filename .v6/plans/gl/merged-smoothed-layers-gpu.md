@@ -1,6 +1,6 @@
 # Smoothed layers sampled on the GPU (merged surfaces)
 
-Status: steps 1 to 3 and the follow-ups done; step 4 (the splat on the GPU): 4a done, 4b next. Follows [merged-units-core.md](merged-units-core.md) step
+Status: steps 1 to 3 and the follow-ups done; step 4 (the splat on the GPU): 4a and 4b done, 4c next. Follows [merged-units-core.md](merged-units-core.md) step
 4b.
 
 ## Why
@@ -23,7 +23,7 @@ one unit 18.8 against 12.9 ms.
   the per-group grids), with the instances it reaches. The merged visual asks for it per vertex
   (`Visual.SmoothingContext.perVertexOnGpu`, `applyMesh*Smoothing`).
 - **A kernel samples the vertices** (`layer-sample-vertices`, `gl/compute/layer-sampling.ts`), per reached instance
-  and vertex: the segment's positions and transforms (uploaded once a layer, 12 bytes a vertex), the grid sampled by
+  and vertex: the segment's positions (on the GPU once a geometry, since 4b) and transforms (uploaded a layer), the grid sampled by
   the texture's linear filter as the mesh shaders sample it (`texture3dFrom2dLinear`), the result written into the
   storage the layer is drawn from, at the cells' corners as the splat puts them (as the shaders since the half-cell
   fix). `r8` layers pack four elements a `u32`: a thread a word, the words at the range's
@@ -71,10 +71,11 @@ atlas), from the isosurface's vertex arena; CPU meshes have no vertices on the G
 - **WebGPU with compute only**, as the sampling. WebGL and contexts without compute keep the CPU splat: CPU meshes have
   no position texture for the point-sprite accumulation (one uploaded a geometry would do), decided after 4e's
   numbers.
-- **The vertices on the GPU once a geometry** (`GpuMeshVertices`: positions as `f32` xyz, groups as `u32`, storage
-  buffers of the context): uploaded at the geometry's first GPU smoothing, kept while its vertex and group cells keep
-  their versions, released where the geometry is (`disposeSegment`, the units visual's geometry replaced or disposed)
-  and on a context loss (of another context: foreign, as the writers). The splat and the sampling read them, so a
+- **The vertices on the GPU once a geometry** (`GpuMeshVertices`, `geo/geometry/mesh/gpu-vertices.ts`: positions as
+  `f32` xyz, groups as `u32` with 4c, storage buffers of the context): kept by the mesh's values (a segment's), uploaded
+  at the first GPU smoothing and again for a new version of the position cell (a geometry made again, possibly into
+  the same arrays) or another context (the old one's released then), released with the values (`disposeSegment`; the
+  per-group visuals' with 4d). The writers resolve them at each write, not at their creation. The splat and the sampling read them, so a
   layer uploads only its transforms (64 bytes an instance), reached flags and colors. Not the render item's vertex
   buffers: the geometry pages are `VERTEX | INDEX`, not `STORAGE` (the usage on every page, and bindings of
   `maxStorageBufferBindingSize`), a slot's attributes may be interleaved, the vertex buffers are written at the first
@@ -118,9 +119,11 @@ atlas), from the isosurface's vertex arena; CPU meshes have no vertices on the G
   non-zero only around the reached instance of three. Its grid not as the CPU's: another lattice (`getGridDim` on the
   sphere's box, not `getGrid`'s cells), every ninth arena vertex (never indexed) in the order of the kernels' appends;
   4c's kernels on CPU meshes use the CPU's grid and vertices.
-- **4b. The vertices on the GPU**: `GpuMeshVertices` and its release; the sampling kernel reading them (no upload a
-  layer). Tested: the layer's bytes as step 3's, the buffers released with the segment, made again with the geometry,
-  of the new context after a loss.
+- **4b. The vertices on the GPU** (done): `GpuMeshVertices` and its release; the sampling kernel reading them (no
+  upload a layer). Tested (headless WebGPU): two layers sampled from one upload, the positions' bytes released with the
+  representation (not without `releaseGpuMeshVertices`); step 3's tests (bytes as drawn, a geometry made again, a device
+  loss) unchanged. Not measurable on the benchmark: the splat's 2 s hides the upload (all units merged 2.19 to 2.31 s
+  against per group 2.17 to 2.25 in the same runs).
 - **4c. The kernels**: `dVertexSource` and the region offset in `color-smoothing-accumulate` and `-normalize`. Tested
   (headless WebGPU): a mesh's grid against `calcMeshColorSmoothing`'s CPU grid, `rgba8` and `r8`, within a byte, the
   cells outside the region zero; the texture meshes' grids unchanged (their visual cases).

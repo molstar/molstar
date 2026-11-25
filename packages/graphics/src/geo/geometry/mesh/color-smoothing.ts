@@ -27,6 +27,7 @@ import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
 import { ValueCell } from '@molstar/core/util';
 import { getInstanceMatrices } from '../transform-data.js';
+import { getGpuMeshVertices } from './gpu-vertices.js';
 
 interface ColorSmoothingInput {
   vertexCount: number;
@@ -751,7 +752,8 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Data
 /**
  * A smoothed layer as `vertexInstance` data written on the GPU (`DataArray.gpu`): its grid (`smoothing`, splatted on the
  * CPU and uploaded) sampled per vertex and instance by `computeLayerSampling` into the storage its render item draws it
- * from; its array zeros (`getSharedZeros`)
+ * from; its array zeros (`getSharedZeros`). The positions those of the mesh on the GPU (`getGpuMeshVertices`, once a
+ * version of them), resolved at each write; the transforms and reached flags the layer's.
  */
 function createGpuLayerData(
   values: MeshValues,
@@ -763,9 +765,6 @@ function createGpuLayerData(
   const vertexCount = values.uVertexCount.ref.value;
   const instanceCount = values.uInstanceCount.ref.value;
   const count = vertexCount * instanceCount;
-  const positionData = values.aPosition.ref.value.subarray(0, vertexCount * 3);
-  const positions = compute.createBuffer(Math.max(4, positionData.byteLength), 'layer sampling positions');
-  positions.write(positionData);
   const matrices = getInstanceMatrices(values).subarray(0, instanceCount * 16);
   const transforms = compute.createBuffer(Math.max(64, matrices.byteLength), 'layer sampling transforms');
   transforms.write(matrices);
@@ -773,10 +772,11 @@ function createGpuLayerData(
   for (let i = 0; i < instanceCount; ++i) flags[i] = !smoothing.reached || smoothing.reached[i] ? 1 : 0;
   const reached = compute.createBuffer(flags.byteLength, 'layer sampling reached');
   reached.write(flags);
+  const vertices = () => getGpuMeshVertices(values, compute).positions;
   const input = {
     vertexCount,
     instanceCount,
-    positions,
+    positions: vertices(),
     vertexOffset: 0,
     transforms,
     instanceOffset: 0,
@@ -791,17 +791,20 @@ function createGpuLayerData(
   const writer: GpuDataWriter = {
     compute,
     elementBytes: itemSize,
-    write: (buffer, byteOffset) => computeLayerSampling(compute, input, buffer, byteOffset / itemSize),
+    write: (buffer, byteOffset) => {
+      input.positions = vertices();
+      computeLayerSampling(compute, input, buffer, byteOffset / itemSize);
+    },
     read: async () => {
       // written into a buffer of its own: where the render item holds it may have moved since
       const out = compute.createBuffer(Math.max(4, Math.ceil(byteLength / 4) * 4), 'layer sampling read');
+      input.positions = vertices();
       computeLayerSampling(compute, input, out, 0);
       const bytes = new Uint8Array(await out.readAsync(), 0, byteLength).slice();
       out.destroy();
       return bytes;
     },
     dispose: () => {
-      positions.destroy();
       transforms.destroy();
       reached.destroy();
       smoothing.texture.destroy();

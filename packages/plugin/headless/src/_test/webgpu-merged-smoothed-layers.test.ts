@@ -20,6 +20,7 @@ import { SegmentedArray } from '@molstar/graphics/gl/segmented-array';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { KernelCode, type StorageBuffer, StorageBufferSpec } from '@molstar/graphics/gl/compute';
 import { LayerSamplingKernels } from '@molstar/graphics/gl/compute/layer-sampling';
+import { getGpuMeshVertices } from '@molstar/graphics/geo/geometry/mesh/gpu-vertices';
 import { UniformSpec } from '@molstar/graphics/gl/renderable/schema';
 import { ValueCell } from '@molstar/core/util';
 import { Scene } from '@molstar/graphics/gl/scene';
@@ -182,6 +183,38 @@ describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', (
       const next = plugin.canvas3d!.graphics;
       const [member] = gpuMembers(repr);
       expect((member.values.tOverpaint.ref.value as DataArray<Uint8Array>).gpu!.compute).toBe(next.compute);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it('keeps the vertices on the GPU across layers, released with the representation', async () => {
+    const plugin = await createPlugin();
+    try {
+      const { structureCell, overpaint } = await setup(plugin);
+      const cell = await plugin.builders.structure.representation.addRepresentation(structureCell, {
+        type: 'gaussian-surface',
+        typeParams: { resolution: 0.5, tryUseGpu: false, smoothColors: Smooth } as never,
+      });
+      const repr = cell!.obj!.data.repr;
+      const compute = plugin.canvas3d!.graphics.compute!;
+      const draw = async (color: Color) => {
+        const layers = overpaint.layers.map((l) => ({ ...l, color }));
+        repr.setState({ overpaint: { ...overpaint, layers } });
+        plugin.canvas3d!.update(repr);
+        await plugin.getImageRaw({ width: Size, height: Size });
+        const [member] = gpuMembers(repr);
+        return getGpuMeshVertices(member.values as any, compute);
+      };
+      const first = await draw(Color(0xff0000));
+      const withVertices = compute.getStorageBufferByteCount();
+      // another layer: sampled from the same upload of the positions
+      const second = await draw(Color(0x0000ff));
+      expect(second).toBe(first);
+      expect(first.positions.byteLength).toBeGreaterThan(0);
+      // the representation removed: its segments' vertices with it
+      await plugin.build().delete(cell!).commit();
+      expect(withVertices - compute.getStorageBufferByteCount()).toBeGreaterThanOrEqual(first.positions.byteLength);
     } finally {
       plugin.dispose();
     }
