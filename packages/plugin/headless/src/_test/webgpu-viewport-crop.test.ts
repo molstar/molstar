@@ -44,6 +44,11 @@ async function create(width: number, height: number) {
     postprocessing: { ...canvas.props.postprocessing, enabled: false },
     multiSample: { ...canvas.props.multiSample, mode: 'off' },
   });
+  // a first frame: the camera reset to the scene (a canvas's first frame with objects), so that a snapshot of it is a
+  // view of the scene, not the default camera a canvas drawn before would keep
+  canvas.requestDraw();
+  canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+  await canvas.graphics.resources.pending.whenReady();
   return plugin;
 }
 
@@ -79,10 +84,10 @@ async function draw(plugin: HeadlessPluginContext, snapshot: Camera.Snapshot) {
 // the target reaches the backend (Safari's WebGPU rejects one): it draws what the whole frame draws there
 describe.skipIf(!WebGPU.module)('a Canvas3D frame extending past the canvas on WebGPU', () => {
   // plugins shared by the tests (their pipelines compiled once), each test setting the camera and the viewport: the
-  // whole frame's a size, the cropped canvas's a frame size (`tag`)
+  // whole frame's a size, the cropped canvas one for every frame
   const plugins = new Map<string, Promise<HeadlessPluginContext>>();
-  const plugin = (width: number, height: number, tag = '') => {
-    const key = `${width}x${height}${tag}`;
+  const plugin = (width: number, height: number) => {
+    const key = `${width}x${height}`;
     if (!plugins.has(key)) plugins.set(key, create(width, height));
     return plugins.get(key)!;
   };
@@ -99,7 +104,7 @@ describe.skipIf(!WebGPU.module)('a Canvas3D frame extending past the canvas on W
       it(`draws the part inside as the whole frame draws it (${c.name}, ${mode})`, async () => {
         const frame = { width: c.width ?? Frame.width, height: c.height ?? Frame.height };
         const whole = await plugin(frame.width, frame.height);
-        const cropped = await plugin(Size, Size, `${frame.width}x${frame.height}`);
+        const cropped = await plugin(Size, Size);
         const snapshot = { ...whole.canvas3d!.camera.getSnapshot(), mode };
         const expected = await draw(whole, snapshot);
         const canvas = cropped.canvas3d!;
