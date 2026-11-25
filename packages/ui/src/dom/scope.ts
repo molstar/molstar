@@ -33,14 +33,6 @@ export interface Live {
 const Reported = {};
 
 /**
- * What a piece of rendered DOM owns (dom §1): its bindings and watches, the child scopes of its regions, its cleanups.
- * Core's `Scope` (cleanups last added first, every one attempted) plus a parent, a depth (a watch's place in a flush:
- * parents first), children (an intrusive list: no allocation per child, O(1) removal) and **activity**: a paused scope
- * (`setActive(false)`, or a paused parent) holds no listener for its bindings and watches; resumed, they catch up once
- * (each binding writes its source's current value, each watch renders). Nothing is rebuilt. Disposing disposes the
- * children first (newest first), then the cleanups; a failing cleanup is reported and the rest run.
- */
-/**
  * The registry of root scopes a test setup puts on `globalThis` (`vitest.setup.ts`: it disposes the roots a test file
  * leaves, so that a view left listening on the document cannot wake up in a later file of the worker); absent in apps,
  * where this is one lookup per root scope
@@ -50,6 +42,14 @@ function testRootScopes(): { add(scope: { dispose(): void }): void; delete(scope
   return (globalThis as { [TestRootScopes]?: ReturnType<typeof testRootScopes> })[TestRootScopes];
 }
 
+/**
+ * What a piece of rendered DOM owns (dom §1): its bindings and watches, the child scopes of its regions, its cleanups.
+ * Core's `Scope` (cleanups last added first, every one attempted) plus a parent, a depth (a watch's place in a flush:
+ * parents first), children (an intrusive list: no allocation per child, O(1) removal) and **activity**: a paused scope
+ * (`setActive(false)`, or a paused parent) holds no listener for its bindings and watches; resumed, they catch up once
+ * (each binding writes its source's current value, each watch renders). Nothing is rebuilt. Disposing disposes the
+ * children first (newest first), then the cleanups; a failing cleanup is reported and the rest run.
+ */
 export class ViewScope extends Scope {
   readonly depth: number;
   private readonly _parent: ViewScope | undefined;

@@ -353,6 +353,16 @@ class Watcher extends Live implements WatchHandle {
 }
 
 /**
+ * The registry of root scopes a test setup puts on `globalThis` (`vitest.setup.ts`: it disposes the roots a test file
+ * leaves, so that a view left listening on the document cannot wake up in a later file of the worker); absent in apps,
+ * where this is one lookup per root scope
+ */
+const TestRootScopes = Symbol.for('molstar.test.rootScopes');
+function testRootScopes(): { add(scope: { dispose(): void }): void; delete(scope: object): void } | undefined {
+  return (globalThis as { [TestRootScopes]?: ReturnType<typeof testRootScopes> })[TestRootScopes];
+}
+
+/**
  * Owns what a piece of rendered DOM needs to clean up: subscriptions of its bindings, child scopes of its dynamic
  * regions, and anything registered with `onCleanup`. Disposing a scope disposes its children first, then runs its own
  * cleanups in reverse order.
@@ -363,16 +373,6 @@ class Watcher extends Live implements WatchHandle {
  * the DOM catches up with one write per binding. Nothing is rebuilt: the DOM and the child scopes stay as they are.
  * The shell sets the scope of a hidden panel or a folded section inactive (`activity`).
  */
-/**
- * The registry of root scopes a test setup puts on `globalThis` (`vitest.setup.ts`: it disposes the roots a test file
- * leaves, so that a view left listening on the document cannot wake up in a later file of the worker); absent in apps,
- * where this is one lookup per root scope
- */
-const TestRootScopes = Symbol.for('molstar.test.rootScopes');
-function testRootScopes(): { add(scope: { dispose(): void }): void; delete(scope: object): void } | undefined {
-  return (globalThis as { [TestRootScopes]?: ReturnType<typeof testRootScopes> })[TestRootScopes];
-}
-
 export class Scope {
   readonly #parent: Scope | undefined;
   /** How many scopes are above it: a watch's place in a flush (parents first). */

@@ -6,6 +6,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import {
@@ -650,9 +651,11 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               assistant.dispose();
               return undefined;
             }
-            // Its real tab takes the placeholder's place (same id).
-            removeStub();
+            // Its real tab takes the placeholder's place (same id): registered before the placeholder goes, so that the
+            // tab keeps its place and stays the open one (removed first, its dock would open another, and the loaded
+            // tab is shown only while it is the open one)
             unregister.push(port.register('assistant', assistant.ui));
+            removeStub();
             if (assistant.commands?.length) unregister.push(core.registerCommands(assistant.commands));
             unregister.push(() => assistant.dispose());
             assistantMenu.set(assistant.commandMenu);
