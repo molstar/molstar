@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { Renderer } from '@molstar/graphics/gl/renderer';
 import { createFrame } from '@molstar/graphics/gl/renderable';
 import type { RenderState } from '@molstar/graphics/gl/render-state';
@@ -27,122 +27,173 @@ ATOM      9  O   GLY A   2       4.570   1.610   0.000  1.00  0.00           O
 END
 `;
 
-// Medium: a sweep of every renderer pass, twice, over five representations' pipelines
-// @module-tag medium
+/** one plugin for the file's tests: its device's pipelines compiled once, each test's structure cleared after it */
+let shared: Promise<HeadlessPluginContext> | undefined;
+const sharedPlugin = () =>
+  (shared ??= HeadlessPluginContext.create(
+    { webgpu: WebGPU.module! },
+    DefaultPluginSpec(),
+    { width: 64, height: 64 },
+    { backend: 'webgpu' },
+  ).then(async (plugin) => {
+    await plugin.init();
+    return plugin;
+  }));
+afterAll(async () => (await shared)?.dispose());
+
+type Representation = Parameters<
+  HeadlessPluginContext['builders']['structure']['representation']['addRepresentation']
+>[1];
+
+/**
+ * The renderer passes (those named in `only`, or all) drawn for each transparent background of `backgrounds`, the
+ * representations `reprs` of the peptide in a scene of their own at `size`: every draw collected, its pipeline ready
+ * before; the per-pass cull states of the requests, the draws issued
+ */
+async function collectPasses(
+  plugin: HeadlessPluginContext,
+  reprs: Representation[],
+  options: { size: number; backgrounds: boolean[]; only?: Renderer.Pass['name'][] },
+) {
+  const { size, backgrounds, only } = options;
+  const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
+  const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+  const model = await plugin.builders.structure.createModel(trajectory);
+  const structure = await plugin.builders.structure.createStructure(model);
+  for (const r of reprs) await plugin.builders.structure.representation.addRepresentation(structure, r);
+  plugin.canvas3d!.commit(true);
+
+  const graphics = plugin.canvas3d!.graphics;
+  const scene = Scene.create(graphics);
+  for (const ro of plugin.canvas3d!.getRenderObjects()) scene.add(ro);
+  scene.commit();
+  // the whole scene in view, so that frustum culling leaves every object drawn
+  const camera = new Camera();
+  Viewport.set(camera.viewport, 0, 0, size, size);
+  const { center, radius } = scene.boundingSphere;
+  camera.setState(camera.getFocus(center, radius), 0);
+  camera.update();
+
+  const renderer = Renderer.create(graphics);
+  const target = graphics.createRenderTarget(size, size, 'depth-stencil');
+  const depth = graphics.resources.texture('image-depth', 'depth', 'ushort', 'nearest');
+  depth.define(size, size);
+  const descriptor = graphics.describeTarget(target);
+  const { pending } = graphics.resources;
+
+  const passes: [Renderer.Pass, () => void][] = [
+    [{ name: 'pick', variant: 'pick' }, () => renderer.renderPick(scene, camera, 'pick', 0)],
+    [{ name: 'pick', variant: 'depth' }, () => renderer.renderPick(scene, camera, 'depth', 0)],
+    [{ name: 'depth' }, () => renderer.renderDepth(scene, camera)],
+    [{ name: 'depthOpaque' }, () => renderer.renderDepthOpaque(scene, camera)],
+    [{ name: 'depthOpaqueBack' }, () => renderer.renderDepthOpaqueBack(scene, camera)],
+    [{ name: 'depthTransparent' }, () => renderer.renderDepthTransparent(scene, camera, depth)],
+    [{ name: 'markingDepth' }, () => renderer.renderMarkingDepth(scene, camera)],
+    [{ name: 'markingMask' }, () => renderer.renderMarkingMask(scene, camera, null)],
+    [
+      { name: 'emissiveOpaque', occludeWithOpaqueDepth: false },
+      () => renderer.renderEmissiveOpaque(scene, camera, depth, false),
+    ],
+    [
+      { name: 'emissiveOpaque', occludeWithOpaqueDepth: true },
+      () => renderer.renderEmissiveOpaque(scene, camera, depth, true),
+    ],
+    [{ name: 'emissiveTransparent' }, () => renderer.renderEmissiveTransparent(scene, camera, depth)],
+    [{ name: 'tracing' }, () => renderer.renderTracing(scene, camera)],
+    [{ name: 'opaque' }, () => renderer.renderOpaque(scene, camera)],
+    [{ name: 'blendedTransparent' }, () => renderer.renderBlendedTransparent(scene, camera)],
+    [{ name: 'volume' }, () => renderer.renderVolume(scene, camera, depth)],
+    [{ name: 'wboitTransparent' }, () => renderer.renderWboitTransparent(scene, camera, depth)],
+  ];
+
+  // the draws the renderer issues: render item, variant and the render state set for the draw
+  const key = (item: { id: number }, variant: string, state: RenderState) =>
+    `${item.id}|${variant}|${JSON.stringify(state)}`;
+  let currentState: RenderState = {};
+  const setRenderState = graphics.setRenderState;
+  graphics.setRenderState = (state) => {
+    currentState = state;
+    setRenderState(state);
+  };
+  const drawn: string[] = [];
+  for (const r of scene.renderables) {
+    const item = r.renderItem;
+    const render = item.render;
+    item.render = (variant, ...args) => {
+      drawn.push(key(item, variant, currentState));
+      render(variant, ...args);
+    };
+  }
+
+  const culls = new Set<string>();
+  let draws = 0;
+  try {
+    for (const transparentBackground of backgrounds) {
+      renderer.setTransparentBackground(transparentBackground);
+      for (const [pass, render] of passes) {
+        if (only && !only.includes(pass.name)) continue;
+        const requests = renderer.collect(pass, scene, descriptor);
+        await graphics.resources.preparePipelines(requests);
+
+        drawn.length = 0;
+        const tracked = pending.trackedCount;
+        graphics.beginRenderPass(target);
+        renderer.update(camera, scene, createFrame());
+        renderer.setViewport(0, 0, size, size);
+        render();
+        graphics.flush();
+        // every draw of the pass was collected (objects out of view are collected too), and found its pipeline
+        const collected = new Set(requests.map((r) => key(r.item, r.variant, r.state)));
+        expect({ pass, missing: drawn.filter((d) => !collected.has(d)) }).toEqual({ pass, missing: [] });
+        expect({ pass, started: pending.trackedCount - tracked }).toEqual({ pass, started: 0 });
+        draws += drawn.length;
+        for (const r of requests) culls.add(`${pass.name}|${r.state.cull ?? 'none'}`);
+      }
+    }
+  } finally {
+    // the shared context's own again
+    graphics.setRenderState = setRenderState;
+  }
+  return { culls, draws, scene, renderer, descriptor };
+}
 
 describe.skipIf(!WebGPU.module)('Renderer.collect on WebGPU', () => {
-  it('collects the pipelines each renderer pass draws with', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 64, height: 64 },
-      { backend: 'webgpu' },
-    );
+  // quick: points (the fewest pipelines to compile), the opaque, depth and pick passes, 16 px
+  it('collects the pipelines the opaque, depth and pick passes draw with', async () => {
+    const plugin = await sharedPlugin();
     try {
-      await plugin.init();
-      const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
-      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
-      const model = await plugin.builders.structure.createModel(trajectory);
-      const structure = await plugin.builders.structure.createStructure(model);
-      const { representation } = plugin.builders.structure;
+      const { culls, draws, scene, renderer } = await collectPasses(plugin, [{ type: 'point' }], {
+        size: 16,
+        backgrounds: [false],
+        only: ['opaque', 'depth', 'pick'],
+      });
+      expect(scene.renderables.length).toBe(1);
+      expect(draws).toBeGreaterThan(0);
+      expect(culls).toContain('opaque|none');
+      renderer.dispose();
+      scene.clear();
+    } finally {
+      await plugin.clear();
+    }
+  });
+
+  // Medium: a sweep of every renderer pass, twice, over five representations' pipelines
+  it('collects the pipelines each renderer pass draws with', { tags: ['medium'] }, async () => {
+    const plugin = await sharedPlugin();
+    try {
       // meshes, impostors and points; opaque and transparent, single and double sided
-      await representation.addRepresentation(structure, { type: 'cartoon' });
-      await representation.addRepresentation(structure, { type: 'ball-and-stick' });
-      await representation.addRepresentation(structure, { type: 'point' });
-      await representation.addRepresentation(structure, {
-        type: 'molecular-surface',
-        typeParams: { alpha: 0.5, doubleSided: true, transparentBackfaces: 'on' },
-      });
-      await representation.addRepresentation(structure, {
-        type: 'gaussian-surface',
-        typeParams: { alpha: 0.4, doubleSided: false, emissive: 0.5 },
-      });
-      plugin.canvas3d!.commit(true);
-
-      const graphics = plugin.canvas3d!.graphics;
-      const scene = Scene.create(graphics);
-      for (const ro of plugin.canvas3d!.getRenderObjects()) scene.add(ro);
-      scene.commit();
+      const { culls, scene, renderer, descriptor } = await collectPasses(
+        plugin,
+        [
+          { type: 'cartoon' },
+          { type: 'ball-and-stick' },
+          { type: 'point' },
+          { type: 'molecular-surface', typeParams: { alpha: 0.5, doubleSided: true, transparentBackfaces: 'on' } },
+          { type: 'gaussian-surface', typeParams: { alpha: 0.4, doubleSided: false, emissive: 0.5 } },
+        ],
+        { size: 64, backgrounds: [false, true] },
+      );
       expect(scene.renderables.length).toBeGreaterThan(4);
-      // the whole scene in view, so that frustum culling leaves every object drawn
-      const camera = new Camera();
-      Viewport.set(camera.viewport, 0, 0, 64, 64);
-      const { center, radius } = scene.boundingSphere;
-      camera.setState(camera.getFocus(center, radius), 0);
-      camera.update();
-
-      const renderer = Renderer.create(graphics);
-      const target = graphics.createRenderTarget(64, 64, 'depth-stencil');
-      const depth = graphics.resources.texture('image-depth', 'depth', 'ushort', 'nearest');
-      depth.define(64, 64);
-      const descriptor = graphics.describeTarget(target);
-      const { pending } = graphics.resources;
-
-      const passes: [Renderer.Pass, () => void][] = [
-        [{ name: 'pick', variant: 'pick' }, () => renderer.renderPick(scene, camera, 'pick', 0)],
-        [{ name: 'pick', variant: 'depth' }, () => renderer.renderPick(scene, camera, 'depth', 0)],
-        [{ name: 'depth' }, () => renderer.renderDepth(scene, camera)],
-        [{ name: 'depthOpaque' }, () => renderer.renderDepthOpaque(scene, camera)],
-        [{ name: 'depthOpaqueBack' }, () => renderer.renderDepthOpaqueBack(scene, camera)],
-        [{ name: 'depthTransparent' }, () => renderer.renderDepthTransparent(scene, camera, depth)],
-        [{ name: 'markingDepth' }, () => renderer.renderMarkingDepth(scene, camera)],
-        [{ name: 'markingMask' }, () => renderer.renderMarkingMask(scene, camera, null)],
-        [
-          { name: 'emissiveOpaque', occludeWithOpaqueDepth: false },
-          () => renderer.renderEmissiveOpaque(scene, camera, depth, false),
-        ],
-        [
-          { name: 'emissiveOpaque', occludeWithOpaqueDepth: true },
-          () => renderer.renderEmissiveOpaque(scene, camera, depth, true),
-        ],
-        [{ name: 'emissiveTransparent' }, () => renderer.renderEmissiveTransparent(scene, camera, depth)],
-        [{ name: 'tracing' }, () => renderer.renderTracing(scene, camera)],
-        [{ name: 'opaque' }, () => renderer.renderOpaque(scene, camera)],
-        [{ name: 'blendedTransparent' }, () => renderer.renderBlendedTransparent(scene, camera)],
-        [{ name: 'volume' }, () => renderer.renderVolume(scene, camera, depth)],
-        [{ name: 'wboitTransparent' }, () => renderer.renderWboitTransparent(scene, camera, depth)],
-      ];
-
-      // the draws the renderer issues: render item, variant and the render state set for the draw
-      const key = (item: { id: number }, variant: string, state: RenderState) =>
-        `${item.id}|${variant}|${JSON.stringify(state)}`;
-      let currentState: RenderState = {};
-      const setRenderState = graphics.setRenderState;
-      graphics.setRenderState = (state) => {
-        currentState = state;
-        setRenderState(state);
-      };
-      const drawn: string[] = [];
-      for (const r of scene.renderables) {
-        const item = r.renderItem;
-        const render = item.render;
-        item.render = (variant, ...args) => {
-          drawn.push(key(item, variant, currentState));
-          render(variant, ...args);
-        };
-      }
-
-      const culls = new Set<string>();
-      for (const transparentBackground of [false, true]) {
-        renderer.setTransparentBackground(transparentBackground);
-        for (const [pass, render] of passes) {
-          const requests = renderer.collect(pass, scene, descriptor);
-          await graphics.resources.preparePipelines(requests);
-
-          drawn.length = 0;
-          const tracked = pending.trackedCount;
-          graphics.beginRenderPass(target);
-          renderer.update(camera, scene, createFrame());
-          renderer.setViewport(0, 0, 64, 64);
-          render();
-          graphics.flush();
-          // every draw of the pass was collected (objects out of view are collected too), and found its pipeline
-          const collected = new Set(requests.map((r) => key(r.item, r.variant, r.state)));
-          expect({ pass, missing: drawn.filter((d) => !collected.has(d)) }).toEqual({ pass, missing: [] });
-          expect({ pass, started: pending.trackedCount - tracked }).toEqual({ pass, started: 0 });
-          for (const r of requests) culls.add(`${pass.name}|${r.state.cull ?? 'none'}`);
-        }
-      }
       // the scene covers per-object states: back and front faces of the double-sided transparent surface, single-sided
       // objects
       expect(culls).toContain('blendedTransparent|front');
@@ -156,7 +207,7 @@ describe.skipIf(!WebGPU.module)('Renderer.collect on WebGPU', () => {
       renderer.dispose();
       scene.clear();
     } finally {
-      plugin.dispose();
+      await plugin.clear();
     }
   });
 });

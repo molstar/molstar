@@ -175,20 +175,25 @@ const Cases: { name: string; params: { [k: string]: unknown }; pdb?: string }[] 
 ];
 
 // pixel clipping in the raster as the impostors clip: per pixel the point a sphere shows (its front, a cap, its back,
-// none), or spheres whole by their centers. Medium: the first case alone compiles the impostors' and the raster's
-// pipelines of a new device and of its clip variants, seconds
-// @module-tag medium
+// none), or spheres whole by their centers. Quick: the first case, which compiles the impostors' and the raster's
+// pipelines of a new device and of its clip variants; medium: the rest
 describe.skipIf(!WebGPU.module)('sphere raster pixel clipping on WebGPU', () => {
-  for (const { name, params, pdb } of Cases) {
-    it(`draws the image of the impostors: ${name}`, async () => {
-      const impostors = await render('off', params, pdb);
-      if (!impostors) return;
-      // the clip objects cut what is drawn
-      expect(countDiffer(impostors.pixels, await unclipped(pdb))).toBeGreaterThan(50);
-      const raster = (await render('only', params, pdb))!;
-      expect(raster.rasterDrawn).toBe(true);
-      // but where a pixel's center lies on an edge (the raster's arithmetic is not the fragment stage's)
-      expect(countDiffer(impostors.pixels, raster.pixels)).toBeLessThanOrEqual(Size * Size * 0.01);
-    }, 60_000);
+  for (const [i, { name, params, pdb }] of Cases.entries()) {
+    const lane = i === 0 ? {} : { tags: ['medium'] };
+    it(
+      `draws the image of the impostors: ${name}`,
+      lane,
+      async () => {
+        const impostors = await render('off', params, pdb);
+        if (!impostors) return;
+        // the clip objects cut what is drawn
+        expect(countDiffer(impostors.pixels, await unclipped(pdb))).toBeGreaterThan(50);
+        const raster = (await render('only', params, pdb))!;
+        expect(raster.rasterDrawn).toBe(true);
+        // but where a pixel's center lies on an edge (the raster's arithmetic is not the fragment stage's)
+        expect(countDiffer(impostors.pixels, raster.pixels)).toBeLessThanOrEqual(Size * Size * 0.01);
+      },
+      60_000,
+    );
   }
 });

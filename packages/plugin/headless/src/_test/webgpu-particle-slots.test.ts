@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { now } from '@molstar/core/util/now';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -13,6 +13,7 @@ import { CustomProperties } from '@molstar/model/model/custom-property';
 import { Particle, type ParticleList, type ParticleTarget } from '@molstar/model/model/particles/particle-list';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import type { MergedGraphicsRenderObject } from '@molstar/graphics/gl/render-object';
+import type { WebGPUContext } from '@molstar/graphics/gl/webgpu/context';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
@@ -33,7 +34,6 @@ import { WebGPU } from './webgpu-module.js';
 // (`paged.ts`): the image of the flat view of the same tiles, as tiles are let go and added again; a pick its
 // particle, through a canvas multi-sampled over time. Medium: each test a scene of several views and representations,
 // seconds.
-// @module-tag medium
 
 const Size = 64;
 const Count = 64;
@@ -100,14 +100,28 @@ const ListOf = PluginStateTransform.BuiltIn({
 });
 
 describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () => {
-  it('draws as the flat view of the same tiles, tiles let go and added again; picks a particle by its slot', async () => {
+  it('draws as the flat view of the same tiles; a pick its slot: eight particles in four tiles, a small canvas', async () => {
+    const size = 32;
     const spec = DefaultPluginSpec();
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
-      { width: Size, height: Size },
+      { width: size, height: size },
       { backend: 'webgpu' },
     );
+    // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
+    if (typeof ImageData === 'undefined') {
+      vi.stubGlobal(
+        'ImageData',
+        class {
+          constructor(
+            readonly data: Uint8ClampedArray,
+            readonly width: number,
+            readonly height: number,
+          ) {}
+        },
+      );
+    }
     try {
       await plugin.init();
       plugin.canvas3d!.setProps({
@@ -115,14 +129,367 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
         cameraFog: { name: 'off', params: {} },
         multiSample: { mode: 'off' } as never,
         postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
-        // impostors alone: the sphere raster (`auto`) takes the slot store, culled on the GPU, not the flat view's
-        // objects, and decides a sphere's edge pixels unlike the impostors
         renderer: { ...plugin.canvas3d!.props.renderer, sphereRaster: 'off' },
+        // fewer pipelines to compile: no marking pass or pyramid
+        marking: { enabled: false } as never,
+        hiZ: { ...plugin.canvas3d!.props.hiZ, enabled: false, gpu: false },
       });
-      const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+      // the lattice's first eight particles (z 0, y 0 and 30), both targets: four tiles of two
+      const base = createList();
+      const small: ParticleList = {
+        ...base,
+        count: 8,
+        coordinates: base.coordinates.slice(0, 8 * 3),
+        targets: (base.targets as Int32Array).slice(0, 8),
+      };
+      const list = await plugin.build().toRoot().apply(ListOf, { list: small }).commit();
       const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
-
+      const canvas = plugin.canvas3d!;
+      const graphics = canvas.graphics as WebGPUContext;
+      let time = now();
+      /** the canvas' frame (not an image pass: fewer pipelines) once its work settled: two alike */
       const image = async () => {
+        const { pending } = graphics.resources;
+        let image: number[] = [];
+        for (let i = 0; i < 12; ++i) {
+          const tracked = pending.trackedCount;
+          canvas.commit(true);
+          canvas.camera.setState(canvas.camera.getFocus(Vec3.create(45, 15, 0), 50), 0);
+          canvas.requestDraw();
+          canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
+          // the cull's read-backs landed, then the work they asked for
+          await graphics.waitForGpuCommandsComplete();
+          await new Promise((r) => setTimeout(r, 0));
+          await pending.whenReady();
+          const next = Array.from((await graphics.readDrawingBuffer()).data);
+          const same = pending.trackedCount === tracked && next.every((v, k) => v === image[k]);
+          image = next;
+          if (same) break;
+        }
+        return image;
+      };
+      const render = async (slots: boolean) => {
+        const view = await plugin
+          .build()
+          .to(tiles.ref)
+          .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-3' } }, frame: 0, slots })
+          .commit();
+        const repr = await plugin
+          .build()
+          .to(view.ref)
+          .apply(ParticlesRepresentation3D, {
+            type: { name: 'target', params: { lodPixelSize: 0 } },
+            colorTheme: { name: 'particle-index', params: {} },
+          } as never)
+          .commit();
+        return { view, repr, image: await image() };
+      };
+      /** the values of `a` more than 2 off `b`'s (a software Vulkan's blending one off here and there) */
+      const differing = (a: number[], b: number[]) => {
+        if (a.length !== b.length) return Math.max(a.length, b.length);
+        let n = 0;
+        for (let i = 0; i < a.length; ++i) if (Math.abs(a[i] - b[i]) > 2) n += 1;
+        return n;
+      };
+      const flat = await render(false);
+      await plugin.build().delete(flat.view.ref).commit();
+      expect(new Set(flat.image).size).toBeGreaterThan(3);
+
+      const { view, repr, image: slotImage } = await render(true);
+      const r = repr.data!.repr;
+      expect(r.renderObjects).toHaveLength(1);
+      const object = r.renderObjects[0] as MergedGraphicsRenderObject;
+      expect(object.merged.source).toBeDefined();
+      expect(differing(slotImage, flat.image)).toBe(0);
+      // a pick: an instance's particle its slot
+      const slots = view.cell!.obj!.data;
+      const loci = r.getLoci({ objectId: object.id, instanceId: 0, groupId: 0 }) as Particle.Loci;
+      expect(Particle.isLoci(loci)).toBe(true);
+      expect(loci.particles).toBe(slots);
+      expect(OrderedSet.getAt(loci.indices, 0)).toBeLessThan(slots.count);
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it(
+    'draws as the flat view of the same tiles, tiles let go and added again; picks a particle by its slot',
+    { tags: ['medium'] },
+    async () => {
+      const spec = DefaultPluginSpec();
+      const plugin = await HeadlessPluginContext.create(
+        { webgpu: WebGPU.module! },
+        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
+        { width: Size, height: Size },
+        { backend: 'webgpu' },
+      );
+      try {
+        await plugin.init();
+        plugin.canvas3d!.setProps({
+          camera: { mode: 'orthographic' } as never,
+          cameraFog: { name: 'off', params: {} },
+          multiSample: { mode: 'off' } as never,
+          postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
+          // impostors alone: the sphere raster (`auto`) takes the slot store, culled on the GPU, not the flat view's
+          // objects, and decides a sphere's edge pixels unlike the impostors
+          renderer: { ...plugin.canvas3d!.props.renderer, sphereRaster: 'off' },
+        });
+        const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+        const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
+
+        const image = async () => {
+          for (let i = 0; i < 4; ++i) {
+            await plugin.getImageRaw({ width: Size, height: Size });
+            // the cull's read-backs landed (a room overflowed asks for another cull, tracked once it is read: on a slow
+            // device, a software Vulkan's, after the frame), then the work they asked for
+            await plugin.canvas3d!.graphics.waitForGpuCommandsComplete();
+            await new Promise((r) => setTimeout(r, 0));
+            await plugin.canvas3d!.graphics.resources.pending.whenReady();
+            const camera = plugin.canvas3d!.camera;
+            camera.setState(camera.getFocus(Vec3.create(45, 45, 45), 70), 0);
+          }
+          return Array.from((await plugin.getImageRaw({ width: Size, height: Size })).data);
+        };
+
+        /** the image of a view of `ids`, its representation colored by particle index (by slot: the same colors) */
+        const render = async (ids: string, slots: boolean) => {
+          const view = await plugin
+            .build()
+            .to(tiles.ref)
+            .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids } }, frame: 0, slots })
+            .commit();
+          const repr = await plugin
+            .build()
+            .to(view.ref)
+            .apply(ParticlesRepresentation3D, {
+              // no levels: an instance's level is its cell's, and the cells differ (the store's one grid, the flat view's a grid a member)
+              type: { name: 'target', params: { lodPixelSize: 0 } },
+              colorTheme: { name: 'particle-index', params: {} },
+            } as never)
+            .commit();
+          return { view, repr, image: await image() };
+        };
+        const flatImage = async (ids: string) => {
+          const { view, image } = await render(ids, false);
+          await plugin.build().delete(view.ref).commit();
+          return image;
+        };
+
+        /**
+         * the values of `a` more than 2 off `b`'s: the store's draw and the flat one alike but for rounding (a software
+         * Vulkan's blending one off here and there)
+         */
+        const differing = (a: number[], b: number[]) => {
+          if (a.length !== b.length) return Math.max(a.length, b.length);
+          let n = 0;
+          for (let i = 0; i < a.length; ++i) if (Math.abs(a[i] - b[i]) > 2) n += 1;
+          return n;
+        };
+        const allFlat = await flatImage('0-7');
+        const someFlat = await flatImage('0, 2, 5');
+        expect(new Set(allFlat).size).toBeGreaterThan(3);
+        expect(someFlat).not.toEqual(allFlat);
+
+        const { view, repr, image: allSlots } = await render('0-7', true);
+        const r = repr.data!.repr;
+        // one object of the store's instances
+        expect(r.renderObjects).toHaveLength(1);
+        const object = r.renderObjects[0] as MergedGraphicsRenderObject;
+        expect(object.merged.source).toBeDefined();
+        expect(differing(allSlots, allFlat)).toBe(0);
+
+        const setIds = async (ids: string) => {
+          await plugin
+            .build()
+            .to(view.ref)
+            .update(ParticleTilesView, (old) => ({ ...old, tiles: { name: 'ids', params: { ids } } }))
+            .commit();
+          return image();
+        };
+        // tiles let go: their instances gaps, drawn by none; the object kept
+        expect(await setIds('0, 2, 5')).toEqual(someFlat);
+        expect(r.renderObjects[0]).toBe(object);
+        // added again: in the gaps' place or after them
+        expect(differing(await setIds('0-7'), allFlat)).toBe(0);
+        expect(r.renderObjects[0]).toBe(object);
+
+        // a pick: an instance's particle its slot
+        const slots = view.cell!.obj!.data;
+        const loci = r.getLoci({ objectId: object.id, instanceId: 0, groupId: 0 }) as Particle.Loci;
+        expect(Particle.isLoci(loci)).toBe(true);
+        expect(loci.particles).toBe(slots);
+        const slot = OrderedSet.getAt(loci.indices, 0);
+        expect(slot).toBeGreaterThanOrEqual(0);
+        expect(slot).toBeLessThan(slots.count);
+        // marked by slot: the store's layer, the object's markers
+        expect(r.mark(loci, MarkerAction.Highlight)).toBe(true);
+        expect((object.values as any).markerAverage.ref.value).toBeGreaterThan(0);
+        expect(r.mark(loci, MarkerAction.RemoveHighlight)).toBe(true);
+        expect((object.values as any).markerAverage.ref.value).toBe(0);
+
+        // the same slot list colored otherwise: what is marked kept, the object too (not laid out again)
+        const recolor = (colorTheme: object) =>
+          plugin
+            .build()
+            .to(repr.ref)
+            .update(ParticlesRepresentation3D, (old) => ({ ...old, colorTheme }) as never)
+            .commit();
+        expect(r.mark(loci, MarkerAction.Highlight)).toBe(true);
+        await recolor({ name: 'uniform', params: { value: 0xff0000 } });
+        expect(r.renderObjects[0]).toBe(object);
+        expect((object.values as any).markerAverage.ref.value).toBeGreaterThan(0);
+        await recolor({ name: 'particle-index', params: {} });
+        expect(r.mark(loci, MarkerAction.RemoveHighlight)).toBe(true);
+        expect(differing(await image(), allFlat)).toBe(0);
+
+        // a layer by slot: the store's texels (its define on), the object kept; none again, as before
+        // as the plugin applies a state: the canvas told
+        const overpaint = (layers: { loci: Particle.Loci; color: number; clear: boolean }[]) => {
+          r.setState({ overpaint: { kind: 'particle-loci', layers } as never });
+          plugin.canvas3d!.update(r);
+          plugin.canvas3d!.commit(true);
+        };
+        // every slot by its index (not every loci: the store indices of the slots)
+        const all = Particle.Loci(slots, OrderedSet.ofBounds(0, slots.count));
+        overpaint([{ loci: all, color: 0xff0000, clear: false }]);
+        expect((object.values as any).dOverpaint.ref.value).toBe(true);
+        const painted = await image();
+        expect(painted).not.toEqual(allFlat);
+        expect(r.renderObjects[0]).toBe(object);
+        // the view's tiles let go and added again: the pages written their texels by the layers again, the others kept
+        expect(await setIds('0, 2, 5')).not.toEqual(someFlat);
+        expect(await setIds('0-7')).toEqual(painted);
+        expect(r.renderObjects[0]).toBe(object);
+        overpaint([]);
+        expect((object.values as any).dOverpaint.ref.value).toBe(false);
+        expect(differing(await image(), allFlat)).toBe(0);
+
+        // picks through the canvas, its frames multi-sampled over time: the canvas' frame the culled one. The first an
+        // async one drawn incomplete (a draw skipped, as while a program compiles), then again as work settles: of the
+        // canvas' frame then, not one of its own
+        const canvas = plugin.canvas3d!;
+        canvas.setProps({ multiSample: { mode: 'temporal' } as never });
+        canvas.requestDraw();
+        for (let i = 0; i < 3; ++i) canvas.tick(now(), { isSynchronous: true });
+        // the pick's render reads the skipped draws before and after: one more after
+        const stats = canvas.graphics.stats as { skippedDraws: number };
+        let skipped = stats.skippedDraws;
+        let reads = 0;
+        Object.defineProperty(stats, 'skippedDraws', {
+          configurable: true,
+          get: () => (++reads === 2 ? ++skipped : skipped),
+          set: (v: number) => {
+            skipped = v;
+          },
+        });
+        const pick = canvas.asyncIdentify(Vec2.create(Size / 2, Size / 2))!;
+        Object.defineProperty(stats, 'skippedDraws', { configurable: true, writable: true, value: skipped });
+        expect(pick.tryGet()).toBe('pending');
+        // work settled since: drawn again
+        await canvas.graphics.resources.pending.track(Promise.resolve(), 'test settle');
+        let picked = pick.tryGet();
+        for (let i = 0; i < 200 && picked === 'pending'; ++i) {
+          canvas.tick(now(), { isSynchronous: true });
+          await canvas.graphics.resources.pending.whenReady();
+          await new Promise((r) => setTimeout(r, 5));
+          picked = pick.tryGet();
+        }
+        expect(picked).not.toBe('pending');
+        // the first pixel of a coarse grid that hits (the lattice's particles apart)
+        let objectId: number | undefined;
+        for (let y = 4; y < Size && objectId === undefined; y += 8) {
+          for (let x = 4; x < Size && objectId === undefined; x += 8) {
+            let hit = canvas.identify(Vec2.create(x, y));
+            for (let i = 0; i < 50 && hit === 'pending'; ++i) {
+              await new Promise((r) => setTimeout(r, 10));
+              hit = canvas.identify(Vec2.create(x, y));
+            }
+            if (hit && hit !== 'pending') objectId = hit.id.objectId;
+          }
+        }
+        expect(objectId).toBe(object.id);
+
+        expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
+      } finally {
+        plugin.dispose();
+      }
+    },
+    120_000,
+  );
+
+  it(
+    "draws a coarse node's spheres larger by its pose's scale, as sprites as rasterized",
+    { tags: ['medium'] },
+    async () => {
+      // the lattice a tile a particle (4³ tiles), its levels: the root a sample of it (one particle) drawn 4 times larger
+      const bytes = writeParticlePack(createList(), { tiles: 4, levels: true });
+      const file = Asset.File(new File([bytes], 'lattice.mspk'));
+      const spec = DefaultPluginSpec();
+      // one plugin for the draws (a new one compiles the pipelines again), the scene before removed
+      const plugin = await HeadlessPluginContext.create(
+        { webgpu: WebGPU.module! },
+        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
+        { width: Size, height: Size },
+        { backend: 'webgpu' },
+      );
+      /**
+       * the pixels drawn (`sphereRaster` off: sprites; only: the raster) of the root node alone, or of the lattice's
+       * tiles (`base`: 16 particles seen along z, the others behind them)
+       */
+      const drawn = async (raster: 'off' | 'only', base: boolean) => {
+        await plugin.clear();
+        // committed empty: the next scene's camera reset immediate, as on a new canvas (else a transition from the last)
+        plugin.canvas3d!.commit(true);
+        if (raster === 'only' && !plugin.canvas3d!.graphics.capabilities.atomicMinMax64) return undefined;
+        plugin.canvas3d!.setProps({
+          renderer: { sphereRaster: raster, sphereRasterRadius: 64, backgroundColor: 0x000000 as never },
+          camera: { mode: 'orthographic' } as never,
+          cameraFog: { name: 'off', params: {} },
+          multiSample: { mode: 'off' } as never,
+          postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
+        });
+        const tiles = await plugin
+          .build()
+          .toRoot()
+          .apply(ParticleTileSetFromPack, { source: { name: 'file', params: file }, levels: true } as never)
+          .commit();
+        const levels = tiles.data!.set.levels!;
+        // a camera given that sees the set: the tiles themselves at the default detail, the root alone where any
+        // detail is too fine
+        const camera = {
+          snapshot: {
+            mode: 'perspective' as const,
+            fov: Math.PI / 4,
+            position: Vec3.create(45, 45, 400),
+            target: Vec3.create(45, 45, 0),
+            up: Vec3.create(0, 1, 0),
+            minNear: 1,
+          },
+          width: 512,
+          height: 512,
+        };
+        const detailPixels = base ? 4 : 1e9;
+        const view = await plugin
+          .build()
+          .to(tiles.ref)
+          .apply(ParticleTilesView, {
+            tiles: { name: 'camera', params: { minPixels: 0, occlusion: false, follow: false, detailPixels, camera } },
+            frame: 0,
+            slots: true,
+          } as never)
+          .commit();
+        const shown = Array.from(ParticleTileView.of(view.data!)!.tiles);
+        if (base) expect(shown.length).toBe(64);
+        else expect(shown).toEqual([levels.getNode(levels.count, 0)]);
+        await plugin
+          .build()
+          .to(view.ref)
+          .apply(ParticlesRepresentation3D, {
+            type: { name: 'target', params: { lodPixelSize: 0 } },
+            colorTheme: { name: 'uniform', params: { value: 0x00ff00 } },
+          } as never)
+          .commit();
         for (let i = 0; i < 4; ++i) {
           await plugin.getImageRaw({ width: Size, height: Size });
           // the cull's read-backs landed (a room overflowed asks for another cull, tracked once it is read: on a slow
@@ -131,274 +498,30 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
           await new Promise((r) => setTimeout(r, 0));
           await plugin.canvas3d!.graphics.resources.pending.whenReady();
           const camera = plugin.canvas3d!.camera;
-          camera.setState(camera.getFocus(Vec3.create(45, 45, 45), 70), 0);
+          camera.setState(camera.getFocus(Vec3.create(45, 45, 45), 90), 0);
         }
-        return Array.from((await plugin.getImageRaw({ width: Size, height: Size })).data);
-      };
-
-      /** the image of a view of `ids`, its representation colored by particle index (by slot: the same colors) */
-      const render = async (ids: string, slots: boolean) => {
-        const view = await plugin
-          .build()
-          .to(tiles.ref)
-          .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids } }, frame: 0, slots })
-          .commit();
-        const repr = await plugin
-          .build()
-          .to(view.ref)
-          .apply(ParticlesRepresentation3D, {
-            // no levels: an instance's level is its cell's, and the cells differ (the store's one grid, the flat view's a grid a member)
-            type: { name: 'target', params: { lodPixelSize: 0 } },
-            colorTheme: { name: 'particle-index', params: {} },
-          } as never)
-          .commit();
-        return { view, repr, image: await image() };
-      };
-      const flatImage = async (ids: string) => {
-        const { view, image } = await render(ids, false);
-        await plugin.build().delete(view.ref).commit();
-        return image;
-      };
-
-      /**
-       * the values of `a` more than 2 off `b`'s: the store's draw and the flat one alike but for rounding (a software
-       * Vulkan's blending one off here and there)
-       */
-      const differing = (a: number[], b: number[]) => {
-        if (a.length !== b.length) return Math.max(a.length, b.length);
+        const { data } = await plugin.getImageRaw({ width: Size, height: Size });
+        expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
         let n = 0;
-        for (let i = 0; i < a.length; ++i) if (Math.abs(a[i] - b[i]) > 2) n += 1;
+        for (let i = 0; i < data.length; i += 4) if (data[i + 1] > 40) n += 1;
         return n;
       };
-      const allFlat = await flatImage('0-7');
-      const someFlat = await flatImage('0, 2, 5');
-      expect(new Set(allFlat).size).toBeGreaterThan(3);
-      expect(someFlat).not.toEqual(allFlat);
-
-      const { view, repr, image: allSlots } = await render('0-7', true);
-      const r = repr.data!.repr;
-      // one object of the store's instances
-      expect(r.renderObjects).toHaveLength(1);
-      const object = r.renderObjects[0] as MergedGraphicsRenderObject;
-      expect(object.merged.source).toBeDefined();
-      expect(differing(allSlots, allFlat)).toBe(0);
-
-      const setIds = async (ids: string) => {
-        await plugin
-          .build()
-          .to(view.ref)
-          .update(ParticleTilesView, (old) => ({ ...old, tiles: { name: 'ids', params: { ids } } }))
-          .commit();
-        return image();
-      };
-      // tiles let go: their instances gaps, drawn by none; the object kept
-      expect(await setIds('0, 2, 5')).toEqual(someFlat);
-      expect(r.renderObjects[0]).toBe(object);
-      // added again: in the gaps' place or after them
-      expect(differing(await setIds('0-7'), allFlat)).toBe(0);
-      expect(r.renderObjects[0]).toBe(object);
-
-      // a pick: an instance's particle its slot
-      const slots = view.cell!.obj!.data;
-      const loci = r.getLoci({ objectId: object.id, instanceId: 0, groupId: 0 }) as Particle.Loci;
-      expect(Particle.isLoci(loci)).toBe(true);
-      expect(loci.particles).toBe(slots);
-      const slot = OrderedSet.getAt(loci.indices, 0);
-      expect(slot).toBeGreaterThanOrEqual(0);
-      expect(slot).toBeLessThan(slots.count);
-      // marked by slot: the store's layer, the object's markers
-      expect(r.mark(loci, MarkerAction.Highlight)).toBe(true);
-      expect((object.values as any).markerAverage.ref.value).toBeGreaterThan(0);
-      expect(r.mark(loci, MarkerAction.RemoveHighlight)).toBe(true);
-      expect((object.values as any).markerAverage.ref.value).toBe(0);
-
-      // the same slot list colored otherwise: what is marked kept, the object too (not laid out again)
-      const recolor = (colorTheme: object) =>
-        plugin
-          .build()
-          .to(repr.ref)
-          .update(ParticlesRepresentation3D, (old) => ({ ...old, colorTheme }) as never)
-          .commit();
-      expect(r.mark(loci, MarkerAction.Highlight)).toBe(true);
-      await recolor({ name: 'uniform', params: { value: 0xff0000 } });
-      expect(r.renderObjects[0]).toBe(object);
-      expect((object.values as any).markerAverage.ref.value).toBeGreaterThan(0);
-      await recolor({ name: 'particle-index', params: {} });
-      expect(r.mark(loci, MarkerAction.RemoveHighlight)).toBe(true);
-      expect(differing(await image(), allFlat)).toBe(0);
-
-      // a layer by slot: the store's texels (its define on), the object kept; none again, as before
-      // as the plugin applies a state: the canvas told
-      const overpaint = (layers: { loci: Particle.Loci; color: number; clear: boolean }[]) => {
-        r.setState({ overpaint: { kind: 'particle-loci', layers } as never });
-        plugin.canvas3d!.update(r);
-        plugin.canvas3d!.commit(true);
-      };
-      // every slot by its index (not every loci: the store indices of the slots)
-      const all = Particle.Loci(slots, OrderedSet.ofBounds(0, slots.count));
-      overpaint([{ loci: all, color: 0xff0000, clear: false }]);
-      expect((object.values as any).dOverpaint.ref.value).toBe(true);
-      const painted = await image();
-      expect(painted).not.toEqual(allFlat);
-      expect(r.renderObjects[0]).toBe(object);
-      // the view's tiles let go and added again: the pages written their texels by the layers again, the others kept
-      expect(await setIds('0, 2, 5')).not.toEqual(someFlat);
-      expect(await setIds('0-7')).toEqual(painted);
-      expect(r.renderObjects[0]).toBe(object);
-      overpaint([]);
-      expect((object.values as any).dOverpaint.ref.value).toBe(false);
-      expect(differing(await image(), allFlat)).toBe(0);
-
-      // picks through the canvas, its frames multi-sampled over time: the canvas' frame the culled one. The first an
-      // async one drawn incomplete (a draw skipped, as while a program compiles), then again as work settles: of the
-      // canvas' frame then, not one of its own
-      const canvas = plugin.canvas3d!;
-      canvas.setProps({ multiSample: { mode: 'temporal' } as never });
-      canvas.requestDraw();
-      for (let i = 0; i < 3; ++i) canvas.tick(now(), { isSynchronous: true });
-      // the pick's render reads the skipped draws before and after: one more after
-      const stats = canvas.graphics.stats as { skippedDraws: number };
-      let skipped = stats.skippedDraws;
-      let reads = 0;
-      Object.defineProperty(stats, 'skippedDraws', {
-        configurable: true,
-        get: () => (++reads === 2 ? ++skipped : skipped),
-        set: (v: number) => {
-          skipped = v;
-        },
-      });
-      const pick = canvas.asyncIdentify(Vec2.create(Size / 2, Size / 2))!;
-      Object.defineProperty(stats, 'skippedDraws', { configurable: true, writable: true, value: skipped });
-      expect(pick.tryGet()).toBe('pending');
-      // work settled since: drawn again
-      await canvas.graphics.resources.pending.track(Promise.resolve(), 'test settle');
-      let picked = pick.tryGet();
-      for (let i = 0; i < 200 && picked === 'pending'; ++i) {
-        canvas.tick(now(), { isSynchronous: true });
-        await canvas.graphics.resources.pending.whenReady();
-        await new Promise((r) => setTimeout(r, 5));
-        picked = pick.tryGet();
-      }
-      expect(picked).not.toBe('pending');
-      // the first pixel of a coarse grid that hits (the lattice's particles apart)
-      let objectId: number | undefined;
-      for (let y = 4; y < Size && objectId === undefined; y += 8) {
-        for (let x = 4; x < Size && objectId === undefined; x += 8) {
-          let hit = canvas.identify(Vec2.create(x, y));
-          for (let i = 0; i < 50 && hit === 'pending'; ++i) {
-            await new Promise((r) => setTimeout(r, 10));
-            hit = canvas.identify(Vec2.create(x, y));
-          }
-          if (hit && hit !== 'pending') objectId = hit.id.objectId;
+      try {
+        await plugin.init();
+        for (const raster of ['off', 'only'] as const) {
+          const lattice = await drawn(raster, true);
+          if (lattice === undefined) continue;
+          const root = (await drawn(raster, false))!;
+          // a particle of the lattice drawn as it is, the root's 4 times larger: about 16 times its area (its sites
+          // overlap more, the discs of whole pixels)
+          const one = lattice / 16;
+          expect(root, raster).toBeGreaterThan(8 * one);
+          expect(root, raster).toBeLessThan(24 * one);
         }
+      } finally {
+        plugin.dispose();
       }
-      expect(objectId).toBe(object.id);
-
-      expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
-  }, 120_000);
-
-  it("draws a coarse node's spheres larger by its pose's scale, as sprites as rasterized", async () => {
-    // the lattice a tile a particle (4³ tiles), its levels: the root a sample of it (one particle) drawn 4 times larger
-    const bytes = writeParticlePack(createList(), { tiles: 4, levels: true });
-    const file = Asset.File(new File([bytes], 'lattice.mspk'));
-    const spec = DefaultPluginSpec();
-    // one plugin for the draws (a new one compiles the pipelines again), the scene before removed
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
-    /**
-     * the pixels drawn (`sphereRaster` off: sprites; only: the raster) of the root node alone, or of the lattice's
-     * tiles (`base`: 16 particles seen along z, the others behind them)
-     */
-    const drawn = async (raster: 'off' | 'only', base: boolean) => {
-      await plugin.clear();
-      // committed empty: the next scene's camera reset immediate, as on a new canvas (else a transition from the last)
-      plugin.canvas3d!.commit(true);
-      if (raster === 'only' && !plugin.canvas3d!.graphics.capabilities.atomicMinMax64) return undefined;
-      plugin.canvas3d!.setProps({
-        renderer: { sphereRaster: raster, sphereRasterRadius: 64, backgroundColor: 0x000000 as never },
-        camera: { mode: 'orthographic' } as never,
-        cameraFog: { name: 'off', params: {} },
-        multiSample: { mode: 'off' } as never,
-        postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
-      });
-      const tiles = await plugin
-        .build()
-        .toRoot()
-        .apply(ParticleTileSetFromPack, { source: { name: 'file', params: file }, levels: true } as never)
-        .commit();
-      const levels = tiles.data!.set.levels!;
-      // a camera given that sees the set: the tiles themselves at the default detail, the root alone where any
-      // detail is too fine
-      const camera = {
-        snapshot: {
-          mode: 'perspective' as const,
-          fov: Math.PI / 4,
-          position: Vec3.create(45, 45, 400),
-          target: Vec3.create(45, 45, 0),
-          up: Vec3.create(0, 1, 0),
-          minNear: 1,
-        },
-        width: 512,
-        height: 512,
-      };
-      const detailPixels = base ? 4 : 1e9;
-      const view = await plugin
-        .build()
-        .to(tiles.ref)
-        .apply(ParticleTilesView, {
-          tiles: { name: 'camera', params: { minPixels: 0, occlusion: false, follow: false, detailPixels, camera } },
-          frame: 0,
-          slots: true,
-        } as never)
-        .commit();
-      const shown = Array.from(ParticleTileView.of(view.data!)!.tiles);
-      if (base) expect(shown.length).toBe(64);
-      else expect(shown).toEqual([levels.getNode(levels.count, 0)]);
-      await plugin
-        .build()
-        .to(view.ref)
-        .apply(ParticlesRepresentation3D, {
-          type: { name: 'target', params: { lodPixelSize: 0 } },
-          colorTheme: { name: 'uniform', params: { value: 0x00ff00 } },
-        } as never)
-        .commit();
-      for (let i = 0; i < 4; ++i) {
-        await plugin.getImageRaw({ width: Size, height: Size });
-        // the cull's read-backs landed (a room overflowed asks for another cull, tracked once it is read: on a slow
-        // device, a software Vulkan's, after the frame), then the work they asked for
-        await plugin.canvas3d!.graphics.waitForGpuCommandsComplete();
-        await new Promise((r) => setTimeout(r, 0));
-        await plugin.canvas3d!.graphics.resources.pending.whenReady();
-        const camera = plugin.canvas3d!.camera;
-        camera.setState(camera.getFocus(Vec3.create(45, 45, 45), 90), 0);
-      }
-      const { data } = await plugin.getImageRaw({ width: Size, height: Size });
-      expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
-      let n = 0;
-      for (let i = 0; i < data.length; i += 4) if (data[i + 1] > 40) n += 1;
-      return n;
-    };
-    try {
-      await plugin.init();
-      for (const raster of ['off', 'only'] as const) {
-        const lattice = await drawn(raster, true);
-        if (lattice === undefined) continue;
-        const root = (await drawn(raster, false))!;
-        // a particle of the lattice drawn as it is, the root's 4 times larger: about 16 times its area (its sites
-        // overlap more, the discs of whole pixels)
-        const one = lattice / 16;
-        expect(root, raster).toBeGreaterThan(8 * one);
-        expect(root, raster).toBeLessThan(24 * one);
-      }
-    } finally {
-      plugin.dispose();
-    }
-  }, 120_000);
+    },
+    120_000,
+  );
 });
