@@ -796,6 +796,12 @@ that differ (`pop`):
 
 ## Open questions
 
+- **Merged objects without a culler**: the raster takes a merged object's instances from its culler only, so a merged
+  object not culled on the GPU is drawn by the impostors: `gpuCulling: false`, and devices with `atomic-vec2u-min-max`
+  but without `indirect-first-instance` (no GPU culling), where units representations (always merged) then never get
+  the raster. Spheres merged anyway are culled for the raster alone at any count with `auto`, which covers the rest. A
+  raster input of all of an object's instances (no culler) would cover these; wanted only if such devices matter.
+
 - **The defaults `auto` and 24 px, reviewed and kept** on the RTX with the fixes of step 8. `auto` never behind `off` beyond noise:
   PetWorld and MG_1184 whole, zoomed and rotating, 1.1-2.1× ahead where it counts. Limit (frame, ms, 6 / 24 / 64 px):
   MG_1184 zoomed to 0.3 2.31 / 2.20 / 2.19, to 0.03 2.33 / 1.96 / 2.00, to 0.3 at 2560×1440 8.72 / 6.62 / 6.59; PetWorld
