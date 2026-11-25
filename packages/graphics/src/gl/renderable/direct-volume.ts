@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
@@ -48,6 +49,13 @@ export const DirectVolumeSchema = {
   uTransferScale: UniformSpec('f', 'material'),
   /** the opacity at which the marking and pick variants put the volume's surface */
   uSurfaceOpacity: UniformSpec('f'),
+  /** `renderMode`: composite blends the samples of a ray, maximum keeps its brightest one, attenuated its brightest
+   * dimmed by the density in front, additive sums them */
+  dRenderMode: DefineSpec('string', ['composite', 'maximum', 'attenuated', 'additive']),
+  /** the value the `maximum` mode's window starts at: a sample below it adds nothing */
+  uMaximumStart: UniformSpec('f'),
+  /** `attenuation`: the dimming of the `attenuated` mode, the gain of the `additive` one */
+  uAttenuation: UniformSpec('f'),
   /** the grid's bricks (`BrickRange`), their visibility under the transfer function per brick and the bricks per axis */
   brickRange: ValueSpec('unknown'),
   tBrickTex: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
