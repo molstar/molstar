@@ -1008,7 +1008,10 @@ namespace Structure {
       const old = u.conformation.operator;
       for (const transform of transforms) {
         if (Mat4.isIdentity(transform)) {
-          units.push(u);
+          // the unit itself, renumbered where its id is not the next: every copy's id the next (its own kept, it could
+          // be another copy's, two units of one id)
+          units.push(u.id === id ? u : u.applyOperator(id, old, true));
+          id += 1;
           continue;
         }
         const op = SymmetryOperator.create(old.name, transform, old);

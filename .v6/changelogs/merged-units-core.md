@@ -15,3 +15,5 @@
   cell corners, where the smoothing puts the values: they were drawn half a cell off in x and y (WebGL and WebGPU).
 - The kernel sampling the smoothed layers of merged surfaces is compiled in the background once a surface smooths, and
   by `Canvas3D.precompile` for lists with merged meshes, not at the first layer.
+- `Structure.instances` (the structure-instances transform) numbers every copy: with the identity among its transforms
+  it gave units of one id (that copy kept its unit's, the other copies' numbering repeating it).

@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- Fix `Structure.instances` (the structure-instances transform) giving units of one id where a transform is the
+  identity: that copy kept its unit's id, which the numbering of the other copies repeated
 - Fix smoothed colors and layers (overpaint, transparency, emissive, substance) of surfaces being sampled half a grid
   cell off in x and y
 - Fix atom-set `count-query` counting matches in the entire input instead of the current atom set
