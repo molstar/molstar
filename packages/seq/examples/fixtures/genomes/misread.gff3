@@ -1,0 +1,16 @@
+##gff-version 3
+##sequence-region chrG 1 7000
+chrG	gen	gene	101	2400	.	+	.	ID=gene:A;Name=GOOD
+chrG	gen	mRNA	101	2400	.	+	.	ID=tx:A1;Parent=gene:A;Name=GOOD-201
+chrG	gen	exon	101	400	.	+	.	Parent=tx:A1
+chrG	gen	exon	1801	2400	.	+	.	Parent=tx:A1
+chrG	gen	CDS	201	400	.	+	0	Parent=tx:A1
+chrG	gen	CDS	1801	2200	.	+	2	Parent=tx:A1
+chrG	gen	gene	3000	2800	.	+	.	ID=gene:end-before-start
+chrG	gen	gene	ten	3500	.	-	.	ID=gene:not-a-number
+chrG	gen	gene	3600	3900
+chrG	gen	exon	4001	4200	.	-	.	Parent=tx:nobody
+chrG	gen	mRNA	4501	5000	.	-	.	ID=tx:loop1;Parent=tx:loop2
+chrG	gen	mRNA	4501	5000	.	-	.	ID=tx:loop2;Parent=tx:loop1
+chrG	gen	gene	5501	6500	.	+	.	ID=gene:B;Name=PROKARYOTE-LIKE
+chrG	gen	CDS	5501	6500	.	+	0	ID=cds:B;Parent=gene:B

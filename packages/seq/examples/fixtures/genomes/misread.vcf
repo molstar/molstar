@@ -1,0 +1,14 @@
+##fileformat=VCFv4.2
+##contig=<ID=chrG,length=7000>
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Depth">
+##INFO=<ID=BROKEN>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chrG	500	good1	A	G	50	PASS	DP=20
+chrG	ten	not-a-number	A	G	50	PASS	DP=20
+chrG	1500	no-ref		G	50	PASS	DP=20
+chrG	2000	short-line	A
+chrG	2500	bad-depth	C	T	high	PASS	DP=many;XX=1
+chrG	3000	star	G	C,*	30	PASS	DP=8
+chrG	6990	past-end	ACGTACGTACGTACGTACGT	A	40	PASS	DP=5
+chrG	7500	outside	A	T	40	PASS	DP=5
+chrG	5000	good2	T	TA	60	PASS	DP=30

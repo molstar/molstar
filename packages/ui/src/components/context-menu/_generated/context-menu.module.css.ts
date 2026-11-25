@@ -14,6 +14,7 @@ export const classes = {
   'label': 'msui-context-menu-label',
   'menu': 'msui-context-menu-menu',
   'row': 'msui-context-menu-row',
+  'separator': 'msui-context-menu-separator',
   'slot': 'msui-context-menu-slot',
 } as const;
 
@@ -54,7 +55,7 @@ defineStyles('components/context-menu/context-menu.module.css', `@layer msui.com
     grid-template-columns: var(--msui-icon-slot) 1fr auto;
   }
 
-  &:hover:not([aria-disabled="true"]), &:focus-visible {
+  &:hover:not([aria-disabled="true"]), &[aria-expanded="true"], &:focus-visible {
     background: var(--msui-control-hover);
     color: var(--msui-text);
   }
@@ -72,6 +73,12 @@ defineStyles('components/context-menu/context-menu.module.css', `@layer msui.com
     color: var(--msui-text-subtle);
     cursor: default;
   }
+}
+
+.msui-context-menu-separator {
+  height: 1px;
+  margin: var(--msui-space-1) calc(-1 * var(--msui-surface-pad));
+  background: var(--msui-line);
 }
 
 .msui-context-menu-slot {

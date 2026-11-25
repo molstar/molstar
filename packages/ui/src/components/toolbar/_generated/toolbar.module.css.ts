@@ -142,6 +142,7 @@ defineStyles('components/toolbar/toolbar.module.css', `@layer msui.components {
   &[aria-disabled="true"] {
     color: var(--msui-text-subtle);
     cursor: default;
+    opacity: .4;
   }
 
   &:focus-visible {

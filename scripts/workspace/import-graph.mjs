@@ -37,6 +37,11 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../
 const APP_ROOTS = ['apps/', 'examples/', 'cli/', 'servers/', 'smoke/'];
 const SCAN_ROOTS = ['packages/', ...APP_ROOTS];
 const SKIP_DIRS = new Set(['node_modules', 'lib', '_test', '.claude', 'dist', 'build', '.git']);
+/**
+ * A folder with a pnpm-workspace.yaml of its own is another workspace (pnpm takes the nearest one): not in the
+ * inventory, never scanned (e.g. a benchmark that installs its own dependencies).
+ */
+export const isOtherWorkspace = (dir) => fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'));
 const SOURCE_EXTENSIONS = ['.ts', '.tsx'];
 
 export function loadManifest(root = repoRoot) {
@@ -50,7 +55,8 @@ function walk(dir, files = []) {
   if (!fs.existsSync(dir)) return files;
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     if (ent.isDirectory()) {
-      if (!SKIP_DIRS.has(ent.name)) walk(path.join(dir, ent.name), files);
+      const sub = path.join(dir, ent.name);
+      if (!SKIP_DIRS.has(ent.name) && !isOtherWorkspace(sub)) walk(sub, files);
     } else if (ent.isFile() && isSource(ent.name)) files.push(path.join(dir, ent.name));
   }
   return files;

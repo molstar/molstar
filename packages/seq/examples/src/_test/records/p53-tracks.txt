@@ -1,0 +1,83 @@
+size 640 116
+pass background
+rect 0 0 640 116 #f1efeaff
+rect 96 8 536 20 #e9e6e0ff squircle 6.67
+rect 96 32 536 50 #e9e6e0ff squircle 8
+rect 96 86 536 32 #e9e6e0ff squircle 8
+pass data
+clip 96 8 536 20 squircle 6.67
+rect 96 8 19 20 #efe8b8ff
+rect 115 8 19 20 #cfe0f5ff
+rect 134 8 19 20 #efe8b8ff
+rect 153 8 20 20 #cfe0f5ff
+rect 173 8 19 20 #efe8b8ff
+rect 192 8 19 20 #cdebd6ff
+rect 211 8 19 20 #d8d2f2ff
+rect 230 8 19 20 #efe8b8ff
+rect 249 8 19 20 #cfe0f5ff
+rect 268 8 19 20 #cdebd6ff
+rect 287 8 20 20 #cdebd6ff
+rect 307 8 19 20 #cdebd6ff
+rect 326 8 19 20 #cfe0f5ff
+rect 345 8 19 20 #efe8b8ff
+rect 364 8 19 20 #cdebd6ff
+rect 383 8 19 20 #cdebd6ff
+rect 402 8 19 20 #f5cfcfff
+rect 421 8 20 20 #cdebd6ff
+rect 441 8 19 20 #d8d2f2ff
+rect 460 8 19 20 #cdebd6ff
+rect 479 8 19 20 #efe8b8ff
+rect 498 8 19 20 #cdebd6ff
+rect 517 8 19 20 #d8d2f2ff
+rect 536 8 19 20 #efe8b8ff
+rect 555 8 20 20 #d8d2f2ff
+rect 575 8 19 20 #f5cfcfff
+rect 594 8 19 20 #cfe0f5ff
+rect 613 8 19 20 #efe8b8ff
+glyphs "12px mono" 22.2 per P 105.5 #2d271eff, A 124.5 #2d271eff, P 143.5 #2d271eff, A 163 #2d271eff, P 182.5 #2d271eff, S 201.5 #2d271eff, W 220.5 #2d271eff, P 239.5 #2d271eff, L 258.5 #2d271eff, S 277.5 #2d271eff, S 297 #2d271eff, S 316.5 #2d271eff, V 335.5 #2d271eff, P 354.5 #2d271eff, S 373.5 #2d271eff, Q 392.5 #2d271eff, K 411.5 #2d271eff, T 431 #2d271eff, Y 450.5 #2d271eff, Q 469.5 #2d271eff, G 488.5 #2d271eff, S 507.5 #2d271eff, Y 526.5 #2d271eff, G 545.5 #2d271eff, F 565 #2d271eff, R 584.5 #2d271eff, L 603.5 #2d271eff, G 622.5 #2d271eff
+unclip
+clip 96 32 536 50 squircle 8
+rect 96 51 191 12 #e7a717ff squircle 4 right
+rect 268 65 364 12 #18a67fff squircle 4 left
+unclip
+clip 96 86 536 32 squircle 8
+rect 96 117 536 1 #c4c9cfff
+rect 96.5 97.3 18 20.7 #5b7c9999 squircle 2 cut-bottom
+rect 115.5 102.7 18 15.3 #5b7c9999 squircle 2 cut-bottom
+rect 134.5 103.3 18 14.7 #5b7c9999 squircle 2 cut-bottom
+rect 153.5 98.8 19 19.2 #5b7c9999 squircle 2 cut-bottom
+rect 173.5 108.1 18 9.9 #5b7c9999 squircle 2 cut-bottom
+rect 192.5 105.4 18 12.6 #5b7c9999 squircle 2 cut-bottom
+rect 211.5 96.1 18 21.9 #5b7c9999 squircle 2 cut-bottom
+rect 230.5 111.1 18 6.9 #5b7c9999 squircle 2 cut-bottom
+rect 249.5 111.1 18 6.9 #5b7c9999 squircle 2 cut-bottom
+rect 268.5 94 18 24 #5b7c9999 squircle 2 cut-bottom
+rect 287.5 112.9 19 5.1 #5b7c9999 squircle 2 cut-bottom
+rect 307.5 110.8 18 7.2 #5b7c9999 squircle 2 cut-bottom
+rect 326.5 105.7 18 12.3 #5b7c9999 squircle 2 cut-bottom
+rect 345.5 110.5 18 7.5 #5b7c9999 squircle 2 cut-bottom
+rect 364.5 103.3 18 14.7 #5b7c9999 squircle 2 cut-bottom
+rect 383.5 115.3 18 2.7 #5b7c9999 squircle 1.35 cut-bottom
+rect 441.5 107.2 18 10.8 #5b7c9999 squircle 2 cut-bottom
+rect 460.5 103.6 18 14.4 #5b7c9999 squircle 2 cut-bottom
+rect 479.5 96.1 18 21.9 #5b7c9999 squircle 2 cut-bottom
+rect 498.5 115.3 18 2.7 #5b7c9999 squircle 1.35 cut-bottom
+rect 517.5 115.6 18 2.4 #5b7c9999 squircle 1.2 cut-bottom
+rect 536.5 89.2 18 28.8 #5b7c9999 squircle 2 cut-bottom
+rect 555.5 92.2 19 25.8 #5b7c9999 squircle 2 cut-bottom
+rect 575.5 95.8 18 22.2 #5b7c9999 squircle 2 cut-bottom
+rect 594.5 100.3 18 17.7 #5b7c9999 squircle 2 cut-bottom
+rect 613.5 115.6 18 2.4 #5b7c9999 squircle 1.2 cut-bottom
+unclip
+pass window
+pass highlight
+pass selection
+pass hover
+rect 209.25 6.25 22.5 23.5 none stroke #2d271eff 1.5 squircle 8.42
+pass cursor
+pass labels
+text "p53" 8 22.2 start "12px sans" #6b655cff width 20.02 max 80
+text "Domains" 8 61.2 start "12px sans" #6b655cff width 47.34 max 80
+text "Proline-rich" 99 60.5 start "10px sans" #2d271eff width 50.56 max 50.56
+text "DNA-binding" 271 74.5 start "10px sans" #2d271eff width 56.68 max 56.68
+text "Conservation" 8 106.2 start "12px sans" #6b655cff width 70.69 max 80

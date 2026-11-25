@@ -1,0 +1,2 @@
+# A workspace of its own: the root install never sees this folder, so rdkit-esm stays out of Mol* (plans/benchmark.md §2).
+packages: []

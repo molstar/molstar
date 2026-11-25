@@ -1,0 +1,58 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Molecules" />
+
+# Molecules
+
+What is not a linear polymer of letters: a ligand, an ion, a drug, a glycan, and the modified residues inside a polymer.
+Seq\* holds **pointers and labels, never chemistry**: a component code, a SMILES or a GlyTouCan id is a string it
+matches and shows; parsing and depicting chemistry is a host's. Built in the fourth slice (language 0.5.0).
+
+## Kinds
+
+- A **molecule** sits beside a sequence: its positions are its components (one for ATP, several for a glycan), it
+  carries identifiers as open words (`ccd:ATP`, `smiles:…`, `glytoucan:…`), and optionally its heavy atoms as a second
+  form. Its residues and atoms are joined by a many-to-one map applied only at a path's ends.
+- A **modified residue** keeps its parent's letter (MSE draws as M, PSU as U) and carries its component, marked on the
+  letter and named on hover; several components at one position are all kept. A modification known by name only (a
+  UniProt PTM) is a `modified` range, found by the same query: `(filter :test (= (prop modified) true))`.
+- A **complex** has **units** (chains and molecules in a structure, each with its author numbering); copies are derived.
+  Its **links** (a drug on a lysine, a glycan on an asparagine, a disulfide) are a pairs node.
+
+## Queries
+
+A structure's parts are selected with one record, as MolViewSpec and MolQL write it:
+`(elements :component HEM :atom FE)` gives 4HHB's four irons, `(elements :chain A :beg 10 :end 20 :atom CA)` eleven of
+CDK2's Cα atoms. The finest field says how deep it goes: chains, residues or atoms. `(groups …)` gives one key per
+residue (or atom, unit, molecule), and a filter tests any property. Chains and molecules as nodes stay `(chain …)` and
+`(molecule …)`.
+
+## On an axis
+
+A modified residue is drawn as its parent's letter with a mark: a dot at the cell's corner by default (a tick above the
+strip when zoomed out), or its code in place of the letter (as Mol\*'s sequence panel), or an outlined cell, or nothing;
+the track's choice. None of these widens a cell: the default is compact. A row of markers by kind, as UniProt's feature
+viewers draw, is a ranges track over the sites.
+
+A molecule is a chip in every layout by default (its label, a fixed slot, however many residues it has); its residues
+(labeled by their codes) or its atoms (by their element symbols) by patch, `block.form`, one undo step, which changes
+that one block while the rest of the section still follows the complex. A section of a complex lays out a block a unit:
+polymers first, then glycans, ligands and ions; water is left out unless asked; copies are one block, “×200” for a
+capsid's. A chip is hit, hovered and selected as its whole molecule. Links are arcs, each end on its own chain. Where a
+molecule binds, and whether hovering it lights its linked sites (`links.hover`), is the application's to turn on; the
+examples turn it on. Hovering a residue says its component and name (`PSU (pseudouridine)`), an atom its name, element
+and residue; the hover carries the molecule's identifiers for a host's card.
+
+See it in **Features › Molecules**: A section of a complex, Whole, residues, atoms, Modified residues, As text and Two
+hundred copies, each in the light and the dark theme. On the recorded entries, each with `links.hover` on:
+[Hemoglobin](?path=/story/seq-next-examples-globins-hemoglobin--hemoglobin) (4HHB's hemes, the heme molecule with its
+atoms, a chip ×4), [tRNA-Phe's arcs](?path=/story/seq-next-examples-trna-views--arcs) (1EHZ's fourteen modified residues
+marked, found by their bookmark), [the Fc and its N297 glycan](?path=/story/seq-next-examples-antibody-views--fc-glycan)
+and [its residues](?path=/story/seq-next-examples-antibody-views--glycan-residues) (3AVE's branched glycan, a chip or
+its residues by one patch) and [p53's structure](?path=/story/seq-next-examples-p53-structure--structure) (2OCJ's four
+chains and zincs, P04637 mapped by SIFTS and by an alignment).
+
+## Reading
+
+From the `seq` format, and from mmCIF through an opt-in runtime on `@molstar/io`'s reader. Sharing the parsed
+representation with a host such as Mol\*, rather than parsing again, is a design of its own: the seq data ports.

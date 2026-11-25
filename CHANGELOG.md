@@ -259,6 +259,10 @@ here.
 - Strips of lines (streamlines, fibers) get the bounding sphere of their points: it read past their buffers
 - Fix 'volume too large for gpu isosurface extraction' on periodic volumes: the GPU fallback check sizes the texture of
   the wrapped grid
+- ModelServer: fix the structure cache leaking every entry until the heap ran out (issue #1816); bound concurrent
+  requests (`maxConcurrentJobs`) and the queue (`maxQueueLength`, 503); `cacheMaxSizeInBytes` counts approximate memory;
+  remote sources no longer time out after 500 ms (`fetchTimeoutMs`); 400/404/502/503 status codes; graceful shutdown
+  (see `servers/model/src/CHANGELOG.md`)
 
 ## [v5.13.1] - 2026-10-08
 

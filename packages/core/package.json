@@ -18,6 +18,16 @@
       "types": "./lib/data/index.d.ts",
       "import": "./lib/data/index.js"
     },
+    "./repr/patch": {
+      "molstar-src": "./src/repr/patch.ts",
+      "types": "./lib/repr/patch.d.ts",
+      "import": "./lib/repr/patch.js"
+    },
+    "./repr/patch/conformance": {
+      "molstar-src": "./src/repr/patch/conformance.ts",
+      "types": "./lib/repr/patch/conformance.d.ts",
+      "import": "./lib/repr/patch/conformance.js"
+    },
     "./state": {
       "molstar-src": "./src/state/index.ts",
       "types": "./lib/state/index.d.ts",
@@ -27,6 +37,46 @@
       "molstar-src": "./src/reactive/index.ts",
       "types": "./lib/reactive/index.d.ts",
       "import": "./lib/reactive/index.js"
+    },
+    "./repr/tree": {
+      "molstar-src": "./src/repr/tree/index.ts",
+      "types": "./lib/repr/tree/index.d.ts",
+      "import": "./lib/repr/tree/index.js"
+    },
+    "./repr/schema": {
+      "molstar-src": "./src/repr/schema/index.ts",
+      "types": "./lib/repr/schema/index.d.ts",
+      "import": "./lib/repr/schema/index.js"
+    },
+    "./repr/builder": {
+      "molstar-src": "./src/repr/builder/index.ts",
+      "types": "./lib/repr/builder/index.d.ts",
+      "import": "./lib/repr/builder/index.js"
+    },
+    "./repr/codec": {
+      "molstar-src": "./src/repr/codec/index.ts",
+      "types": "./lib/repr/codec/index.d.ts",
+      "import": "./lib/repr/codec/index.js"
+    },
+    "./repr/codecs/json": {
+      "molstar-src": "./src/repr/codecs/json/index.ts",
+      "types": "./lib/repr/codecs/json/index.d.ts",
+      "import": "./lib/repr/codecs/json/index.js"
+    },
+    "./repr/codecs/sexpr": {
+      "molstar-src": "./src/repr/codecs/sexpr/index.ts",
+      "types": "./lib/repr/codecs/sexpr/index.d.ts",
+      "import": "./lib/repr/codecs/sexpr/index.js"
+    },
+    "./repr/codecs/msgpack": {
+      "molstar-src": "./src/repr/codecs/msgpack/index.ts",
+      "types": "./lib/repr/codecs/msgpack/index.d.ts",
+      "import": "./lib/repr/codecs/msgpack/index.js"
+    },
+    "./data/msgpack": {
+      "molstar-src": "./src/data/msgpack/index.ts",
+      "types": "./lib/data/msgpack/index.d.ts",
+      "import": "./lib/data/msgpack/index.js"
     },
     "./task": {
       "molstar-src": "./src/task/index.ts",
@@ -44,10 +94,15 @@
       "import": "./lib/util/index.js"
     },
     "./algorithms/sequence/_test/*": null,
+    "./util/internal/*": null,
     "./data/_test/*": null,
     "./data/db/_test/*": null,
     "./data/generic/_test/*": null,
+    "./data/immutable/*": null,
+    "./data/immutable/_test/*": null,
     "./data/int/_test/*": null,
+    "./data/msgpack/_test/*": null,
+    "./data/text/_test/*": null,
     "./data/util/_test/*": null,
     "./math/_test/*": null,
     "./math/fourier-transform/_test/*": null,
@@ -57,6 +112,15 @@
     "./math/graph/_test/*": null,
     "./math/linear-algebra/_test/*": null,
     "./reactive/_test/*": null,
+    "./repr/builder/_test/*": null,
+    "./repr/codec/_test/*": null,
+    "./repr/codecs/json/_test/*": null,
+    "./repr/codecs/msgpack/_test/*": null,
+    "./repr/codecs/sexpr/_test/*": null,
+    "./repr/patch/*": null,
+    "./repr/patch/_test/*": null,
+    "./repr/schema/_test/*": null,
+    "./repr/tree/_test/*": null,
     "./state/_test/*": null,
     "./task/util/_test/*": null,
     "./util/_test/*": null,
@@ -72,7 +136,9 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "test:perf": "vitest run -c vitest.perf.config.ts",
+    "typecheck:test": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "immutable": "catalog:",
@@ -84,6 +150,7 @@
   "devDependencies": {
     "typescript": "catalog:",
     "@types/node": "catalog:",
-    "@types/webxr": "catalog:"
+    "@types/webxr": "catalog:",
+    "@molstar/test-harness": "workspace:*"
   }
 }

@@ -1,0 +1,93 @@
+import { Canvas, Meta } from '@storybook/addon-docs/blocks';
+import * as Live from './live.stories';
+
+<Meta title="Docs/Embedding" />
+
+# Embedding
+
+Seq\* runs in three places: **mounted** in a page as a canvas with its UI parts, **headless** in a browser or in Node
+with no DOM, and from the **command line**. All three draw the same draw lists from the same spec.
+
+## Mounting the viewer
+
+```ts
+import { DefaultSeqViewerSpec } from '@molstar/seqx-viewer/default-spec';
+import { createSeqViewer } from '@molstar/seqx-viewer/viewer';
+
+const viewer = createSeqViewer(DefaultSeqViewerSpec(), element);
+await viewer.load(spec); // a SeqViewSpec tree, from the builder or JSON
+await viewer.settle(); // optional: wait until the data in view has arrived
+// …
+viewer.retire(); // releases everything it made
+```
+
+- **The viewer spec** is the composition (see [Extending](?path=/docs/seq-next-docs-extending--docs)). Its `ui` lists
+  the parts mounted with the canvas: in the default spec the legends, the navigators around the view and the history; a
+  toolbar is a part a host adds (`ui.toolbar`). Leave out `ui` for a viewer with no DOM.
+- **Size**: the canvas takes its element's width, and its height follows the view unless the host fixes one
+  (`viewer.resize`). A host that fits the viewer into its own panel decides the tracks' heights through the track sizing
+  port.
+- **Theme**: colors come from the page's theme tokens, so the view follows the page's light or dark theme.
+- **Ports**: files are read through an **assets port** under a policy. The browser default allows `https:` and locations
+  under the page, up to 256 MB and 30 s; a host passes its own asset manager. Text is measured with the page's fonts. A
+  spec's `uri` is untrusted input, so the policy decides, not the spec.
+- **The host's clock and undo**: Seq\* owns neither. The animation port runs its motions on the application's clock, so
+  a sequence jump and a structure's camera move together. The history port puts its edits on the host's stack.
+
+## The canvas and its SVG
+
+`viewer.renderSvg()` exports the view from the same draw lists as the canvas. It resolves to a result: the `svg` string,
+whether the data `settled`, the `issues`, and the draw `lists`. It waits for the data, and it shows the current
+selection and highlights. The SVG is accessible: a figure with a title and a description, each track a group, and each
+named item an image with its label and extent. Below, the canvas on the left and its export on the right, drawn again
+each time the canvas comes to rest:
+
+<Canvas of={Live.CanvasAndSvg} />
+
+## Headless
+
+The core composes the same pipeline with no viewer: `createSeqContext()` from `@molstar/seqx-core/context` gives
+`check`, `resolve`, `view` and `renderSvg(spec, { size })`. It runs in Node, has no DOM, and reads no file unless its
+assets port is given one. `headlessAssetPolicy({ root, hosts })` allows files under a folder and `https:` on the listed
+hosts only. A viewer can run headless too, with `headlessAnimation()` as its clock: that is how the tests drive every
+story.
+
+## The command line: `seqx-render`
+
+```sh
+seqx-render spec.json -o figure.svg --width 960 --theme dark
+seqx-render spec.json -o figure.png --scale 2 --allow-host rest.uniprot.org
+```
+
+A spec file (JSON, S-expression or MessagePack) becomes an SVG or a PNG. Its data is read from files under the spec's
+folder only, with no network unless `--allow-host` names a host. Issues are printed one a line. The exit code says what
+happened: 0 done, 1 the spec has errors, 2 usage, 3 the data did not arrive in time, 4 a file, 5 internal. PNGs are the
+SVG rasterized with bundled fonts, so a figure is the same on every machine.
+
+## Linking to a structure viewer
+
+A sequence view and a structure viewer link through **plain data**: locations on a structure's units.
+
+- `@molstar/seqx-core/structure` translates between Seq\*'s locations and a structure's chains and residues (`toUnits`,
+  `fromUnits`). It is pure and works headless, for example on a server coloring a structure.
+- `linkStructure(viewer, side)` (`@molstar/seqx-viewer/link-structure`) wires both ways. The **side** is the host's:
+  `highlight`, `select` and `focus` on the structure, and `onHover`, `onSelect` and `onFocus` coming back. Hover and
+  selection follow each other, a focus moves both, and a link still waiting for its chain maps holds its hover rather
+  than clearing it.
+- The structure viewer can also serve its data to Seq\* (see [Data](?path=/docs/seq-next-docs-data--docs), seq data
+  ports), so the sequence panel never reads the file twice.
+
+Seq\* never imports a structure viewer's types. The host's adapter is the only code that knows both sides.
+[Features › Structure link](?path=/story/seq-next-features-structure-link--hover-both-ways) shows a fake structure
+viewer: [hover with latency](?path=/story/seq-next-features-structure-link--hover-with-latency),
+[selection](?path=/story/seq-next-features-structure-link--selection-both-ways),
+[focus and back](?path=/story/seq-next-features-structure-link--focus-and-back) and
+[color by a track](?path=/story/seq-next-features-structure-link--color-by-this-track).
+[Showcases › Nightingale](?path=/story/seq-next-showcases-nightingale--the-link) goes further: EBI's components draw the
+same spec from the resolved view and the store, linked to the viewer's hover and selection.
+
+## Where next
+
+- [Performance and limits](?path=/docs/seq-next-docs-performance-and-limits--docs): what a host can expect.
+- For contributors: [Design › Rendering](?path=/docs/seq-next-design-rendering--docs) and
+  [Design › Structure syncing](?path=/docs/seq-next-design-structure-syncing--docs).

@@ -1,0 +1,4 @@
+{
+  "why": "The folders the module-size bound governs here: Seq*'s packages.",
+  "checked": "^packages/seq/.*\\.(ts|tsx|mts|mjs|js)$"
+}

@@ -24,6 +24,7 @@ not).
 | `apps/docs`                                  | the documentation site (Astro Starlight): the v5 and v6 docs in `src/content/docs/`                                                                                                                                      |
 | `storybook/`                                 | Storybook for the packages registered in `storybook/packages.ts` (stories in `_stories/` folders)                                                                                                                        |
 | `.v6/`                                       | v6-wide designs and plans (`designs/`, `plans/`); a package's own decisions are in its `_spec/`                                                                                                                          |
+| `.scaffolds/`                                | development scaffolds: a principles package, and one folder per scaffold (`seq/`: Seq\*'s designs, sources, work and records); agent context, never cited by code ([AGENTS.md](.scaffolds/AGENTS.md))                    |
 | `scripts/workspace/`                         | the package inventory (`inventory.json`) and the workspace checks                                                                                                                                                        |
 | `test-harness/`                              | the allocation, heap, scaling and timing guards the packages' opt-in tiers share (`@molstar/test-harness/*`, a dev dependency)                                                                                           |
 
@@ -100,8 +101,8 @@ can hold its tests.
 
 - **A test slow by nature moves, and keeps a quick representative**: one layer of a sweep, the smaller fixtures, a short
   fuzz, a smaller scale. A wall-clock bound goes in `itWithin` (`test-harness/src/timing.ts`): the test runs quick
-  without the bound and heavy with it. Coverage is never dropped: medium runs on every PR. Why: the PR checks finish in
-  minutes, and the edit loop in seconds.
+  without the bound and heavy with it, the best of three runs (`tries: 1` for a test about one run's time). Coverage is
+  never dropped: medium runs on every PR. Why: the PR checks finish in minutes, and the edit loop in seconds.
 - **A test slow by waste is fixed, not moved**: a fixture computed once per file, not per `describe`; fake timers where
   real ones only wait; no rebuild per test.
 - **Tag in the test's own file**, inline or by `@module-tag` on a line of its own: the config reads the files to decide

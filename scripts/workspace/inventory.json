@@ -67,6 +67,12 @@
       "private": false
     },
     {
+      "name": "@molstar/seqx-render-cli",
+      "path": "cli/seqx-render",
+      "kind": "cli",
+      "private": true
+    },
+    {
       "name": "@molstar/particle-pack-cli",
       "path": "cli/particle-pack",
       "kind": "cli",
@@ -225,6 +231,12 @@
     {
       "name": "@molstar/backgrounds-extension",
       "path": "packages/extensions/backgrounds",
+      "kind": "extension",
+      "private": false
+    },
+    {
+      "name": "@molstar/bond-orders-extension",
+      "path": "packages/extensions/bond-orders",
       "kind": "extension",
       "private": false
     },
@@ -537,6 +549,36 @@
     {
       "name": "@molstar/seq-storybook",
       "path": "packages/sequences/storybook",
+      "kind": "storybook",
+      "private": true
+    },
+    {
+      "name": "@molstar/seqx-core",
+      "path": "packages/seq/core",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seqx-viewer",
+      "path": "packages/seq/viewer",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seqx-examples",
+      "path": "packages/seq/examples",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seqx-ext-rondo",
+      "path": "packages/seq/ext-rondo",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seqx-storybook",
+      "path": "packages/seq/storybook",
       "kind": "storybook",
       "private": true
     }

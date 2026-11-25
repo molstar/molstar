@@ -26,12 +26,22 @@ export const FrameLane: { work: (() => void) | undefined; after: (() => void) | 
 let requested = false;
 /** The host asked for the pending tick: a host swapped since (a test's stub) never runs it, so the new one is asked. */
 let requestedOf: typeof DomHost.requestAnimationFrame | undefined;
+/**
+ * The page's scheduler the default host used for the pending tick (`requestAnimationFrame`, or `setTimeout` without
+ * one). Fake timers replace it, and a tick asked on a clock that is gone never runs: one asked again runs, and a
+ * second tick with nothing pending does nothing. A page's `requestAnimationFrame` does not change.
+ */
+let requestedVia: unknown;
+const scheduler = (): unknown =>
+  typeof requestAnimationFrame === 'function' ? requestAnimationFrame : globalThis.setTimeout;
 
 /** Asks for the frame's tick (once a frame). */
 export function requestFrame(): void {
-  if (requested && requestedOf === DomHost.requestAnimationFrame) return;
+  const via = scheduler();
+  if (requested && requestedOf === DomHost.requestAnimationFrame && requestedVia === via) return;
   requested = true;
   requestedOf = DomHost.requestAnimationFrame;
+  requestedVia = via;
   FrameCounts.requested++;
   DomHost.requestAnimationFrame(frameTick);
 }

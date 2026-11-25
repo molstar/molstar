@@ -1587,3 +1587,18 @@ The geometry param `renderMerged` (`on`, `off`, `auto` above `AutoRenderMergedTh
 (`@molstar/graphics/geo/geometry/base`). Units representations always merge their groups into one render object per
 part; a value in saved props or snapshots is ignored. Code reading a units representation's render objects gets merged
 ones (`getMergedMembers` for per-group views) where it got one a group.
+
+## `PCG` draws the PCG32 sequence
+
+- `PCG` from `@molstar/core/data/util/hash-functions` draws a different sequence for the same seed (now PCG32 with
+  stream 54, matching the reference implementation). Code or stored data depending on its exact outputs must be
+  regenerated. `getDistinctGroupColors` for a grayscale base color returns different gray shades; SSAO's noise,
+  volume dots and streamlines seeded by it differ.
+
+## `ungzip` reads every member and refuses a damaged one
+
+`ungzip` (`@molstar/core/util/zip/zip`) reads every member of a multi-member gzip stream (BGZF, concatenated `.gz`)
+instead of the first only, so a concatenated file now yields all its bytes. A member that is cut short or damaged
+throws, among several as well as alone; trailing zero padding after the last member is skipped. A caller that relied
+on getting the first member's bytes alone, or partial bytes from a damaged file, gets the whole content or an error
+(Mol\*'s plugin fetch, core's assets and data source).

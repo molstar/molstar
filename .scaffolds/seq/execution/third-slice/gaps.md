@@ -1,0 +1,66 @@
+# Gaps: the third slice
+
+Questions for the author, each yes or no with a recommendation. Gaps the loop decided as recommended while the author
+was away are listed with "(decided as recommended)"; a public API change is never decided that way.
+
+## Open (stale: all five decided and built by GD, see "Decided by the author" below; the author confirmed "Yes, as recommended" again, 2026-11-19)
+
+- **A lists-free palette module in `@molstar/core`** (TH's review, 2026-11-19). `util/color/value-palette.ts` imports
+  `lists.ts` statically, so the lazy `ValuePaletteLists` saves work but not bundle size: every reader of value
+  palettes ships all of Mol\*'s color lists (about 13.6 kB in Seq\*'s headless rendering and viewer). The themes design
+  reserves the module split for you. Split the evaluation into a lists-free module that `value-palette.ts` re-exports
+  (with `ValuePaletteLists`), non-breaking for Mol\*'s and MolViewSpec's code? Recommend **yes**.
+- **The default protein scheme is not color-blind safe** (TH's drift 6): `classes` stays the default and its safe
+  substitute is drawn under the reader's `theme.cvdSafe`. Keep `classes` as the default? Recommend **yes** (the
+  reader's setting covers it; changing the default changes every figure). Found at TH's merge: several schemes name
+  `classes` as their color-blind substitute while `classes` is itself not safe, so `theme.cvdSafe` can substitute an
+  unsafe scheme. Whatever the default, should every substitute be a safe scheme (a new safe residue scheme, e.g. on
+  Okabe–Ito groups, as the substitute)? Recommend **yes**.
+- **Letter cells in dark read dim** (TH's measurement): the dark variants sit at Oklab L 0.32–0.61, only 1.4–1.7:1
+  against the dark page, and cannot go lighter without the ink failing 4.5:1. Draw a hairline cell outline in dark
+  (option a) rather than lighten the dark page (option b, every figure)? Recommend **a**.
+
+## 4. Two motion config items overlap (SY review)
+
+`view.motion` (`auto`/`cut`) and `story.reducedMotion` (`platform`/`always`/`never`) both decide whether motion plays.
+The proposal is one item, `view.motion: platform | cut | animate` (default `platform`), read by jumps and stories,
+dropping `story.reducedMotion`. That changes the stories design's Configuration table, so it is the author's call.
+Until then, SY keeps both items and scopes `story.reducedMotion` to story motion only. Recommendation: merge them.
+
+## 5. The pyramid's majority tolerance (RW review)
+
+A majority isn't mergeable across levels (the design chose majority-of-majorities), so the design's "letter exact where
+the winner leads by more than 0.1, share within 0.1" doesn't hold: at those numbers the letter is wrong at a lead of
+0.1 and the share is off by 0.126. Measured: share within 0.05 on average and 0.3 at worst, letter exact at a lead over
+0.25. Options: (a) record the measured tolerance in grids-and-rows.md; (b) keep the top two classes per sample (more
+memory per level, closer shares). Recommendation: (a), since the image tiles are below 3 device px where the shade reads,
+not the letter. RW's tests assert the measured bounds until you decide.
+
+## 6. Clade names on repeated labels (CH's review)
+
+Support values as inner labels (`((A,B)95,(C,D)95)`) give two clades one name: a hover, a fold or `clades.keep` reaches
+the first. Name a clade by its node's id only where the id is unique (a repeated or numeric-only label falls back to
+its first and last leaves)? Recommend **yes** (`drift/clade-names.md`). **Decided yes** (the author, 2026-11-19); built in GD.
+
+## 7. The line numbers' baseline in a text figure (CH)
+
+A line's start and end numbers ("61", "80") sit at the first band's middle, 6 px below the ruler's labels ("65",
+"75"); layouts.md (Numbers per row) is silent. Put them on the ruler's label baseline when the first band is a ruler?
+Recommend **yes** (one line of numbers reads as one row). **Decided yes** (the author, 2026-11-19); built in CH's fix round.
+
+## Decided by the author (2026-11-19: "go as recommended")
+
+All five open gaps above, as recommended; written into themes.md, stories.md, ux-foundations.md and grids-and-rows.md
+and their Design pages. Built by lane GD after PG and NV merge (it touches the viewer's config and the themes' render):
+
+1. The lists-free palette module in `@molstar/core/util/color`, re-exported by `value-palette.ts`: yes (non-breaking).
+   It saved 1 kB alone; the lists exported individually as named constants (the author, 2026-11-19: "Yeah let's
+   export these individually"), an additive `@molstar/core` export.
+2. `classes` stays the default: yes. Every substitute safe: yes, `classes-safe` (the classes on Okabe–Ito hues).
+3. Dark letter cells: (a), a hairline cell edge (`seq-cell-edge`) in dark only.
+4. One motion item: `view.motion: platform | cut | animate` (default `platform`), `story.reducedMotion` dropped.
+5. The pyramid's tolerance: (a), the measured bounds recorded in grids-and-rows.md.
+
+- **p53's chromosome's data** (taken as recommended, 2026-11-19, for the author's review): generated by region
+  (letters, about 1,200 genes, a smooth signal), nothing recorded; real only the chromosome's GRCh38 length and TP53's
+  place. Recorded GENCODE genes would need a licence check and a fixture over the size bound. Yes to keep generated?

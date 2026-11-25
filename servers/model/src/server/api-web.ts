@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
 import * as fs from 'fs';
@@ -10,8 +11,7 @@ import * as express from 'express';
 import { ModelServerConfig as Config, ModelServerConfig, mapSourceAndIdToFilename } from '@molstar/model-server/config';
 import { ConsoleLogger } from '@molstar/core/util/console-logger';
 import { resolveJob } from './query.js';
-import { JobManager, JobEntry, type ResultWriterParams } from './jobs.js';
-import { UUID } from '@molstar/core/util';
+import { JobEntry, JobRunner, createJob, type Job, type JobDefinition, type ResultWriterParams } from './jobs.js';
 import { type QueryDefinition, normalizeRestQueryParams, normalizeRestCommonParams, QueryList } from './api.js';
 import { getApiSchema, shortcutIconLink } from './api-schema.js';
 import { swaggerUiAssetsHandler, swaggerUiIndexHandler } from '@molstar/common-server/swagger-ui';
@@ -23,30 +23,70 @@ import {
 } from '@molstar/model-server/utils/writer';
 import { splitCamelCase } from '@molstar/core/util/string';
 import { healthCheck } from '@molstar/common-server/util';
+import { StructureCache } from './structure-wrapper.js';
+import { errorStatus } from './errors.js';
 
 function makePath(p: string) {
   return Config.apiPrefix + '/' + p;
 }
 
-const responseMap = new Map<UUID, express.Response>();
+const MB = 1024 * 1024;
 
-async function processNextJob() {
-  if (!JobManager.hasNext()) return;
+function stats() {
+  const { queued, running } = runner.stats;
+  const cache = StructureCache.stats;
+  const heap = process.memoryUsage().heapUsed;
+  return (
+    `queued ${queued}, running ${running}, cache ${cache.count} entries ~${Math.round(cache.approximateSize / MB)} MB, ` +
+    `heap ${Math.round(heap / MB)} MB`
+  );
+}
 
-  const job = JobManager.getNext();
-  responseMap.delete(job.id);
+async function processJob(job: Job) {
   const writer = job.writer as WebResutlWriter;
-
   try {
     await resolveJob(job);
   } catch (e) {
     ConsoleLogger.errorId(job.id, '' + e);
-    writer.doError(404, '' + e);
+    writer.doError(errorStatus(e), '' + e);
   } finally {
     writer.end();
-    ConsoleLogger.logId(job.id, 'Query', 'Finished.');
-    setImmediate(processNextJob);
+    ConsoleLogger.logId(job.id, 'Query', `Finished (${stats()}).`);
   }
+}
+
+function skipJob(job: Job) {
+  job.writer.end();
+  ConsoleLogger.logId(job.id, 'Query', 'Skipped: the client is gone.');
+}
+
+const runner = new JobRunner(
+  processJob,
+  () => ({ maxConcurrentJobs: Config.maxConcurrentJobs, maxQueueLength: Config.maxQueueLength }),
+  skipJob,
+);
+
+/** Stops accepting queries (503) and resolves when the queued and running ones are done. */
+export function drainWebApi() {
+  return runner.drain();
+}
+
+function enqueue(definition: JobDefinition, res: express.Response) {
+  const job = createJob(definition);
+  if (runner.add(job)) return;
+
+  const writer = job.writer as WebResutlWriter;
+  if (runner.isAccepting) {
+    ConsoleLogger.logId(job.id, 'Query', `Refused: the queue is full (${stats()}).`);
+    res.setHeader('Retry-After', '10');
+    writer.doError(503, 'The server is busy, try again later.');
+  } else {
+    writer.doError(503, 'The server is shutting down.');
+  }
+}
+
+function badRequest(res: express.Response, e: unknown) {
+  res.status(errorStatus(e) === 500 ? 400 : errorStatus(e)).send('' + e);
 }
 
 export function createResultWriter(response: express.Response, params: ResultWriterParams) {
@@ -62,44 +102,51 @@ export function createResultWriter(response: express.Response, params: ResultWri
   );
 }
 
+// bodies of query-many specs, and of query POSTs (their parameters)
+const jsonSpec = express.json({ limit: '1mb' });
+const jsonParams = express.json({ limit: '20mb' });
+
 function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
-  function createJob(queryParams: any, req: express.Request, res: express.Response) {
-    const entryId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const commonParams = normalizeRestCommonParams(req.query);
-    const resultWriterParams = {
-      encoding: commonParams.encoding!,
-      download: !!commonParams.download,
-      filename: commonParams.filename!,
-      entryId,
-      queryName,
-    };
-    const jobId = JobManager.add({
-      entries: [
-        JobEntry({
-          sourceId: commonParams.data_source || ModelServerConfig.defaultSource,
-          entryId,
-          queryName: queryName as any,
-          queryParams,
-          modelNums: commonParams.model_nums,
-          copyAllCategories: !!commonParams.copy_all_categories,
-          transform: commonParams.transform,
-        }),
-      ],
-      writer: createResultWriter(res, resultWriterParams),
-      options: { binary: commonParams.encoding === 'bcif', encoding: commonParams.encoding },
-    });
-    responseMap.set(jobId, res);
-    if (JobManager.size === 1) processNextJob();
+  function handle(getQueryParams: () => any, req: express.Request, res: express.Response) {
+    let definition: JobDefinition;
+    try {
+      const entryId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const commonParams = normalizeRestCommonParams(req.query);
+      const resultWriterParams = {
+        encoding: commonParams.encoding!,
+        download: !!commonParams.download,
+        filename: commonParams.filename!,
+        entryId,
+        queryName,
+      };
+      definition = {
+        entries: [
+          JobEntry({
+            sourceId: commonParams.data_source || ModelServerConfig.defaultSource,
+            entryId,
+            queryName: queryName as any,
+            queryParams: getQueryParams(),
+            modelNums: commonParams.model_nums,
+            copyAllCategories: !!commonParams.copy_all_categories,
+            transform: commonParams.transform,
+          }),
+        ],
+        writer: createResultWriter(res, resultWriterParams),
+        options: { binary: commonParams.encoding === 'bcif', encoding: commonParams.encoding },
+      };
+    } catch (e) {
+      badRequest(res, e);
+      return;
+    }
+    enqueue(definition, res);
   }
 
   app.get(makePath('v1/:id/' + queryName), (req, res) => {
-    const queryParams = normalizeRestQueryParams(queryDefinition, req.query);
-    createJob(queryParams, req, res);
+    handle(() => normalizeRestQueryParams(queryDefinition, req.query), req, res);
   });
 
-  app.post(makePath('v1/:id/' + queryName), (req, res) => {
-    const queryParams = req.body;
-    createJob(queryParams, req, res);
+  app.post(makePath('v1/:id/' + queryName), jsonParams, (req, res) => {
+    handle(() => req.body, req, res);
   });
 }
 
@@ -108,14 +155,14 @@ function serveStatic(req: express.Request, res: express.Response) {
   const source = _source === 'bcif' ? 'pdb-bcif' : _source === 'cif' ? 'pdb-cif' : _source;
 
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const [fn, format] = mapSourceAndIdToFilename(source, id);
-  const binary = format === 'bcif' || fn.indexOf('.bcif') > 0;
+  const [fn, format] = mapSourceAndIdToFilename(source, id) ?? [];
 
   if (!fn || !fs.existsSync(fn)) {
     res.status(404);
     res.end();
     return;
   }
+  const binary = format === 'bcif' || fn.indexOf('.bcif') > 0;
   fs.readFile(fn, (err, data) => {
     if (err) {
       res.status(404);
@@ -136,6 +183,11 @@ function serveStatic(req: express.Request, res: express.Response) {
 }
 
 function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
+  if (!spec || typeof spec !== 'object' || !Array.isArray(spec.queries)) {
+    res.status(400).send(`query-many expects { queries: [...] }.`);
+    return;
+  }
+
   const writer = spec.asTarGz
     ? new TarballResponseResultWriter(getMultiQuerySpecFilename(), res)
     : createResultWriter(res, { encoding: spec.encoding!, download: !!spec.download, filename: spec.filename });
@@ -145,8 +197,9 @@ function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
     return;
   }
 
-  const jobId = JobManager.add({
-    entries: spec.queries.map((q) =>
+  let entries: JobEntry[];
+  try {
+    entries = spec.queries.map((q) =>
       JobEntry({
         sourceId: q.data_source || ModelServerConfig.defaultSource,
         entryId: q.entryId,
@@ -155,39 +208,56 @@ function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
         modelNums: q.model_nums,
         copyAllCategories: !!q.copy_all_categories,
       }),
-    ),
-    writer,
-    options: { binary: spec.encoding?.toLowerCase() === 'bcif', tarball: spec.asTarGz },
-  });
-  responseMap.set(jobId, res);
-  if (JobManager.size === 1) processNextJob();
+    );
+  } catch (e) {
+    writer.doError(400, '' + e);
+    return;
+  }
+
+  enqueue(
+    { entries, writer, options: { binary: spec.encoding?.toLowerCase() === 'bcif', tarball: spec.asTarGz } },
+    res,
+  );
 }
 
 export function initWebApi(app: express.Express) {
-  app.use(express.json({ limit: '1mb' }));
-
   app.get(makePath('static/:source/:id'), (req, res) => serveStatic(req, res));
   app.get(makePath('v1/static/:source/:id'), (req, res) => serveStatic(req, res));
 
   app.get(makePath('v1/query-many'), (req, res) => {
-    const query = /\?query=(.*)$/.exec(req.url)![1];
-    const params = JSON.parse(decodeURIComponent(query));
+    // spec is everything after `?query=`, with JSON that may contain &
+    const query = /\?query=(.*)$/.exec(req.url);
+    if (!query) {
+      res.status(400).send('Missing the query parameter.');
+      return;
+    }
+    let params: MultipleQuerySpec;
+    try {
+      params = JSON.parse(decodeURIComponent(query[1]));
+    } catch (e) {
+      res.status(400).send('' + e);
+      return;
+    }
     createMultiJob(params, res);
   });
-  app.post(makePath('v1/query-many'), (req, res) => {
+  app.post(makePath('v1/query-many'), jsonSpec, (req, res) => {
     const params = req.body;
     req.setTimeout(ModelServerConfig.requestTimeoutMs);
     createMultiJob(params, res);
   });
 
-  app.use(express.json({ limit: '20mb' }));
-
   for (const q of QueryList) {
     mapQuery(app, q.name, q.definition);
   }
 
-  // Reports server health depending on `healthCheckPath` config prop
-  app.get(makePath('health-check'), (_, res) => healthCheck(res, ModelServerConfig.healthCheckPath));
+  // Reports server health depending on `healthCheckPath` config prop, unhealthy during shutdown
+  app.get(makePath('health-check'), (_, res) => {
+    if (!runner.isAccepting) {
+      res.status(503).send('Shutting down.');
+      return;
+    }
+    healthCheck(res, ModelServerConfig.healthCheckPath);
+  });
 
   const schema = getApiSchema();
 

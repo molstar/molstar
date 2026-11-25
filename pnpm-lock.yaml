@@ -221,6 +221,9 @@ catalogs:
     '@nightingale-elements/nightingale-variation-canvas':
       specifier: ^5
       version: 5.11.1
+    '@resvg/resvg-js':
+      specifier: 2.6.2
+      version: 2.6.2
     '@storybook/addon-a11y':
       specifier: 10.6.5
       version: 10.6.5
@@ -1154,6 +1157,34 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  cli/seqx-render:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@molstar/seqx-core':
+        specifier: workspace:*
+        version: link:../../packages/seq/core
+      '@resvg/resvg-js':
+        specifier: 'catalog:'
+        version: 2.6.2
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../test-harness
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.0(@types/node@22.20.1)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
+
   cli/state-docs:
     dependencies:
       '@molstar/core':
@@ -1353,9 +1384,18 @@ importers:
 
   examples/bond-providers:
     dependencies:
+      '@molstar/bond-orders-extension':
+        specifier: workspace:*
+        version: link:../../packages/extensions/bond-orders
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../packages/graphics
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../packages/io
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
@@ -1970,6 +2010,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../test-harness
       '@types/webxr':
         specifier: 'catalog:'
         version: 0.5.24
@@ -2100,6 +2143,31 @@ importers:
       '@types/webxr':
         specifier: 'catalog:'
         version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/extensions/bond-orders:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/model':
+        specifier: workspace:*
+        version: link:../../model
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -2876,6 +2944,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../test-harness
       '@types/webxr':
         specifier: 'catalog:'
         version: 0.5.24
@@ -3316,6 +3387,161 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+
+  packages/seq/core:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../../test-harness
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.0(@types/node@22.20.1)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
+
+  packages/seq/examples:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/seqx-core':
+        specifier: workspace:*
+        version: link:../core
+      '@molstar/seqx-ext-rondo':
+        specifier: workspace:*
+        version: link:../ext-rondo
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@molstar/io':
+        specifier: workspace:*
+        version: link:../../io
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.0(@types/node@22.20.1)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
+
+  packages/seq/ext-rondo:
+    dependencies:
+      '@molstar/seqx-core':
+        specifier: workspace:*
+        version: link:../core
+      '@molstar/seqx-viewer':
+        specifier: workspace:*
+        version: link:../viewer
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../../test-harness
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.0(@types/node@22.20.1)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
+
+  packages/seq/storybook:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/seqx-core':
+        specifier: workspace:*
+        version: link:../core
+      '@molstar/seqx-examples':
+        specifier: workspace:*
+        version: link:../examples
+      '@molstar/seqx-ext-rondo':
+        specifier: workspace:*
+        version: link:../ext-rondo
+      '@molstar/seqx-viewer':
+        specifier: workspace:*
+        version: link:../viewer
+      '@molstar/ui':
+        specifier: workspace:*
+        version: link:../../ui
+    devDependencies:
+      '@molstar/mvs-builder':
+        specifier: workspace:*
+        version: link:../../mvs/builder
+      '@molstar/test-harness':
+        specifier: workspace:*
+        version: link:../../../test-harness
+      '@nightingale-elements/nightingale-linegraph-track':
+        specifier: 5.11.0
+        version: 5.11.0
+      '@nightingale-elements/nightingale-sequence':
+        specifier: 5.11.0
+        version: 5.11.0
+      '@nightingale-elements/nightingale-track':
+        specifier: 5.11.0
+        version: 5.11.0
+      '@storybook/addon-docs':
+        specifier: 'catalog:'
+        version: 10.6.5(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(storybook@10.6.5(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))
+      '@storybook/web-components-vite':
+        specifier: 'catalog:'
+        version: 10.6.5(lit@3.3.3)(storybook@10.6.5(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))(vite@8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.0(@types/node@22.20.1)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
+
+  packages/seq/viewer:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@molstar/seqx-core':
+        specifier: workspace:*
+        version: link:../core
+      '@molstar/ui':
+        specifier: workspace:*
+        version: link:../../ui
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.0(@types/node@22.20.1)(@vitest/browser-playwright@5.1.0)(@vitest/ui@5.1.0)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
 
   packages/sequences/core:
     dependencies:
@@ -4803,6 +5029,9 @@ packages:
   '@nightingale-elements/nightingale-track-canvas@5.11.1':
     resolution: {integrity: sha512-9DGbdTeBH9Vfd+fAVZobCEYXbyyzOAL0Q3fDePj81uVahURLy5O6/JG9FHjiueFWOvv6YAW+HgsfUX2C9zXWZA==}
 
+  '@nightingale-elements/nightingale-track@5.11.0':
+    resolution: {integrity: sha512-J0VrYRxE8azcymT1LQVZGRCPnTlZGGF8+mD6VCmYj4ftRyzj9E2JXtaECaH9BCAGdOfiOamj3H1fbtWIpyT0kQ==}
+
   '@nightingale-elements/nightingale-track@5.11.1':
     resolution: {integrity: sha512-tEJjOfvJmsicaT3cdtWQUJC2b0EBuCIfNqdlFHYGx6toohwoaKN0ww1X9rg+ypkZ6ExSuTAcLemego9pSKFgSw==}
 
@@ -5185,6 +5414,86 @@ packages:
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
+
+  '@resvg/resvg-js-android-arm-eabi@2.6.2':
+    resolution: {integrity: sha512-FrJibrAk6v29eabIPgcTUMPXiEz8ssrAk7TXxsiZzww9UTQ1Z5KAbFJs+Z0Ez+VZTYgnE5IQJqBcoSiMebtPHA==}
+    engines: {node: '>= 10'}
+    cpu: [arm]
+    os: [android]
+
+  '@resvg/resvg-js-android-arm64@2.6.2':
+    resolution: {integrity: sha512-VcOKezEhm2VqzXpcIJoITuvUS/fcjIw5NA/w3tjzWyzmvoCdd+QXIqy3FBGulWdClvp4g+IfUemigrkLThSjAQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [android]
+
+  '@resvg/resvg-js-darwin-arm64@2.6.2':
+    resolution: {integrity: sha512-nmok2LnAd6nLUKI16aEB9ydMC6Lidiiq2m1nEBDR1LaaP7FGs4AJ90qDraxX+CWlVuRlvNjyYJTNv8qFjtL9+A==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@resvg/resvg-js-darwin-x64@2.6.2':
+    resolution: {integrity: sha512-GInyZLjgWDfsVT6+SHxQVRwNzV0AuA1uqGsOAW+0th56J7Nh6bHHKXHBWzUrihxMetcFDmQMAX1tZ1fZDYSRsw==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@resvg/resvg-js-linux-arm-gnueabihf@2.6.2':
+    resolution: {integrity: sha512-YIV3u/R9zJbpqTTNwTZM5/ocWetDKGsro0SWp70eGEM9eV2MerWyBRZnQIgzU3YBnSBQ1RcxRZvY/UxwESfZIw==}
+    engines: {node: '>= 10'}
+    cpu: [arm]
+    os: [linux]
+
+  '@resvg/resvg-js-linux-arm64-gnu@2.6.2':
+    resolution: {integrity: sha512-zc2BlJSim7YR4FZDQ8OUoJg5holYzdiYMeobb9pJuGDidGL9KZUv7SbiD4E8oZogtYY42UZEap7dqkkYuA91pg==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@resvg/resvg-js-linux-arm64-musl@2.6.2':
+    resolution: {integrity: sha512-3h3dLPWNgSsD4lQBJPb4f+kvdOSJHa5PjTYVsWHxLUzH4IFTJUAnmuWpw4KqyQ3NA5QCyhw4TWgxk3jRkQxEKg==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@resvg/resvg-js-linux-x64-gnu@2.6.2':
+    resolution: {integrity: sha512-IVUe+ckIerA7xMZ50duAZzwf1U7khQe2E0QpUxu5MBJNao5RqC0zwV/Zm965vw6D3gGFUl7j4m+oJjubBVoftw==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@resvg/resvg-js-linux-x64-musl@2.6.2':
+    resolution: {integrity: sha512-UOf83vqTzoYQO9SZ0fPl2ZIFtNIz/Rr/y+7X8XRX1ZnBYsQ/tTb+cj9TE+KHOdmlTFBxhYzVkP2lRByCzqi4jQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@resvg/resvg-js-win32-arm64-msvc@2.6.2':
+    resolution: {integrity: sha512-7C/RSgCa+7vqZ7qAbItfiaAWhyRSoD4l4BQAbVDqRRsRgY+S+hgS3in0Rxr7IorKUpGE69X48q6/nOAuTJQxeQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@resvg/resvg-js-win32-ia32-msvc@2.6.2':
+    resolution: {integrity: sha512-har4aPAlvjnLcil40AC77YDIk6loMawuJwFINEM7n0pZviwMkMvjb2W5ZirsNOZY4aDbo5tLx0wNMREp5Brk+w==}
+    engines: {node: '>= 10'}
+    cpu: [ia32]
+    os: [win32]
+
+  '@resvg/resvg-js-win32-x64-msvc@2.6.2':
+    resolution: {integrity: sha512-ZXtYhtUr5SSaBrUDq7DiyjOFJqBVL/dOBN7N/qmi/pO0IgiWW/f/ue3nbvu9joWE5aAKDoIzy/CxsY0suwGosQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+
+  '@resvg/resvg-js@2.6.2':
+    resolution: {integrity: sha512-xBaJish5OeGmniDj9cW5PRa/PtmuVU3ziqrbr5xJj901ZDN4TosrVaNZpEiLZAxdfnhAe7uQ7QFWfjPe9d9K2Q==}
+    engines: {node: '>= 10'}
 
   '@rolldown/binding-android-arm-eabi@1.2.16':
     resolution: {integrity: sha512-ia3DwAs0OsMGS7+IConptSiyk9pEXkOx/AbJ2n/lAGxH3QkWQus1t8d7gnAT38FCU2sQu8lUbeR6AiZFv4JxaA==}
@@ -9244,6 +9553,12 @@ snapshots:
       '@nightingale-elements/nightingale-track': 5.11.1
       d3: 7.9.0
 
+  '@nightingale-elements/nightingale-track@5.11.0':
+    dependencies:
+      '@nightingale-elements/nightingale-new-core': 5.11.0
+      d3: 7.9.0
+      lodash-es: 4.18.1
+
   '@nightingale-elements/nightingale-track@5.11.1':
     dependencies:
       '@nightingale-elements/nightingale-new-core': 5.11.0
@@ -9487,6 +9802,57 @@ snapshots:
     optional: true
 
   '@polka/url@1.0.0-next.29': {}
+
+  '@resvg/resvg-js-android-arm-eabi@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js-android-arm64@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js-darwin-arm64@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js-darwin-x64@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js-linux-arm-gnueabihf@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js-linux-arm64-gnu@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js-linux-arm64-musl@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js-linux-x64-gnu@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js-linux-x64-musl@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js-win32-arm64-msvc@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js-win32-ia32-msvc@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js-win32-x64-msvc@2.6.2':
+    optional: true
+
+  '@resvg/resvg-js@2.6.2':
+    optionalDependencies:
+      '@resvg/resvg-js-android-arm-eabi': 2.6.2
+      '@resvg/resvg-js-android-arm64': 2.6.2
+      '@resvg/resvg-js-darwin-arm64': 2.6.2
+      '@resvg/resvg-js-darwin-x64': 2.6.2
+      '@resvg/resvg-js-linux-arm-gnueabihf': 2.6.2
+      '@resvg/resvg-js-linux-arm64-gnu': 2.6.2
+      '@resvg/resvg-js-linux-arm64-musl': 2.6.2
+      '@resvg/resvg-js-linux-x64-gnu': 2.6.2
+      '@resvg/resvg-js-linux-x64-musl': 2.6.2
+      '@resvg/resvg-js-win32-arm64-msvc': 2.6.2
+      '@resvg/resvg-js-win32-ia32-msvc': 2.6.2
+      '@resvg/resvg-js-win32-x64-msvc': 2.6.2
 
   '@rolldown/binding-android-arm-eabi@1.2.16':
     optional: true

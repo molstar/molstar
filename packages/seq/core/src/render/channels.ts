@@ -1,0 +1,329 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { CategoryColumn, type Column, issueOf } from '@molstar/core/repr/tree';
+import type { RangesField } from '@molstar/seqx-core/data';
+import {
+  builtInSchemes,
+  type Channel,
+  type ChannelName,
+  compileChannel,
+  type Legend,
+  legendOf,
+  type MeasureEntry,
+  type ScaleParams,
+  type SchemeRegistry,
+  type ThemeBody,
+  type ThemeDatum,
+  type ThemeEnv,
+  type ThemeIssueCode,
+} from '@molstar/seqx-core/theme/index';
+import { RenderIssues } from './issues.js';
+import type { LayoutContext } from './layer-type.js';
+
+// The channels a layer type reads (_spec/README.md "Render", Layer types; "Themes"): each compiled from its slot's body
+// once per token table, held domains and the reader's substitution, and kept in the layer's prepared form; a layer
+// reads a uniform channel once and an evaluated one per mark through a datum it keeps.
+
+/** What a layout reads of the themes: the registry, the measures, the scales, the held domains, the reader's setting. */
+export interface ThemeContext {
+  readonly schemes: SchemeRegistry;
+  readonly measures?: ReadonlyMap<string, MeasureEntry>;
+  /** The reader's color-blind substitution (`theme.cvdSafe`): never the spec's. */
+  readonly cvdSafe: boolean;
+  /** A scale node's params by its address. */
+  scale(address: string): ScaleParams | undefined;
+  /** An open scale's domain held since the view last settled (unioned over the layers naming it). */
+  domain(key: string): readonly [number, number] | undefined;
+  /** Folds a layer's extent of an open scale's values in view into this layout's union. */
+  extent(key: string, lo: number, hi: number): void;
+}
+
+const Schemes = builtInSchemes();
+
+/** A theme context without scales or held domains (a layout without a view's: tests, a lone layer). */
+export const DefaultThemeContext: ThemeContext = {
+  schemes: Schemes,
+  cvdSafe: false,
+  scale: () => undefined,
+  domain: () => undefined,
+  extent: () => {},
+};
+
+/** The render codes a theme says (cataloged in `RenderIssues`). */
+const ThemeCodes: Readonly<Record<ThemeIssueCode, true>> = {
+  'seq.render.theme.channel': true,
+  'seq.render.theme.scheme': true,
+  'seq.render.theme.measure': true,
+  'seq.render.theme.color': true,
+  'seq.render.scale.log': true,
+  'seq.render.line-style': true,
+  'seq.render.color': true,
+};
+
+/**
+ * What compiling a layer's channel reads of a layout: its tokens, the theme context, the layer's key, the report; and,
+ * on a strip of a block, the section, the strip and the placement (the built-in fields `block` and `system`).
+ */
+export type ChannelContext = Pick<LayoutContext, 'tokens' | 'theme' | 'key' | 'report'> &
+  Partial<Pick<LayoutContext, 'section' | 'strip' | 'place'>>;
+
+type Block = NonNullable<LayoutContext['section']['blocks']>[number];
+
+/** The block a layout's strip shows, when its section has blocks. */
+function blockOf(ctx: ChannelContext): Block | undefined {
+  const blocks = ctx.section?.blocks;
+  if (!blocks || ctx.strip === undefined || !ctx.place) return undefined;
+  return blocks[ctx.place.strips.block[ctx.strip]];
+}
+
+/**
+ * The built-in fields of a block's marks (_spec/README.md "Themes", Built-in fields; EC-218): `block` its label, `system`
+ * its system's name, each a categorical domain known up front (the section's blocks in order; over an assembly its
+ * names in its order before `include`), never by first occurrence.
+ */
+function blockEnv(ctx: ChannelContext, block: Block): Partial<ThemeEnv> {
+  const domains = ctx.section!.domains;
+  const name = block.name ?? block.axis.system;
+  return {
+    builtIn: (f) => (f === 'block' ? block.label : f === 'system' ? name : undefined),
+    categories: (f) => (f === 'block' ? domains?.block : f === 'system' ? domains?.system : undefined),
+  };
+}
+
+/** A theme code reported for the layer at `ctx.key`, once a layout (the layout dedupes by code and address). */
+export function reportTheme(ctx: ChannelContext, code: ThemeIssueCode, message: string): void {
+  if (!ThemeCodes[code]) return;
+  ctx.report(issueOf(RenderIssues, code, message, { address: ctx.key, hint: RenderIssues.codes[code].hint }));
+}
+
+/** No extra environment (shared, so a layout that reads a kept channel makes no object). */
+const NoExtra: Partial<ThemeEnv> = Object.freeze({});
+
+interface Kept {
+  readonly channel: Channel;
+  readonly version: number;
+  readonly cvd: boolean;
+  /** The held domains of its open scales when compiled: lo, hi per open scale (NaN where none). */
+  readonly domains: Float64Array;
+  /** What it said (compiling, and drawing since): said again in each layout that reads it. */
+  readonly said: [ThemeIssueCode, string][];
+  /** The block it was compiled for (its built-in fields), when on a block's strip. */
+  readonly block: Block | undefined;
+}
+
+/** A layer's channels, compiled from its slots and kept while the tokens, the held domains and the reader agree. */
+export class LayerChannels {
+  private readonly kept = new Map<ChannelName, Kept>();
+  /** The layout reading the channels now: what a channel says while drawing goes to it. */
+  private ctx: ChannelContext | undefined;
+  constructor(readonly forms: Readonly<Partial<Record<ChannelName, unknown>>>) {}
+
+  /** The channel `name` (its slot's body, else `fallback`, the layer type's default) for this layout. */
+  get(name: ChannelName, fallback: ThemeBody, ctx: ChannelContext, extra: Partial<ThemeEnv> = NoExtra): Channel {
+    this.ctx = ctx;
+    const theme = ctx.theme;
+    const k = this.kept.get(name);
+    const block = blockOf(ctx);
+    if (
+      k &&
+      k.version === ctx.tokens.version &&
+      k.cvd === theme.cvdSafe &&
+      k.block === block &&
+      sameDomains(k.channel, k.domains, theme)
+    ) {
+      for (const [code, message] of k.said) reportTheme(ctx, code, message);
+      return k.channel;
+    }
+    const said: [ThemeIssueCode, string][] = [];
+    const channel = compileChannel(name, this.forms[name] as ThemeBody | undefined, fallback, {
+      tokens: ctx.tokens,
+      schemes: theme.schemes,
+      ...(theme.measures ? { measures: theme.measures } : {}),
+      scale: (a) => theme.scale(a),
+      domain: (key) => theme.domain(key),
+      cvdSafe: theme.cvdSafe,
+      key: ctx.key,
+      ...(block ? blockEnv(ctx, block) : {}),
+      report: (code, message) => {
+        said.push([code, message]);
+        if (this.ctx) reportTheme(this.ctx, code, message);
+      },
+      ...extra,
+    });
+    this.kept.set(name, {
+      channel,
+      version: ctx.tokens.version,
+      cvd: theme.cvdSafe,
+      domains: heldDomains(channel, theme),
+      said,
+      block,
+    });
+    return channel;
+  }
+}
+
+/** Each compiled channel's id, from one count (a layer's colours as an image key: see `channelId`). */
+const ChannelIds = new WeakMap<Channel, number>();
+let nextChannelId = 0;
+
+/**
+ * A compiled channel's id, unique over every layout: an image cached by it (shared across frames, lays and a
+ * navigator's picture) is never read again under other colours. A channel is compiled again, so a new id, when the
+ * tokens, the reader's setting or its held domains change; a per-lay count would not do (a frame's lay is new, its
+ * count starting again, and a tile drawn under no held domain would be read back under the domain it then holds).
+ */
+export function channelId(channel: Channel): number {
+  let id = ChannelIds.get(channel);
+  if (id === undefined) ChannelIds.set(channel, (id = ++nextChannelId));
+  return id;
+}
+
+function heldDomains(channel: Channel, theme: ThemeContext): Float64Array {
+  const out = new Float64Array(2 * channel.open.length);
+  for (let i = 0; i < channel.open.length; i++) {
+    const d = theme.domain(channel.open[i].key);
+    out[2 * i] = d ? d[0] : Number.NaN;
+    out[2 * i + 1] = d ? d[1] : Number.NaN;
+  }
+  return out;
+}
+
+/** Whether the held domains still equal those a channel was compiled with (no allocation: read in place). */
+function sameDomains(channel: Channel, held: Float64Array, theme: ThemeContext): boolean {
+  const open = channel.open;
+  for (let i = 0; i < open.length; i++) {
+    const d = theme.domain(open[i].key);
+    const lo = d ? d[0] : Number.NaN;
+    const hi = d ? d[1] : Number.NaN;
+    // NaN (no domain) equals NaN
+    if (!(lo === held[2 * i] || (lo !== lo && held[2 * i] !== held[2 * i]))) return false;
+    if (!(hi === held[2 * i + 1] || (hi !== hi && held[2 * i + 1] !== held[2 * i + 1]))) return false;
+  }
+  return true;
+}
+
+/** A layer's channel forms as its resolved layer holds them. */
+export function channelForms(theme: Readonly<Record<string, unknown>>): LayerChannels {
+  return new LayerChannels(theme as Partial<Record<ChannelName, unknown>>);
+}
+
+/**
+ * A datum over a ranges table's rows: `row` set per mark, a field's column looked up once a table. A category reads
+ * its text, a number column its number (NaN missing), a list its item.
+ */
+export class RowDatum implements ThemeDatum {
+  value = Number.NaN;
+  letter = '';
+  start = 0;
+  end = 0;
+  row = 0;
+  private fields: readonly RangesField[] | undefined;
+  private readonly cols = new Map<string, Column | undefined>();
+  /** The environments a channel over these rows compiles in, made once (a layout makes no closure to read a kept channel). */
+  readonly env: Partial<ThemeEnv> = { numeric: (n: string) => this.numeric(n) };
+  readonly radiusEnv: Partial<ThemeEnv> = { numeric: (n: string) => this.numeric(n), radius: true };
+
+  bind(fields: readonly RangesField[] | undefined): void {
+    if (fields === this.fields) return;
+    this.fields = fields;
+    this.cols.clear();
+    this.lastName = '';
+    this.lastColumn = undefined;
+  }
+
+  /** The last column read and its name: a channel reads one field a mark, so most reads hit it. */
+  private lastName = '';
+  private lastColumn: Column | undefined;
+
+  column(name: string): Column | undefined {
+    if (name === this.lastName) return this.lastColumn;
+    let c = this.cols.get(name);
+    if (c === undefined && !this.cols.has(name)) {
+      c = this.fields?.find((f) => f.name === name)?.column;
+      this.cols.set(name, c);
+    }
+    this.lastName = name;
+    this.lastColumn = c;
+    return c;
+  }
+
+  field(name: string): string | number | undefined {
+    const c = this.column(name);
+    if (!c) return undefined;
+    if (c instanceof CategoryColumn) return c.get(this.row) ?? undefined;
+    const v = (c as ArrayLike<unknown>)[this.row];
+    return typeof v === 'number' ? v : v === null || v === undefined ? undefined : String(v);
+  }
+
+  /** Whether a field's column holds numbers (its declared type: a typed array), for the default palette. */
+  numeric(name: string): boolean {
+    const c = this.column(name);
+    return c !== undefined && !(c instanceof CategoryColumn) && !Array.isArray(c);
+  }
+}
+
+/** A datum with a value or a letter alone (values and letters layers). */
+export class PlainDatum implements ThemeDatum {
+  value = Number.NaN;
+  letter = '';
+  start = 0;
+  end = 0;
+  field(name: string): string | number | undefined {
+    return name === 'value' ? this.value : name === 'letter' ? this.letter : undefined;
+  }
+}
+
+/** The extents of a channel's open domains this layout: folded per mark, handed to the context at its end. */
+export class Extents {
+  private lo = new Float64Array(4);
+  private hi = new Float64Array(4);
+  private readonly keys: { readonly key: string; read(d: ThemeDatum): number }[] = [];
+
+  /** Whether any channel reads an open domain (a layout folds nothing otherwise). */
+  any = false;
+
+  reset(channels: readonly (Channel | undefined)[]): void {
+    const keys = this.keys;
+    keys.length = 0;
+    for (const c of channels) if (c) for (let i = 0; i < c.open.length; i++) keys.push(c.open[i]);
+    this.any = keys.length > 0;
+    if (this.lo.length < this.keys.length) {
+      this.lo = new Float64Array(this.keys.length);
+      this.hi = new Float64Array(this.keys.length);
+    }
+    this.lo.fill(Number.POSITIVE_INFINITY);
+    this.hi.fill(Number.NEGATIVE_INFINITY);
+  }
+
+  add(d: ThemeDatum): void {
+    for (let i = 0; i < this.keys.length; i++) {
+      const v = this.keys[i].read(d);
+      if (Number.isNaN(v)) continue;
+      if (v < this.lo[i]) this.lo[i] = v;
+      if (v > this.hi[i]) this.hi[i] = v;
+    }
+  }
+
+  flush(theme: ThemeContext): void {
+    for (let i = 0; i < this.keys.length; i++)
+      if (this.lo[i] <= this.hi[i]) theme.extent(this.keys[i].key, this.lo[i], this.hi[i]);
+  }
+}
+
+/** A layer's legends from its channels (those with a key to say), titled by its track. */
+export function channelLegends(
+  channels: readonly (Channel | undefined)[],
+  options: { readonly title: string; readonly layer: string; readonly painted?: Iterable<string> },
+): Legend[] {
+  const out: Legend[] = [];
+  for (const c of channels) {
+    if (!c) continue;
+    const l = legendOf(c, options);
+    if (l) out.push(l);
+  }
+  return out;
+}

@@ -1,0 +1,325 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// The render codes (_spec/README.md "Render", Issues).
+
+import { defineIssues } from '@molstar/core/repr/tree';
+
+export const RenderIssues = defineIssues('seq.render', {
+  'seq.render.view': {
+    severity: 'error',
+    description: 'The spec has no view at the address asked for (or no view at all): nothing is drawn',
+    hint: 'Name a view of the spec, or add one under `views`',
+  },
+  'seq.render.rows.reduced': {
+    severity: 'info',
+    description:
+      'An alignment’s rows are below a pixel and its source serves no coarse row bins: the rows in view are drawn pending',
+    hint: 'Zoom in on the rows (`]`), or serve the alignment with row levels',
+  },
+  'seq.render.logo.profile': {
+    severity: 'info',
+    description: 'A logo over a lazy alignment: its profile is a source’s to serve, and none is read yet',
+    hint: 'Hold the alignment, or draw the logo over a held one',
+  },
+  'seq.render.rows.text.unfolded': {
+    severity: 'info',
+    description: 'A rows layer in a text figure draws every clade unfolded: a figure’s lines repeat the rows',
+    hint: 'Fold clades in a tracks view; a text figure shows every row',
+  },
+  'seq.render.rows.clade': {
+    severity: 'info',
+    description:
+      'A rows layer’s `collapsed` names no clade of its tree (a support value or a repeated label names none): not folded',
+    hint: 'Name the clade by its unique label, else `first..last` (its first and last leaves)',
+  },
+  'seq.render.rows.order': {
+    severity: 'info',
+    description: 'A lazy alignment ordered by a field or a tree its source does not serve: drawn in data order',
+    hint: 'Order a lazy alignment by `data`, or hold it',
+  },
+  'seq.render.navigator.of': {
+    severity: 'warning',
+    description: 'A navigator names a section the view does not have (or none): its window is not drawn',
+    hint: 'Bind the navigator to a section of its view (`of`)',
+  },
+  'seq.render.navigator.path': {
+    severity: 'warning',
+    description: 'No path joins a bound section’s system to the navigator’s: that section’s window is not drawn',
+    hint: 'Draw the navigator on the section’s system, or add a map between the two',
+  },
+  'seq.render.navigator.rows': {
+    severity: 'info',
+    description:
+      'A navigator draws rows its section does not have, or an alignment no summary serves: it draws the rows’ structure only',
+    hint: 'Hold the alignment, or draw the navigator’s `axis`',
+  },
+  'seq.render.navigator.layer': {
+    severity: 'info',
+    description:
+      'A layer of a navigator’s tracks is left out: its source serves no coarse level and its whole axis passes the store’s bound on tiles',
+    hint: 'Serve the annotation at a coarse level, or name the navigator’s `tracks`',
+  },
+  'seq.render.navigator.square': {
+    severity: 'info',
+    description:
+      'The square has more block pairs than `navigator.square.maxCells`: its lattice and wash are not drawn, only its window',
+    hint: 'Show fewer blocks (an `include`), or raise `navigator.square.maxCells`',
+  },
+  'seq.render.rows.lazy': {
+    severity: 'info',
+    description:
+      'A lazy alignment’s pinned and hidden rows are not applied: rows are pinned and hidden by key, and a lazy row’s key is read with its tile',
+    hint: 'Hold the alignment to pin or hide its rows',
+  },
+  'seq.render.layer.axes': {
+    severity: 'warning',
+    description: 'A layer of two axes (a grid, pairs as dots) is in a section whose strips have no second axis',
+    hint: 'Put the layer in a section with `layout: grid`',
+  },
+  'seq.render.grid.systems': {
+    severity: 'warning',
+    description: 'A grid layer’s data is not on its grid section’s two systems: a grid draws only on its own systems',
+    hint: 'Give the section `of` the grid’s `x` and `of_y` its `y`, or compute the grid on the systems it is drawn on',
+  },
+  'seq.render.pairs.systems': {
+    severity: 'warning',
+    description: 'A pairs layer’s ends are not on the systems its section shows: those pairs are not drawn',
+    hint: 'Show the pairs’ systems in the section (blocks, or a grid’s two axes)',
+  },
+  'seq.render.pairs.copy': {
+    severity: 'warning',
+    description:
+      'Pairs between two systems with an end on split copies whose data names no units: drawn on no copy, never a guessed one',
+    hint: 'Name each end’s unit (`a_unit`, `b_unit`: the pairs of a complex, derived per pair of units), or merge the copies (`copies: merge`)',
+  },
+  'seq.render.zoom_in': {
+    severity: 'info',
+    description:
+      'A layer’s wants together are past the store’s bound on a layer’s tiles or read cost, at its coarsest level: nothing is read, its band says to zoom in',
+    hint: 'Zoom in to read this track',
+  },
+  'seq.render.lift.run': {
+    severity: 'info',
+    description:
+      'Rows of a map read by region (`map.source`) whose two ends differ in length are no runs: a liftover carries nothing through them',
+    hint: 'Serve each aligned block as a row of equal ends (split a gapped alignment at its gaps)',
+  },
+  'seq.render.reach': {
+    severity: 'info',
+    description:
+      'A ranges layer’s section is too large to read whole at its fit level within the store’s bound on a layer’s tiles or read cost: its track is as tall as the lanes in view',
+    hint: 'Give the track a height, or zoom in',
+  },
+  'seq.render.pairs.limit': {
+    severity: 'info',
+    description:
+      'More pairs are in view than `pairs.maxArcs`: one arc is drawn a bin of their ends’ device columns, the rest as a density strip of ends',
+    hint: 'Zoom in to see every arc',
+  },
+  'seq.render.pairs.filter': {
+    severity: 'info',
+    description:
+      'A pairs layer’s data filter is not applied to the bins a source serves by region (a bin has no fields to read): every bin is drawn until the view is zoomed in to the items',
+    hint: 'Zoom in to the items, or filter the source’s pairs before they are binned',
+  },
+  'seq.render.rows.layout': {
+    severity: 'warning',
+    description: 'A rows layer draws in tracks and text sections only: in another layout it is not drawn',
+    hint: 'Show the alignment’s rows in a tracks section',
+  },
+  'seq.render.rows.column': {
+    severity: 'info',
+    description:
+      'A rows layer’s column names a field no row has (not the alignment’s own, not a measure, not a joined source’s): its cells are empty',
+    hint: 'Name a `#=GS` tag, an inline table’s column, `length`, `gaps`, `identity` (with a reference row), or a joined field',
+  },
+  'seq.render.rows.field': {
+    severity: 'info',
+    description:
+      'A field of a source joined to an alignment’s rows is not read: the alignment’s own field or a measure of that name shadows it, or another joined source has it first',
+    hint: 'Rename the field in the source (its `fields`), or name the alignment’s own',
+  },
+  'seq.render.groups.layout': {
+    severity: 'info',
+    description:
+      'A text or rings section draws its groups of tracks open, with no header line: its folds are kept, not applied',
+    hint: 'Fold groups in a tracks section; text repeats its bands every line and rings have no label column',
+  },
+  'seq.render.rows.second': {
+    severity: 'warning',
+    description: 'A section draws one rows layer (the cursor has one row order): a second one is not drawn',
+    hint: 'Show the second alignment’s rows in a section of its own',
+  },
+  'seq.render.color': {
+    severity: 'warning',
+    description: 'A layer’s color names a token the token table lacks',
+    hint: 'Name a token of the table (`token:range`), or set it as `--seq-<name>`; the layer’s default color is used meanwhile',
+  },
+  'seq.render.theme.channel': {
+    severity: 'warning',
+    description:
+      'A theme on a channel the layer type does not read, a value not of the channel’s kind, or a form or palette it cannot read: drawn without it',
+    hint: 'Theme a channel the layer reads (its type’s description lists them), with a value of its kind',
+  },
+  'seq.render.theme.scheme': {
+    severity: 'warning',
+    description:
+      'A scheme that does not fit the layer (another alphabet, a measure not available) or no scheme of the name: the layer’s default is drawn',
+    hint: 'Pick a scheme the layer’s menu offers; column schemes need the rows layer’s measures',
+  },
+  'seq.render.theme.measure': {
+    severity: 'warning',
+    description: 'A rule reads a measure or a location this layer cannot: its clause does not hold',
+    hint: 'Read a field of the layer’s data, `value` or `letter`; a location must resolve on the data’s system',
+  },
+  'seq.render.theme.color': {
+    severity: 'warning',
+    description:
+      'A color in a theme (a `direct` field’s value, a palette’s color) does not read: it is drawn as missing',
+    hint: 'Write colors as `#rrggbb`, a token or `light-dark(a, b)`',
+  },
+  'seq.render.scale.log': {
+    severity: 'info',
+    description: 'A value at or below zero on a log scale: drawn as missing (or clamped, with `non_positive: clamp`)',
+    hint: 'Set the scale’s `non_positive` to `clamp` to draw them at the low end',
+  },
+  'seq.render.reference.outside': {
+    severity: 'info',
+    description:
+      'A reference line at a value outside its layer’s closed domain: not drawn (a line clamped to the well’s edge would claim a position it does not have)',
+    hint: 'Widen the layer’s `domain` (or the scale’s), or leave an end open: an open end includes the lines',
+  },
+  'seq.render.legend.unlisted': {
+    severity: 'info',
+    description:
+      'A legend cannot list hashed values it has not painted: the values in view are listed, the others take their hashed colors',
+    hint: 'List the values in the palette’s `values` (the builder does for inline data) for a complete key',
+  },
+  'seq.render.line-style': {
+    severity: 'info',
+    description: 'A ranges layer’s `line` is not a style this version draws: its items are drawn solid',
+    hint: 'Use `solid`, `dashed`, `dotted`, `wavy`, `double`, `box` or `highlight`',
+  },
+  'seq.render.filter': {
+    severity: 'warning',
+    description: 'A layer’s data query is not a filter its rows can be read by: every row is drawn',
+    hint: 'Filter an annotation’s items by `(item :<field> v)`, `(except :of …)`, `(intersect :of […])` or `(merge :of […])`',
+  },
+  'seq.render.item.range': {
+    severity: 'warning',
+    description:
+      'A row of a source runs past the length of its system: clipped on a linear one (left out when it starts past the end), clamped to one lap on a cyclic one that is longer than it',
+    hint: 'A system that wraps is `cyclic`; else check the file’s `base` and `ends`',
+  },
+  'seq.render.numbering': {
+    severity: 'warning',
+    description: 'A ruler’s `numbering` is not one its system has: it labels by `ordinal`',
+    hint: 'Name `index`, `ordinal` or a numbering the system declares',
+  },
+  'seq.render.numbering.fallback': {
+    severity: 'warning',
+    description:
+      'A ruler’s `fallbackNumbering` is not one its system has: its unnumbered positions are marked (`unnumbered: mark`)',
+    hint: 'Name `index`, `ordinal` or a numbering the system declares',
+  },
+  'seq.render.numbering.limit': {
+    severity: 'warning',
+    description:
+      'A numbering whose labels are a source’s covers more positions than `maxNumberingPositions`: its labels are not read',
+    hint: 'Raise maxNumberingPositions in the configuration, or number a shorter system',
+  },
+  'seq.render.numbering.source': {
+    severity: 'warning',
+    description:
+      'A numbering’s source gives no labels: a tile failed, or the source has no system of the sequence’s name',
+    hint: 'Check the source, and that its `system` (or its rows’ `target`) is the sequence’s name',
+  },
+  'seq.render.numbering.rows': {
+    severity: 'warning',
+    description:
+      'A numbering’s source labels another count of positions than its sequence has, or has rows past its end (left out)',
+    hint: 'Give a row a position of the sequence; check the file’s `base`',
+  },
+  'seq.render.layer.type': {
+    severity: 'warning',
+    description: 'No type in a layer’s fallback chain is one this target draws: the layer is not drawn',
+    hint: 'Give the layer a fallback this target draws',
+  },
+  'seq.render.layer.hover': {
+    severity: 'error',
+    description:
+      'A layer type cannot answer a hover (it has no `hit`): every drawn mark answers with a hit, a mark and a card, so it is refused at registration',
+    hint: 'Give the type a `hit` naming the item, else the bin, else the position under a point',
+  },
+  'seq.render.heights': {
+    severity: 'warning',
+    description: 'A section’s `heights` names a track sizing this target does not have: its tracks fit their content',
+    hint: 'Register the sizing in the composition (a `track-sizing` registry entry), or name `content`, `uniform` or `fixed`',
+  },
+  'seq.render.layout': {
+    severity: 'warning',
+    description: 'A section names a layout this target does not draw: it is laid out as tracks',
+    hint: 'Register the layout in the composition (a `layout` registry entry), or name one it draws',
+  },
+  'seq.render.navigator.export': {
+    severity: 'warning',
+    description: 'An export asked to include the view’s navigators, and its composition draws none: they are left out',
+    hint: 'Export through a composition that lists navigators (`renderSvg`, a viewer with the `navigator` behavior)',
+  },
+  'seq.render.layer.letters': {
+    severity: 'warning',
+    description: 'A letters layer shows another system’s letters through a path: letters are drawn on their own system',
+    hint: 'Show the letters in a section of their own system',
+  },
+  'seq.render.axis.pending': {
+    severity: 'info',
+    description: 'A section’s system has no known length yet (its source is not open): its tracks wait',
+    hint: 'The section draws once its source gives the length',
+  },
+  'seq.render.text.lines': {
+    severity: 'warning',
+    description: 'A text section holds more lines than `text.maxLines`: the lines past it are not laid out',
+    hint: 'Give the section a `range`: a text is a figure, not a genome',
+  },
+  'seq.render.follow.leader': {
+    severity: 'warning',
+    description: 'A section follows one that is not in its view: it shows its own range',
+    hint: 'Follow a section of the same view',
+  },
+  'seq.render.follow.blocks': {
+    severity: 'warning',
+    description:
+      'A section of blocks on more than one system follows or is followed by one whose block list differs (systems, ranges, directions, scales in order): which block’s map a window carries is a figure’s choice no rule makes, so it shows its own range',
+    hint: 'Give both sections the same blocks, or let them move on their own (a navigator or the selection links them)',
+  },
+  'seq.render.ring.image': {
+    severity: 'info',
+    description:
+      'A layer draws an image of more rows (a dense matrix) than a ring draws as runs a frame (`rings.imageRuns`): its rows are reduced on the ring',
+    hint: 'Show fewer states, or the layer in a tracks section',
+  },
+  'seq.render.follow.cycle': {
+    severity: 'warning',
+    description: 'Sections follow each other in a cycle: the first one met shows its own range',
+    hint: 'End the chain of follows at a section that follows none',
+  },
+  'seq.render.source': {
+    severity: 'error',
+    description: 'A source could not be opened for the render: its layers stay pending',
+    hint: 'Check the source’s location and the assets the render may read',
+  },
+  'seq.render.template.limit': {
+    severity: 'warning',
+    description: 'A template selects more nodes than it may make tracks for; the first ones in its order are shown',
+    hint: 'Filter the template, or raise maxTemplateTracks in the configuration',
+  },
+  'seq.render.unsettled': {
+    severity: 'warning',
+    description: 'The export did not settle before its timeout: what was pending is drawn as pending',
+    hint: 'Give the export a longer timeout, or check the sources that did not answer',
+  },
+});
