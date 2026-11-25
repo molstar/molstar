@@ -7,17 +7,29 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render } from '../../../dom/render.js';
+import { render as renderDom } from '../../../dom/render.js';
 import { runInScope, Scope } from '../../../dom/scope.js';
 import { observableState } from '../../../reactive/observable-state.js';
 import { EmptyCanvas } from '../empty-canvas.js';
 
+/** the views mounted, disposed after each test: one left listening on the document wakes up in later files */
+const disposers: (() => void)[] = [];
+const render: typeof renderDom = (fn, container, parent) => {
+  const dispose = renderDom(fn, container, parent);
+  disposers.push(dispose);
+  return dispose;
+};
+
 describe('EmptyCanvas', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    for (const dispose of disposers.splice(0)) dispose();
+    vi.useRealTimers();
+  });
 
   function mount(initial: boolean) {
     const empty = observableState(initial);

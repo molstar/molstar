@@ -7,6 +7,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,6 +23,8 @@ import { ShellView } from '../shell-view.js';
 
 let mounts = 0;
 let unmounts = 0;
+/** the shells mounted, disposed after each test: a shell left listening on the document wakes up in later files */
+const disposers: (() => void)[] = [];
 
 function mount(options?: ShellOptions) {
   const shell = new ShellModel(options);
@@ -41,7 +44,9 @@ function mount(options?: ShellOptions) {
   ]);
   const container = document.createElement('div');
   document.body.append(container);
-  render(() => <ShellView shell={shell} status={new NotificationsManager()} canvas={<canvas />} />, container);
+  disposers.push(
+    render(() => <ShellView shell={shell} status={new NotificationsManager()} canvas={<canvas />} />, container),
+  );
   const card = () => container.querySelector<HTMLElement>('[role="dialog"]');
   const sheet = () => container.querySelector<HTMLElement>('main ~ [data-covered], main ~ div:not([data-covered])');
   return { shell, container, card, sheet };
@@ -60,6 +65,7 @@ describe('overlay cards', () => {
     );
   });
   afterEach(() => {
+    for (const dispose of disposers.splice(0)) dispose();
     document.body.replaceChildren();
     vi.unstubAllGlobals();
   });
