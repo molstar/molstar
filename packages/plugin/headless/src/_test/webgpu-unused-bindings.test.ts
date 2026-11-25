@@ -54,7 +54,8 @@ function getPropsVariants(): Canvas3DPrecompileProps[] {
 // its source (`WgslProgram.source`), so that unused targets are neither bound nor allocated; WebGPU is the judge:
 // without a binding the shader doesn't use, the pipeline still validates
 describe.skipIf(!WebGPU.module)('WebGPU bindings', () => {
-  it('bind only what the shaders use', async () => {
+  // medium: a sweep, the pipelines of every pass variant, each binding left out validated
+  it('bind only what the shaders use', { tags: ['medium'] }, async () => {
     const g = WebGPU.module!.globals as any;
     const codes = new WeakMap<GPUShaderModule, string>();
     const groupLayouts = new WeakMap<GPUBindGroupLayout, Layout>();

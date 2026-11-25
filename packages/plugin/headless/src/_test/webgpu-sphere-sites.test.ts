@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { Mat4, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
@@ -109,16 +109,27 @@ function createSpheres(translations: Vec3[], sites: boolean, levels?: LodLevels,
 // quantized centers (`SphereSites`, `dSites`): the raster draws them as their float twins, unmerged (the object's origin
 // and scale) and merged (the segment's, `CulledData`)
 describe.skipIf(!WebGPU.module)('sphere sites on WebGPU', () => {
-  it('draw quantized centers as their float twins, unmerged and merged, with levels and without, sized by type', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
-    try {
-      await plugin.init();
-      const graphics = plugin.canvas3d!.graphics;
+  // one plugin for the file, its kernels compiled once: each case draws its own objects with its own raster
+  let context: HeadlessPluginContext | undefined;
+  afterAll(() => context?.dispose());
+
+  for (const [withLevels, sized] of [
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true],
+  ]) {
+    it(`draw quantized centers as their float twins, unmerged and merged (levels ${withLevels}, sized ${sized})`, async () => {
+      if (!context) {
+        context = await HeadlessPluginContext.create(
+          { webgpu: WebGPU.module! },
+          DefaultPluginSpec(),
+          { width: Size, height: Size },
+          { backend: 'webgpu' },
+        );
+        await context.init();
+      }
+      const graphics = context.canvas3d!.graphics;
       if (!graphics.capabilities.atomicMinMax64) return;
       const compute = graphics.compute!;
       const camera = new Camera();
@@ -162,58 +173,54 @@ describe.skipIf(!WebGPU.module)('sphere sites on WebGPU', () => {
         { minDistance: boundary, maxDistance: 1e6, stride: 32, scaleBias: 3 },
       ];
       const translations = [[Vec3.create(-6, 0, 10), Vec3.create(6, 0, -40)], [Vec3.create(0, 6, -15)]];
-      for (const [lodLevels, sized] of [
-        [undefined, false],
-        [levels, false],
-        [undefined, true],
-        [levels, true],
-      ] as const) {
-        const floats = translations.map((t) => createSpheres(t, false, lodLevels, sized));
-        const sites = translations.map((t) => createSpheres(t, true, lodLevels, sized));
-        if (sized) expect((sites[0].values as SpheresValues).sizeType.ref.value).toBe('siteType');
-        expect((sites[0].values as SpheresValues).dSites.ref.value).toBe(true);
-        const scene = (objects: typeof floats) => {
-          const s = Scene.create(graphics);
-          for (const o of objects) s.add(o);
-          s.commit();
-          return s;
-        };
-        const unmerged = (s: Scene) =>
-          depths(s.renderables.map((r) => ({ item: r.renderItem, values: r.values as unknown as SpheresValues })));
+      const lodLevels = withLevels ? levels : undefined;
+      const floats = translations.map((t) => createSpheres(t, false, lodLevels, sized));
+      const sites = translations.map((t) => createSpheres(t, true, lodLevels, sized));
+      if (sized) expect((sites[0].values as SpheresValues).sizeType.ref.value).toBe('siteType');
+      expect((sites[0].values as SpheresValues).dSites.ref.value).toBe(true);
+      const scene = (objects: typeof floats) => {
+        const s = Scene.create(graphics);
+        for (const o of objects) s.add(o);
+        s.commit();
+        return s;
+      };
+      const unmerged = (s: Scene) =>
+        depths(s.renderables.map((r) => ({ item: r.renderItem, values: r.values as unknown as SpheresValues })));
 
-        // unmerged: the object's origin and scale
-        const floatDepths = await unmerged(scene(floats));
-        const siteDepths = await unmerged(scene(sites));
-        expect(floatDepths.depths.filter((d) => d !== 0).length).toBeGreaterThan(40);
-        expect(Array.from(siteDepths.depths)).toEqual(Array.from(floatDepths.depths));
-        expect(Array.from(siteDepths.items)).toEqual(Array.from(floatDepths.items));
+      // unmerged: the object's origin and scale
+      const floatScene = scene(floats);
+      const siteScene = scene(sites);
+      const floatDepths = await unmerged(floatScene);
+      const siteDepths = await unmerged(siteScene);
+      expect(floatDepths.depths.filter((d) => d !== 0).length).toBeGreaterThan(40);
+      expect(Array.from(siteDepths.depths)).toEqual(Array.from(floatDepths.depths));
+      expect(Array.from(siteDepths.items)).toEqual(Array.from(floatDepths.items));
 
-        // merged and culled on the GPU: each member's origin and scale from the culler's segment data
-        const mergedScene = scene([createMergedRenderObject(sites, { gpuCulling: true })]);
-        const renderer = Renderer.create(graphics, { sphereRaster: 'only' });
-        renderer.setViewport(0, 0, Size, Size);
-        const renderable = mergedScene.renderables[0];
-        const cullFrustum = Frustum3D.fromProjectionMatrix(Frustum3D(), camera.projectionView);
-        let culled;
-        for (let i = 0; i < 50 && !culled; ++i) {
-          const frame = createFrame();
-          renderer.update(camera, mergedScene, frame);
-          renderer.prepareCull(mergedScene);
-          culled = renderable.getRasterInput?.(frame, plane, cullFrustum);
-          await graphics.resources.pending.whenReady();
-        }
-        expect(culled).toBeDefined();
-        const merged = await depths([
-          { item: renderable.renderItem, values: renderable.values as unknown as SpheresValues, culled },
-        ]);
-        expect(Array.from(merged.depths)).toEqual(Array.from(floatDepths.depths));
+      // merged and culled on the GPU: each member's origin and scale from the culler's segment data
+      const mergedScene = scene([createMergedRenderObject(sites, { gpuCulling: true })]);
+      const renderer = Renderer.create(graphics, { sphereRaster: 'only' });
+      renderer.setViewport(0, 0, Size, Size);
+      const renderable = mergedScene.renderables[0];
+      const cullFrustum = Frustum3D.fromProjectionMatrix(Frustum3D(), camera.projectionView);
+      let culled;
+      for (let i = 0; i < 50 && !culled; ++i) {
+        const frame = createFrame();
+        renderer.update(camera, mergedScene, frame);
+        renderer.prepareCull(mergedScene);
+        culled = renderable.getRasterInput?.(frame, plane, cullFrustum);
+        await graphics.resources.pending.whenReady();
       }
+      expect(culled).toBeDefined();
+      const merged = await depths([
+        { item: renderable.renderItem, values: renderable.values as unknown as SpheresValues, culled },
+      ]);
+      expect(Array.from(merged.depths)).toEqual(Array.from(floatDepths.depths));
+      for (const s of [floatScene, siteScene, mergedScene]) s.clear();
+      renderer.dispose();
 
       raster.destroy();
       vis.destroy();
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
-  });
+    });
+  }
 });

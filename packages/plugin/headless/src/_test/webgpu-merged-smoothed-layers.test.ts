@@ -6,7 +6,7 @@
 
 // a smoothed layer on a merged surface: drawn as the per-group visuals' (their grids), not as the plain layer; sampled
 // per vertex by a kernel into the storage the merged object draws it from
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { Color } from '@molstar/core/util/color';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { Interval } from '@molstar/core/data/int';
@@ -59,6 +59,11 @@ async function createPlugin() {
   return plugin;
 }
 
+/** one plugin for the tests that need no context of their own: its device's pipelines compiled once */
+let shared: Promise<HeadlessPluginContext> | undefined;
+const sharedPlugin = () => (shared ??= createPlugin());
+afterAll(async () => (await shared)?.dispose());
+
 async function setup(plugin: HeadlessPluginContext) {
   const data = await plugin.builders.data.rawData({ data: TwoChainsPdb, label: 'test' });
   const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
@@ -85,167 +90,165 @@ function gpuMembers(repr: { renderObjects: readonly any[] }) {
 
 describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', () => {
   it('draws an overpaint on one chain as the per-group visuals do', async () => {
-    const plugin = await createPlugin();
-    try {
-      const graphics = plugin.canvas3d!.graphics;
-      const { structure, registries, overpaint } = await setup(plugin);
-      let written = 0;
-      const merged = await image(graphics, registries, structure, 'merged', overpaint, {
-        inspect: async (repr) => {
-          written = gpuMembers(repr).length;
-        },
-      });
-      const perGroup = await image(graphics, registries, structure, 'per-group', overpaint);
-      const plain = await image(graphics, registries, structure, 'merged', overpaint, {
-        smoothColors: { name: 'off', params: {} },
-      });
-      const toPerGroup = differing(merged.pixels, perGroup.pixels);
-      const plainToPerGroup = differing(plain.pixels, perGroup.pixels);
-      // a part of its own for the smoothed chain beside the plain one, its layer written on the GPU
-      expect(merged.objects).toBe(2);
-      expect(written).toBe(1);
-      // the plain layer's hard edge apart from the grids' soft one; merged, sampled by the same filter per vertex, near
-      // them (measured 35 against 288 pixels: the vertices' interpolation of it, not the fragments')
-      expect(plainToPerGroup).toBeGreaterThan(150);
-      expect(toPerGroup).toBeLessThan(plainToPerGroup / 4);
-      expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
+    const plugin = await sharedPlugin();
+    const graphics = plugin.canvas3d!.graphics;
+    const { structure, registries, overpaint } = await setup(plugin);
+    let written = 0;
+    const merged = await image(graphics, registries, structure, 'merged', overpaint, {
+      inspect: async (repr) => {
+        written = gpuMembers(repr).length;
+      },
+    });
+    const perGroup = await image(graphics, registries, structure, 'per-group', overpaint);
+    const plain = await image(graphics, registries, structure, 'merged', overpaint, {
+      smoothColors: { name: 'off', params: {} },
+    });
+    const toPerGroup = differing(merged.pixels, perGroup.pixels);
+    const plainToPerGroup = differing(plain.pixels, perGroup.pixels);
+    // a part of its own for the smoothed chain beside the plain one, its layer written on the GPU
+    expect(merged.objects).toBe(2);
+    expect(written).toBe(1);
+    // the plain layer's hard edge apart from the grids' soft one; merged, sampled by the same filter per vertex, near
+    // them (measured 35 against 288 pixels: the vertices' interpolation of it, not the fragments')
+    expect(plainToPerGroup).toBeGreaterThan(150);
+    expect(toPerGroup).toBeLessThan(plainToPerGroup / 4);
+    expect(graphics.takeErrors?.() ?? []).toEqual([]);
   }, 60_000);
 
   it('reads the layer back as drawn, and samples it again for a geometry made again', async () => {
-    const plugin = await createPlugin();
-    try {
-      const graphics = plugin.canvas3d!.graphics;
-      const { structure, registries, overpaint } = await setup(plugin);
-      let readBack: Uint8Array | undefined;
-      let drawn: Uint8Array | undefined;
-      // another resolution after the layer: the geometry made again, the layer's segments laid out again
-      const remade = await image(graphics, registries, structure, 'merged', overpaint, {
-        after: (repr, props) => repr.createOrUpdate({ ...props, resolution: 0.6 }, structure).run(),
-        inspect: async (repr, scene) => {
-          const [member] = gpuMembers(repr);
-          const values = await readGpuDataArrays(member.values);
-          readBack = (values.tOverpaint.ref.value as DataArray<Uint8Array>).array;
-          // the bytes in the storage the object draws its layer from, at the member's part
-          const object = repr.renderObjects.find(
-            (o: any) => isMergedRenderObject(o) && gpuMembers({ renderObjects: [o] }).length,
-          );
-          const layer = scene.get(object)!.renderItem.getDataLayer!('tOverpaint')!;
-          const array = (object.values.tOverpaint.ref.value as DataArray<any>).array as SegmentedArray;
-          const part = array.parts.find((p) => !!p.gpu)!;
-          drawn = await readPage(graphics, layer.buffer, layer.offset + part.offset / 4, part.count / 4);
-        },
-      });
-      expect(readBack!.length).toBe(drawn!.length);
-      expect(Array.from(readBack!)).toEqual(Array.from(drawn!));
-      expect(readBack!.some((b) => b > 0)).toBe(true);
-      const perGroup = await image(graphics, registries, structure, 'per-group', overpaint, { resolution: 0.6 });
-      const plain = await image(graphics, registries, structure, 'merged', overpaint, {
-        resolution: 0.6,
-        smoothColors: { name: 'off', params: {} },
-      });
-      expect(differing(remade.pixels, perGroup.pixels)).toBeLessThan(differing(plain.pixels, perGroup.pixels) / 4);
-      expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
+    const plugin = await sharedPlugin();
+    const graphics = plugin.canvas3d!.graphics;
+    const { structure, registries, overpaint } = await setup(plugin);
+    let readBack: Uint8Array | undefined;
+    let drawn: Uint8Array | undefined;
+    // another resolution after the layer: the geometry made again, the layer's segments laid out again
+    const remade = await image(graphics, registries, structure, 'merged', overpaint, {
+      after: (repr, props) => repr.createOrUpdate({ ...props, resolution: 0.6 }, structure).run(),
+      inspect: async (repr, scene) => {
+        const [member] = gpuMembers(repr);
+        const values = await readGpuDataArrays(member.values);
+        readBack = (values.tOverpaint.ref.value as DataArray<Uint8Array>).array;
+        // the bytes in the storage the object draws its layer from, at the member's part
+        const object = repr.renderObjects.find(
+          (o: any) => isMergedRenderObject(o) && gpuMembers({ renderObjects: [o] }).length,
+        );
+        const layer = scene.get(object)!.renderItem.getDataLayer!('tOverpaint')!;
+        const array = (object.values.tOverpaint.ref.value as DataArray<any>).array as SegmentedArray;
+        const part = array.parts.find((p) => !!p.gpu)!;
+        drawn = await readPage(graphics, layer.buffer, layer.offset + part.offset / 4, part.count / 4);
+      },
+    });
+    expect(readBack!.length).toBe(drawn!.length);
+    expect(Array.from(readBack!)).toEqual(Array.from(drawn!));
+    expect(readBack!.some((b) => b > 0)).toBe(true);
+    const perGroup = await image(graphics, registries, structure, 'per-group', overpaint, { resolution: 0.6 });
+    const plain = await image(graphics, registries, structure, 'merged', overpaint, {
+      resolution: 0.6,
+      smoothColors: { name: 'off', params: {} },
+    });
+    expect(differing(remade.pixels, perGroup.pixels)).toBeLessThan(differing(plain.pixels, perGroup.pixels) / 4);
+    expect(graphics.takeErrors?.() ?? []).toEqual([]);
   }, 60_000);
 
-  it('draws the layer again after a device loss, on the new device', async () => {
-    const plugin = await createPlugin();
-    try {
-      const { structureCell, overpaint } = await setup(plugin);
-      const cell = await plugin.builders.structure.representation.addRepresentation(structureCell, {
-        type: 'gaussian-surface',
-        typeParams: { resolution: 0.5, tryUseGpu: false, smoothColors: Smooth } as never,
-      });
-      const repr = cell!.obj!.data.repr;
-      // the sampling's kernels compiled ahead of the layer, the surface smoothing
-      await plugin.canvas3d!.graphics.resources.pending.whenReady();
-      expect(plugin.canvas3d!.graphics.compute!.hasKernels(LayerSamplingKernels)).toBe(true);
-      repr.setState({ overpaint });
-      plugin.canvas3d!.update(repr);
-      const before = (await plugin.getImageRaw({ width: Size, height: Size })).data;
-      expect(gpuMembers(repr)).toHaveLength(1);
-      const graphics = plugin.canvas3d!.graphics as WebGPUContext;
-      const restored = new Promise<void>((resolve) =>
-        plugin.canvas3d!.contextChanged.subscribe(({ reason }) => {
-          if (reason === 'restore') resolve();
-        }),
-      );
-      graphics.device.destroy();
-      await restored;
-      const after = (await plugin.getImageRaw({ width: Size, height: Size })).data;
-      expect(Array.from(after)).toEqual(Array.from(before));
-      // written by the new device's kernels
-      const next = plugin.canvas3d!.graphics;
-      const [member] = gpuMembers(repr);
-      expect((member.values.tOverpaint.ref.value as DataArray<Uint8Array>).gpu!.compute).toBe(next.compute);
-    } finally {
-      plugin.dispose();
-    }
-  }, 60_000);
+  it(
+    'draws the layer again after a device loss, on the new device',
+    { tags: ['medium'] },
+    async () => {
+      const plugin = await createPlugin();
+      try {
+        const { structureCell, overpaint } = await setup(plugin);
+        const cell = await plugin.builders.structure.representation.addRepresentation(structureCell, {
+          type: 'gaussian-surface',
+          typeParams: { resolution: 0.5, tryUseGpu: false, smoothColors: Smooth } as never,
+        });
+        const repr = cell!.obj!.data.repr;
+        // the sampling's kernels compiled ahead of the layer, the surface smoothing
+        await plugin.canvas3d!.graphics.resources.pending.whenReady();
+        expect(plugin.canvas3d!.graphics.compute!.hasKernels(LayerSamplingKernels)).toBe(true);
+        repr.setState({ overpaint });
+        plugin.canvas3d!.update(repr);
+        const before = (await plugin.getImageRaw({ width: Size, height: Size })).data;
+        expect(gpuMembers(repr)).toHaveLength(1);
+        const graphics = plugin.canvas3d!.graphics as WebGPUContext;
+        const restored = new Promise<void>((resolve) =>
+          plugin.canvas3d!.contextChanged.subscribe(({ reason }) => {
+            if (reason === 'restore') resolve();
+          }),
+        );
+        graphics.device.destroy();
+        await restored;
+        const after = (await plugin.getImageRaw({ width: Size, height: Size })).data;
+        expect(Array.from(after)).toEqual(Array.from(before));
+        // written by the new device's kernels
+        const next = plugin.canvas3d!.graphics;
+        const [member] = gpuMembers(repr);
+        expect((member.values.tOverpaint.ref.value as DataArray<Uint8Array>).gpu!.compute).toBe(next.compute);
+      } finally {
+        plugin.dispose();
+      }
+    },
+    60_000,
+  );
 
   it('keeps the vertices on the GPU across layers, released with the representation', async () => {
-    const plugin = await createPlugin();
-    try {
-      const { structureCell, overpaint } = await setup(plugin);
-      const cell = await plugin.builders.structure.representation.addRepresentation(structureCell, {
-        type: 'gaussian-surface',
-        typeParams: { resolution: 0.5, tryUseGpu: false, smoothColors: Smooth } as never,
-      });
-      const repr = cell!.obj!.data.repr;
-      const compute = plugin.canvas3d!.graphics.compute!;
-      const draw = async (color: Color) => {
-        const layers = overpaint.layers.map((l) => ({ ...l, color }));
-        repr.setState({ overpaint: { ...overpaint, layers } });
-        plugin.canvas3d!.update(repr);
-        await plugin.getImageRaw({ width: Size, height: Size });
-        const [member] = gpuMembers(repr);
-        return getGpuMeshVertices(member.values as any, compute);
-      };
-      const first = await draw(Color(0xff0000));
-      const withVertices = compute.getStorageBufferByteCount();
-      // another layer: sampled from the same upload of the positions
-      const second = await draw(Color(0x0000ff));
-      expect(second).toBe(first);
-      expect(first.positions.byteLength).toBeGreaterThan(0);
-      // the representation removed: its segments' vertices with it
-      await plugin.build().delete(cell!).commit();
-      expect(withVertices - compute.getStorageBufferByteCount()).toBeGreaterThanOrEqual(first.positions.byteLength);
-    } finally {
-      plugin.dispose();
-    }
+    const plugin = await sharedPlugin();
+    const { structureCell, overpaint } = await setup(plugin);
+    const cell = await plugin.builders.structure.representation.addRepresentation(structureCell, {
+      type: 'gaussian-surface',
+      typeParams: { resolution: 0.5, tryUseGpu: false, smoothColors: Smooth } as never,
+    });
+    const repr = cell!.obj!.data.repr;
+    const compute = plugin.canvas3d!.graphics.compute!;
+    const draw = async (color: Color) => {
+      const layers = overpaint.layers.map((l) => ({ ...l, color }));
+      repr.setState({ overpaint: { ...overpaint, layers } });
+      plugin.canvas3d!.update(repr);
+      await plugin.getImageRaw({ width: Size, height: Size });
+      const [member] = gpuMembers(repr);
+      return getGpuMeshVertices(member.values as any, compute);
+    };
+    const first = await draw(Color(0xff0000));
+    const withVertices = compute.getStorageBufferByteCount();
+    // another layer: sampled from the same upload of the positions
+    const second = await draw(Color(0x0000ff));
+    expect(second).toBe(first);
+    expect(first.positions.byteLength).toBeGreaterThan(0);
+    // the representation removed: its segments' vertices with it
+    await plugin.build().delete(cell!).commit();
+    expect(withVertices - compute.getStorageBufferByteCount()).toBeGreaterThanOrEqual(first.positions.byteLength);
   }, 60_000);
 
-  it('prepares the sampling kernels by a precompile list naming a merged surface, in another context', async () => {
-    const a = await createPlugin();
-    const b = await createPlugin();
-    try {
-      const { structureCell, overpaint } = await setup(a);
-      const cell = await a.builders.structure.representation.addRepresentation(structureCell, {
-        type: 'gaussian-surface',
-        typeParams: { resolution: 0.5, tryUseGpu: false, smoothColors: Smooth } as never,
-      });
-      const repr = cell!.obj!.data.repr;
-      repr.setState({ overpaint });
-      a.canvas3d!.update(repr);
-      await a.getImageRaw({ width: Size, height: Size });
-      const list = a.canvas3d!.getPrecompileList();
-      expect(list.objects.some((s) => s.merged && s.defines.dOverpaintType === 'vertexInstance')).toBe(true);
+  it(
+    'prepares the sampling kernels by a precompile list naming a merged surface, in another context',
+    { tags: ['medium'] },
+    async () => {
+      const a = await createPlugin();
+      const b = await createPlugin();
+      try {
+        const { structureCell, overpaint } = await setup(a);
+        const cell = await a.builders.structure.representation.addRepresentation(structureCell, {
+          type: 'gaussian-surface',
+          typeParams: { resolution: 0.5, tryUseGpu: false, smoothColors: Smooth } as never,
+        });
+        const repr = cell!.obj!.data.repr;
+        repr.setState({ overpaint });
+        a.canvas3d!.update(repr);
+        await a.getImageRaw({ width: Size, height: Size });
+        const list = a.canvas3d!.getPrecompileList();
+        expect(list.objects.some((s) => s.merged && s.defines.dOverpaintType === 'vertexInstance')).toBe(true);
 
-      // another context, nothing in its scene
-      const other = b.canvas3d!.graphics.compute!;
-      expect(other.hasKernels(LayerSamplingKernels)).toBe(false);
-      await b.canvas3d!.precompile(list);
-      expect(other.hasKernels(LayerSamplingKernels)).toBe(true);
-    } finally {
-      a.dispose();
-      b.dispose();
-    }
-  }, 60_000);
+        // another context, nothing in its scene
+        const other = b.canvas3d!.graphics.compute!;
+        expect(other.hasKernels(LayerSamplingKernels)).toBe(false);
+        await b.canvas3d!.precompile(list);
+        expect(other.hasKernels(LayerSamplingKernels)).toBe(true);
+      } finally {
+        a.dispose();
+        b.dispose();
+      }
+    },
+    60_000,
+  );
 });
 
 const CopySchema = {

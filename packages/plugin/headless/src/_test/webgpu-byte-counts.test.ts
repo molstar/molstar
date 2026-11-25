@@ -22,6 +22,9 @@ ATOM      9  O   GLY A   2       4.570   1.610   0.000  1.00  0.00           O
 END
 `;
 
+// Medium: three load and clear cycles of a preset, each drawn
+// @module-tag medium
+
 describe.skipIf(!WebGPU.module)('resource counts on WebGPU', () => {
   it('count the live resources and their bytes, released with the scene', async () => {
     const plugin = await HeadlessPluginContext.create(

@@ -100,6 +100,9 @@ const ListOf = PluginStateTransform.BuiltIn({
   apply: ({ params }) => new SO.Particle.List(params.list, { label: 'nested' }),
 });
 
+// Medium: a nested pack of 204,800 particles a template (25 store pages), drawn read whole and by range
+// @module-tag medium
+
 describe.skipIf(!WebGPU.module)('a nested pack read by range on WebGPU', () => {
   it("draws as the pack read whole: its templates' pages read as the cull wants them, not all of them", async () => {
     const spec = DefaultPluginSpec();

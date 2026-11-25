@@ -126,6 +126,9 @@ const ListOf = PluginStateTransform.BuiltIn({
   apply: ({ params }) => new SO.Particle.List(params.list, { label: 'lattice' }),
 });
 
+// Medium: six scenarios of a page store and the flat view it matches, each a new device compiling the culling kernels, a second or more each
+// @module-tag medium
+
 describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store on WebGPU', () => {
   it("draws the flat view's frames, tiles let go and added again; picks a particle by its store index", async () => {
     const spec = DefaultPluginSpec();

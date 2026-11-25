@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { OrderedSet } from '@molstar/core/data/int';
 import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { Color } from '@molstar/core/util/color';
@@ -153,11 +153,9 @@ function knobAndLineBinding(): GizmoBinding<number> {
 
 // the gizmo library's handles are in the overlay layer: drawn and picked on top of the structure they are inside, at
 // their size on screen
-/**
- * A plugin with an atom's spacefill, the camera at `position` looking at it (y up), and a controller of `gizmos`
- * (its gizmo made); picks in CSS pixels
- */
-async function setup(gizmos: GizmoBinding<number>, position: Vec3, options?: GizmoControllerOptions) {
+/** one plugin for the file, with an atom's spacefill: each test's controller its own, disposed after it */
+let shared: Promise<HeadlessPluginContext> | undefined;
+async function createPlugin() {
   const plugin = await HeadlessPluginContext.create(
     { webgpu: WebGPU.module! },
     DefaultPluginSpec(),
@@ -172,6 +170,16 @@ async function setup(gizmos: GizmoBinding<number>, position: Vec3, options?: Giz
   await plugin.builders.structure.representation.addRepresentation(structure, { type: 'spacefill' });
   const canvas = plugin.canvas3d!;
   canvas.setProps({ camera: { ...canvas.props.camera, helper: { axes: { name: 'off', params: {} } } } });
+  return plugin;
+}
+
+/**
+ * The plugin, the camera at `position` looking at the atom (y up), and a controller of `gizmos` (its gizmo made); picks
+ * in CSS pixels
+ */
+async function setup(gizmos: GizmoBinding<number>, position: Vec3, options?: GizmoControllerOptions) {
+  const plugin = await (shared ??= createPlugin());
+  const canvas = plugin.canvas3d!;
 
   let time = now();
   const pickAt = async (x: number, y: number) => {
@@ -206,9 +214,11 @@ async function setup(gizmos: GizmoBinding<number>, position: Vec3, options?: Giz
 }
 
 describe.skipIf(!WebGPU.module)('gizmos in the overlay layer on WebGPU', () => {
+  afterAll(async () => (await shared)?.dispose());
+
   it('picks a handle inside the structure, at its size on screen, and not one faded edge-on', async () => {
     // looking at the atom along the diagonal of x and z
-    const { plugin, canvas, controller, pickAt, groupAt } = await setup(binding(), Vec3.create(30, 0, 30));
+    const { canvas, controller, pickAt, groupAt } = await setup(binding(), Vec3.create(30, 0, 30));
     try {
       // the y arrow (group 2) straight up from the center: its head, no shaft at rest, nothing past its tip
       const c = Size / 2;
@@ -225,16 +235,15 @@ describe.skipIf(!WebGPU.module)('gizmos in the overlay layer on WebGPU', () => {
       canvas.camera.setState({ position: Vec3.create(0, 30, 0.001), target: Vec3(), up: Vec3.unitZ }, 0);
       await pickAt(0, 0);
       expect(await groupAt(c, c)).toBe(0);
-      controller.dispose();
     } finally {
-      plugin.dispose();
+      controller.dispose();
     }
   });
 
   // a circle facing the camera as a point: round from any side, not edge-on (a line across the center), in the first
   // frame of every view, the pick's included
   it('draws a circle facing the camera round from any side', async () => {
-    const { plugin, canvas, controller, groupAt } = await setup(ringBinding(), Vec3.create(30, 0, 0));
+    const { canvas, controller, groupAt } = await setup(ringBinding(), Vec3.create(30, 0, 0));
     try {
       const c = Size / 2;
       for (const position of [Vec3.create(30, 0, 0), Vec3.create(0, 5, 30), Vec3.create(-20, -20, 5)]) {
@@ -244,9 +253,8 @@ describe.skipIf(!WebGPU.module)('gizmos in the overlay layer on WebGPU', () => {
         expect(await groupAt(c + ScreenSize, c)).toBe(0);
         expect(await groupAt(c, c)).toBe(undefined);
       }
-      controller.dispose();
     } finally {
-      plugin.dispose();
+      controller.dispose();
     }
   });
 
@@ -263,7 +271,7 @@ describe.skipIf(!WebGPU.module)('gizmos in the overlay layer on WebGPU', () => {
     };
     // groups: center 0, slides 1-3, rings 4-6, roll 7, trackball 8; looking along the diagonal of x and z (the axes
     // on the screen's vertical and horizontal, none on its diagonals)
-    const { plugin, controller, groupAt } = await setup(freeBinding, Vec3.create(30, 0, 30));
+    const { controller, groupAt } = await setup(freeBinding, Vec3.create(30, 0, 30));
     try {
       const c = Size / 2;
       const S = ScreenSize;
@@ -279,9 +287,8 @@ describe.skipIf(!WebGPU.module)('gizmos in the overlay layer on WebGPU', () => {
       expect(await groupAt(c + r, c - r)).toBe(7);
       // past the roll circle
       expect(await groupAt(c + 0.75 * S, c - 0.75 * S)).toBe(undefined);
-      controller.dispose();
     } finally {
-      plugin.dispose();
+      controller.dispose();
     }
   });
 
@@ -297,24 +304,23 @@ describe.skipIf(!WebGPU.module)('gizmos in the overlay layer on WebGPU', () => {
       }),
     };
     // groups: center 0, slides 1-3, the x ring 4, roll 5, trackball 6
-    const { plugin, controller, groupAt } = await setup(ringOnly, Vec3.create(30, 0, 30));
+    const { controller, groupAt } = await setup(ringOnly, Vec3.create(30, 0, 30));
     try {
       const c = Size / 2;
       const [x, y] = [(0.65 * ScreenSize * Math.SQRT1_2) / Math.SQRT2, 0.65 * ScreenSize * Math.SQRT1_2];
       for (let i = 0; i < 20 && (await groupAt(c - x, c - y)) === undefined; i++);
       expect(await groupAt(c - x, c - y)).toBe(4);
       expect(await groupAt(c + x, c - y)).toBe(6);
-      controller.dispose();
     } finally {
-      plugin.dispose();
+      controller.dispose();
     }
   });
 
   // a knob drawn in front of the lines ending in it (`Points.Params.pointFront`): the line running from it toward the
   // camera is nearer than the knob's center over the knob's pixels, yet the knob is picked there
-  it('picks a knob over a line ending in it', async () => {
+  it('picks a knob over a line ending in it', { tags: ['medium'] }, async () => {
     // a knob 24 px across: the pick is drawn at a fraction of the pixels
-    const { plugin, canvas, controller, groupAt } = await setup(knobAndLineBinding(), Vec3.create(0, 0, 80), {
+    const { canvas, controller, groupAt } = await setup(knobAndLineBinding(), Vec3.create(0, 0, 80), {
       pointSize: 24,
     });
     try {
@@ -327,15 +333,14 @@ describe.skipIf(!WebGPU.module)('gizmos in the overlay layer on WebGPU', () => {
       // toward the center of the screen (where the line goes), within the knob's radius (12 px)
       expect(await groupAt(x - 6, y)).toBe(0);
       expect(await groupAt(x, y)).toBe(0);
-      controller.dispose();
     } finally {
-      plugin.dispose();
+      controller.dispose();
     }
   });
 
   // parts of a fixed part facing the camera, the frame not: the disk behind everything takes what the knob leaves
   it('faces a part of the fixed handles to the camera, its disk behind the others', async () => {
-    const { plugin, canvas, controller, groupAt } = await setup(facingPartBinding(), Vec3.create(30, 0, 0));
+    const { canvas, controller, groupAt } = await setup(facingPartBinding(), Vec3.create(30, 0, 0));
     try {
       const c = Size / 2;
       for (const position of [Vec3.create(30, 0, 0), Vec3.create(0, 5, 30), Vec3.create(-20, -20, 5)]) {
@@ -346,27 +351,25 @@ describe.skipIf(!WebGPU.module)('gizmos in the overlay layer on WebGPU', () => {
         expect(await groupAt(c, c - 0.6 * ScreenSize)).toBe(1);
         expect(await groupAt(c + 1.3 * ScreenSize, c)).toBe(undefined);
       }
-      controller.dispose();
     } finally {
-      plugin.dispose();
+      controller.dispose();
     }
   });
 
   // a slide kept end-on: drawn over the center, the center's hit disk still in front of it
   it('picks the center over a slide kept drawn when it points at the viewer', async () => {
-    const { plugin, controller, groupAt } = await setup(binding(), Vec3.create(0, 30, 0.001), { fadeSlides: false });
+    const { controller, groupAt } = await setup(binding(), Vec3.create(0, 30, 0.001), { fadeSlides: false });
     try {
       const c = Size / 2;
       expect(await groupAt(c, c)).toBe(0);
-      controller.dispose();
     } finally {
-      plugin.dispose();
+      controller.dispose();
     }
   });
 
   // a gizmo in two parts: the outline at the scene's scale, the knob at a fixed size on screen, one gizmo's handles
   it('keeps fixed handles at their size on screen while the outline scales, picked along it', async () => {
-    const { plugin, canvas, controller, groupAt } = await setup(twoPartBinding(), Vec3.create(0, 0, 80));
+    const { canvas, controller, groupAt } = await setup(twoPartBinding(), Vec3.create(0, 0, 80));
     try {
       const c = Size / 2;
       const widths: number[] = [];
@@ -391,9 +394,8 @@ describe.skipIf(!WebGPU.module)('gizmos in the overlay layer on WebGPU', () => {
       }
       // nearer: the outline larger on screen, the knob as it was
       expect(widths[1]).toBeGreaterThan(widths[0] * 1.4);
-      controller.dispose();
     } finally {
-      plugin.dispose();
+      controller.dispose();
     }
   });
 
@@ -414,7 +416,7 @@ describe.skipIf(!WebGPU.module)('gizmos in the overlay layer on WebGPU', () => {
         return { parts: [{ role: 'handle', geometry: shafts.getLines() }], groups, frame: Mat4.identity() };
       },
     };
-    const { plugin, controller, groupAt } = await setup(lineBinding, Vec3.create(30, 0, 30));
+    const { controller, groupAt } = await setup(lineBinding, Vec3.create(30, 0, 30));
     try {
       const c = Size / 2;
       // the lines' pipelines may compile after the knob's (what `setup` waits for)
@@ -422,9 +424,8 @@ describe.skipIf(!WebGPU.module)('gizmos in the overlay layer on WebGPU', () => {
       // the y shaft (group 2), a line, along it (past the atom at the origin) and a pixel aside
       for (const dy of [40, 50, 60]) expect(await groupAt(c, c - dy)).toBe(2);
       expect(await groupAt(c - 3, c - 50)).toBe(2);
-      controller.dispose();
     } finally {
-      plugin.dispose();
+      controller.dispose();
     }
   });
 });

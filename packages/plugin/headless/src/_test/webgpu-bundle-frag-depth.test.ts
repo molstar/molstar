@@ -79,15 +79,21 @@ describe.skipIf(!WebGPU.module)('frag_depth in render bundles on WebGPU', () => 
     }
   });
 
-  it('draws writing frag_depth replay where the probe keeps the depth, are drawn directly where not', async () => {
-    const probed = await render();
-    const kept = await render(true);
-    const lost = await render(false);
-    expect(probed.replayed).toBe(kept.replayed);
-    // the spheres' chunks drawn directly in the frames where the bundles lose their depth, replayed where they keep it
-    // (how many: the passes drawing them, not counted here)
-    expect(lost.replayed).toBeLessThan(kept.replayed);
-    expect(lost.image).toEqual(kept.image);
-    expect(probed.image).toEqual(kept.image);
-  }, 60_000);
+  // medium: three devices compiling their pipelines
+  it(
+    'draws writing frag_depth replay where the probe keeps the depth, are drawn directly where not',
+    { tags: ['medium'] },
+    async () => {
+      const probed = await render();
+      const kept = await render(true);
+      const lost = await render(false);
+      expect(probed.replayed).toBe(kept.replayed);
+      // the spheres' chunks drawn directly in the frames where the bundles lose their depth, replayed where they keep it
+      // (how many: the passes drawing them, not counted here)
+      expect(lost.replayed).toBeLessThan(kept.replayed);
+      expect(lost.image).toEqual(kept.image);
+      expect(probed.image).toEqual(kept.image);
+    },
+    60_000,
+  );
 });

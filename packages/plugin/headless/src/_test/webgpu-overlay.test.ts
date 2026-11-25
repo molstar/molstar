@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Color } from '@molstar/core/util/color';
@@ -26,11 +26,9 @@ function isRed([r, g, b]: number[]) {
   return r > 200 && g < 80 && b < 80;
 }
 
-/**
- * A plugin with the atom's spacefill and a red ball-and-stick inside it (`ballParams` added to its type params), on a
- * canvas of `size`, and what the tests ask of its canvas
- */
-async function setup(size = Size, ballParams: { [k: string]: unknown } = {}) {
+/** plugins by canvas size, shared by the tests (their pipelines compiled once), and the props a test may change */
+const plugins = new Map<number, Promise<{ plugin: HeadlessPluginContext; reset: () => void }>>();
+async function createPlugin(size: number) {
   const plugin = await HeadlessPluginContext.create(
     { webgpu: WebGPU.module! },
     DefaultPluginSpec(),
@@ -38,7 +36,29 @@ async function setup(size = Size, ballParams: { [k: string]: unknown } = {}) {
     { backend: 'webgpu' },
   );
   await plugin.init();
+  const canvas = plugin.canvas3d!;
+  const { imagePass } = plugin.renderer;
+  const camera = canvas.props.camera;
+  const image = { overlay: imagePass.props.overlay, multiSample: imagePass.props.multiSample };
+  return {
+    plugin,
+    reset: () => {
+      canvas.setProps({ camera });
+      imagePass.setProps(image);
+    },
+  };
+}
+
+/**
+ * A plugin with the atom's spacefill and a red ball-and-stick inside it (`ballParams` added to its type params), on a
+ * canvas of `size`, and what the tests ask of its canvas; `cleanup` removes the structure
+ */
+async function setup(size = Size, ballParams: { [k: string]: unknown } = {}) {
+  if (!plugins.has(size)) plugins.set(size, createPlugin(size));
+  const { plugin, reset } = await plugins.get(size)!;
+  reset();
   const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
+  const cleanup = () => plugin.build().delete(data.ref).commit();
   const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
   const model = await plugin.builders.structure.createModel(trajectory);
   const structure = await plugin.builders.structure.createStructure(model);
@@ -70,6 +90,8 @@ async function setup(size = Size, ballParams: { [k: string]: unknown } = {}) {
     return pick && canvas.getLoci(pick.id).repr;
   };
   const pickCenter = () => pickAt(size / 2, size / 2);
+  // the camera as a new plugin's (another test's moved)
+  canvas.requestCameraReset({ durationMs: 0 });
   // the pick's pipelines may compile after the frame's
   for (let i = 0; i < 20 && !(await pickCenter()); i++);
   /** an image with the overlay or without it */
@@ -83,7 +105,7 @@ async function setup(size = Size, ballParams: { [k: string]: unknown } = {}) {
     const i = ((size / 2) * size + size / 2) * 4;
     return [data[i], data[i + 1], data[i + 2]];
   };
-  return { plugin, canvas, spacefill, ball, pickAt, pickCenter, pickPosition, image, centerColor };
+  return { plugin, canvas, spacefill, ball, pickAt, pickCenter, pickPosition, image, centerColor, cleanup };
 }
 
 /** The pixels of the center row of an image that are red */
@@ -112,8 +134,12 @@ function softWidth({ data, width, height }: { data: Uint8ClampedArray; width: nu
 // a representation in the overlay layer is drawn and picked above the scene, is out of the scene's bounds, and is in
 // images only when they ask for it
 describe.skipIf(!WebGPU.module)('the overlay layer on WebGPU', () => {
-  it('draws and picks above the scene, out of its bounds', async () => {
-    const { plugin, canvas, spacefill, ball, pickCenter, pickPosition, centerColor } = await setup();
+  afterAll(async () => {
+    for (const p of plugins.values()) (await p).plugin.dispose();
+  });
+
+  it('draws and picks above the scene, out of its bounds', { tags: ['medium'] }, async () => {
+    const { plugin, canvas, spacefill, ball, pickCenter, pickPosition, centerColor, cleanup } = await setup();
     try {
       // in the scene, inside the spacefill: hidden, not picked
       expect(await pickCenter()).toBe(spacefill);
@@ -151,14 +177,14 @@ describe.skipIf(!WebGPU.module)('the overlay layer on WebGPU', () => {
       canvas.commit(true);
       expect(canvas.boundingSphere.radius).toBeGreaterThan(sceneSphere.radius + 10);
     } finally {
-      plugin.dispose();
+      await cleanup();
     }
   });
 
   // the scene's depth applies per object by its occluded alpha: on top (1), depth tested (0), x-ray (between); the
   // pick follows the alpha a click needs
   it('applies the scene depth by occluded alpha', async () => {
-    const { plugin, canvas, spacefill, ball, pickCenter, centerColor } = await setup();
+    const { plugin, canvas, spacefill, ball, pickCenter, centerColor, cleanup } = await setup();
     try {
       plugin.renderer.imagePass.setProps({ multiSample: { ...DefaultCanvas3DParams.multiSample, mode: 'off' } });
       const sceneColor = await centerColor(true);
@@ -194,13 +220,13 @@ describe.skipIf(!WebGPU.module)('the overlay layer on WebGPU', () => {
       expect(picked).toBe(ball);
       expect(isRed(color)).toBe(true);
     } finally {
-      plugin.dispose();
+      await cleanup();
     }
   });
 
   // a transparent surface in front occludes as a click takes it: opaque enough to be picked, not fainter than that
   it('applies the scene depth of transparent objects opaque enough to be picked', async () => {
-    const { plugin, canvas, spacefill, ball, pickCenter, centerColor } = await setup();
+    const { plugin, canvas, spacefill, ball, pickCenter, centerColor, cleanup } = await setup();
     try {
       plugin.renderer.imagePass.setProps({ multiSample: { ...DefaultCanvas3DParams.multiSample, mode: 'off' } });
       ball.setState({ layer: 'overlay', occludedAlpha: 0 });
@@ -223,13 +249,13 @@ describe.skipIf(!WebGPU.module)('the overlay layer on WebGPU', () => {
       expect(picked).toBe(spacefill);
       expect(isRed(color)).toBe(false);
     } finally {
-      plugin.dispose();
+      await cleanup();
     }
   });
 
   // a pick-only object (a hit area) is picked, with its position, but not drawn
   it('picks a pick-only object without drawing it', async () => {
-    const { plugin, canvas, ball, pickCenter, pickPosition, centerColor } = await setup();
+    const { plugin, canvas, ball, pickCenter, pickPosition, centerColor, cleanup } = await setup();
     try {
       plugin.renderer.imagePass.setProps({ multiSample: { ...DefaultCanvas3DParams.multiSample, mode: 'off' } });
       ball.setState({ layer: 'overlay' });
@@ -249,13 +275,13 @@ describe.skipIf(!WebGPU.module)('the overlay layer on WebGPU', () => {
       // the canvas does not draw it either
       expect(isRed(await centerColor(false))).toBe(false);
     } finally {
-      plugin.dispose();
+      await cleanup();
     }
   });
 
   // with depth of field the scene is blurred and the overlay is drawn after it: its edges stay sharp
-  it('keeps the overlay out of the depth of field blur', async () => {
-    const { plugin, canvas, ball, image } = await setup(128);
+  it('keeps the overlay out of the depth of field blur', { tags: ['medium'] }, async () => {
+    const { plugin, canvas, ball, image, cleanup } = await setup(128);
     try {
       plugin.renderer.imagePass.setProps({ multiSample: { ...DefaultCanvas3DParams.multiSample, mode: 'off' } });
       // in front of the atom, out of the focus at its center
@@ -274,16 +300,16 @@ describe.skipIf(!WebGPU.module)('the overlay layer on WebGPU', () => {
       expect(sharp).toBeLessThanOrEqual(9);
       expect(blurred).toBeGreaterThanOrEqual(sharp + 8);
     } finally {
-      plugin.dispose();
+      await cleanup();
     }
   });
 
   // a screen-sized mesh is as large on screen at any zoom: in images, and in the pick at its own scale (a quarter of
   // the canvas's pixels by default)
-  it('keeps a screen-sized mesh at its size on screen', async () => {
+  it('keeps a screen-sized mesh at its size on screen', { tags: ['medium'] }, async () => {
     const size = 128;
     // 15 CSS pixels per unit
-    const { plugin, canvas, ball, pickAt, image } = await setup(size, {
+    const { plugin, canvas, ball, pickAt, image, cleanup } = await setup(size, {
       tryUseImpostor: false,
       quality: 'custom',
       detail: 3,
@@ -318,7 +344,7 @@ describe.skipIf(!WebGPU.module)('the overlay layer on WebGPU', () => {
       expect(widths[0]).toBeGreaterThan(25 * pixelRatio);
       expect(Math.abs(widths[1] - widths[0])).toBeLessThanOrEqual(2);
     } finally {
-      plugin.dispose();
+      await cleanup();
     }
   });
 });

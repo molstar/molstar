@@ -84,7 +84,7 @@ describe.skipIf(!WebGPU.module)('temporal multi-sampling on WebGPU', () => {
     [2, 4, 1, 6, 0.01],
     [5, 32, 8, 32, 0.04],
   ]) {
-    it(`settles to the image of all samples at once, level ${level}`, async () => {
+    it(`settles to the image of all samples at once, level ${level}`, { tags: ['medium'] }, async () => {
       const all = await create('on', level);
       const temporal = await create('temporal', level);
       try {
@@ -134,7 +134,7 @@ describe.skipIf(!WebGPU.module)('temporal multi-sampling on WebGPU', () => {
 
   // a moving frame (each forced one restarts the samples) presents the draw pass's color target, hold and compose
   // written only when the next sample follows: its image the unjittered scene's, as without multi-sampling
-  it('draws a moving frame as without multi-sampling', async () => {
+  it('draws a moving frame as without multi-sampling', { tags: ['medium'] }, async () => {
     const off = await create('off');
     const temporal = await create('temporal');
     try {

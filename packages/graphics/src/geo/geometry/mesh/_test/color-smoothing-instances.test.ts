@@ -53,7 +53,9 @@ import { getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/ren
 // Layer smoothing on an instanced surface whose layer reaches only some instances (perf-audit 13/P1): the gaussian
 // surface of the 1cbs protein over two unit cells (8 instances, neighbours within the smoothing reach). The snapshot
 // pins, per instance, what the CPU path writes and what the GPU path's grid gives at the vertices, as computed when
-// every instance was splatted over the grid of all instances.
+// every instance was splatted over the grid of all instances. Medium: the fixture is large (the quick lane's
+// representative: `color-smoothing.test.ts`, a layer reaching one of three instances).
+// @module-tag medium
 
 const registries = (() => {
   const colorThemeRegistry = ColorTheme.createRegistry();
@@ -293,9 +295,6 @@ function spreadTransforms() {
 /** the surface, computed once for the file: the cases copy what they change */
 const CellsGeometry = loadCells().then(surfaceGeometry);
 
-/** the first layer's sweep is the quick lane's representative, the others are medium (AGENTS.md, Tests) */
-const sweepLane = (layer: Layer) => (layer === 'overpaint' ? {} : { tags: ['medium'] });
-
 const Options: ColorSmoothingOptions[] = [
   { resolution: 1.2, stride: 3 },
   { resolution: 0.8, stride: 2 },
@@ -319,7 +318,7 @@ describe('mesh layer smoothing on instances', async () => {
   });
 
   for (const layer of ['overpaint', 'transparency', 'emissive', 'substance', 'color'] as Layer[]) {
-    it(`smooths ${layer} reaching some instances as when every instance is splatted`, sweepLane(layer), () => {
+    it(`smooths ${layer} reaching some instances as when every instance is splatted`, () => {
       const result: Record<string, ReturnType<typeof smoothed>> = {};
       for (const [name, reach, options] of Reach) {
         for (const o of options) {
@@ -354,7 +353,7 @@ describe('mesh layer smoothing on spread instances', async () => {
   ];
 
   for (const layer of ['overpaint', 'transparency', 'emissive', 'substance'] as Layer[]) {
-    it(`smooths ${layer} reaching some instances as when every instance is splatted`, sweepLane(layer), () => {
+    it(`smooths ${layer} reaching some instances as when every instance is splatted`, () => {
       const result: Record<string, ReturnType<typeof smoothed>> = {};
       for (const [name, reach, options] of Reach) {
         for (const o of options) {

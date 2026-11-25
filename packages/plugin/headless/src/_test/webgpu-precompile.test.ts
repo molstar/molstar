@@ -92,7 +92,7 @@ const Transparency = 'wboit';
 const Globals: GlobalDefines = { dColorMarker: true, dLightCount: 1 };
 
 describe.skipIf(!WebGPU.module)('object signatures on WebGPU', () => {
-  it('prepare the programs and pipelines of their objects, also in another context', async () => {
+  it('prepare the programs and pipelines of their objects, also in another context', { tags: ['medium'] }, async () => {
     const a = await createPlugin();
     const b = await createPlugin();
     try {
@@ -217,7 +217,9 @@ describe.skipIf(!WebGPU.module)('object signatures on WebGPU', () => {
     }
   });
 
-  it('a recorded precompile list prepares what frames draw the objects with, before they exist', async () => {
+  it('a recorded precompile list prepares what frames draw the objects with, before they exist', {
+    tags: ['medium'],
+  }, async () => {
     const a = await createPlugin();
     const b = await createPlugin();
     const c = await createPlugin();
@@ -262,7 +264,9 @@ describe.skipIf(!WebGPU.module)('object signatures on WebGPU', () => {
     }
   });
 
-  it('a precompile list plans the ghost of what clip objects remove, its scenes counts only', async () => {
+  it('a precompile list plans the ghost of what clip objects remove, its scenes counts only', {
+    tags: ['medium'],
+  }, async () => {
     const a = await createPlugin();
     const b = await createPlugin();
     try {

@@ -28,6 +28,9 @@ import { WebGPU } from './webgpu-module.js';
 // each copy's instances culled and their poses composed on the GPU (`paged-cull.wgsl.ts`); its frames its flattened
 // list's (`ParticleNesting.flatten`) drawn flat.
 
+// Medium: scenarios of many frames each, a page store's culling settling
+// @module-tag medium
+
 const Size = 96;
 
 /** three sites a line along `axis` */
@@ -157,19 +160,28 @@ describe.skipIf(!WebGPU.module)('a list with templates as a page store on WebGPU
       const graphics = canvas.graphics as WebGPUContext;
       let time = now();
       /**
-       * the canvas' frame at `focus` once its work settled (the culling's kernels compiled: frames before draw none);
-       * its near plane `cut` in front of the focus where given
+       * the canvas' frame at `focus` once its work settled (the culling's kernels compiled: frames before draw none;
+       * pages written as the cull wants them): three frames alike, nothing started meanwhile; its near plane `cut` in
+       * front of the focus where given
        */
       const frame = async (focus: Vec3, radius: number, cut?: number) => {
-        for (let i = 0; i < 12; ++i) {
+        const { pending } = graphics.resources;
+        let image: number[] = [];
+        let alike = 0;
+        for (let i = 0; i < 12 && alike < 2; ++i) {
+          const tracked = pending.trackedCount;
           canvas.commit(true);
           const state = canvas.camera.getFocus(focus, radius);
           canvas.camera.setState(cut === undefined ? state : { ...state, radius: cut }, 0);
           canvas.requestDraw();
           canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
-          await graphics.resources.pending.whenReady();
+          await pending.whenReady();
+          const next = Array.from((await graphics.readDrawingBuffer()).data);
+          const same = pending.trackedCount === tracked && next.every((v, k) => v === image[k]);
+          alike = same ? alike + 1 : 0;
+          image = next;
         }
-        return Array.from((await graphics.readDrawingBuffer()).data);
+        return image;
       };
       /** `list` drawn as targets, its structure targets as impostors (the store's) or meshes (`impostors` false) */
       const draw = async (list: ParticleList, impostors = true) => {

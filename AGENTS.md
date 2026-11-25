@@ -113,10 +113,12 @@ can hold its tests.
   every lane; `pnpm check:publish` runs quick and medium (the GL suite skips without `gl`). Run the quick lane in the
   edit loop, the medium lane when you touch what it covers, the heavy lane when you touch what it bounds and at
   checkpoints.
-- **WebGPU in CI**: the headless WebGPU tests (quick-lane files, skipped without Dawn) run on every push in a job of
-  their own (`WebGPU tests (Dawn)`, a software Vulkan, required: they fail instead of skipping,
-  `MOLSTAR_REQUIRE_WEBGPU`); the visual smoke tests (`pnpm test:visual --tags smoke`, WebGPU against WebGL2) nightly, by
-  hand and on a PR labelled `visual tests` (`visual-tests.yml`).
+- **WebGPU in CI**: the headless WebGPU tests (skipped without Dawn) run on every push in a job of their own
+  (`WebGPU tests (Dawn)`, a software Vulkan, the quick and medium lanes: `--mode pr`; required: they fail instead of
+  skipping, `MOLSTAR_REQUIRE_WEBGPU`). They follow the lanes as any test: a fresh device compiles its pipelines (a third
+  of a second for a cartoon), so a test of several scenarios or images is medium and its file keeps a quick
+  representative. The visual smoke tests (`pnpm test:visual --tags smoke`, WebGPU against WebGL2) nightly, by hand and
+  on a PR labelled `visual tests` (`visual-tests.yml`).
 - **Not lanes**: the packages' opt-in tiers on the shared harness (`test-harness/`), by hand at checkpoints and never in
   CI: `test:perf` (allocation, the `*.quick.ts` cases: not the quick lane), `test:scaling`, `test:browser` and the heap
   guards (`test:heap`, `*.heap.ts`). See the [Seq\*](packages/sequences/AGENTS.md) and [Prism](packages/prism/AGENTS.md)

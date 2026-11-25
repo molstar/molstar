@@ -31,7 +31,9 @@ import { WebGPU } from './webgpu-module.js';
 
 // A slot view of a tile set (`ParticleTilesView`'s `slots`) drawn by the target representation's store-backed object
 // (`paged.ts`): the image of the flat view of the same tiles, as tiles are let go and added again; a pick its
-// particle, through a canvas multi-sampled over time.
+// particle, through a canvas multi-sampled over time. Medium: each test a scene of several views and representations,
+// seconds.
+// @module-tag medium
 
 const Size = 64;
 const Count = 64;
@@ -302,97 +304,101 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
     // the lattice a tile a particle (4³ tiles), its levels: the root a sample of it (one particle) drawn 4 times larger
     const bytes = writeParticlePack(createList(), { tiles: 4, levels: true });
     const file = Asset.File(new File([bytes], 'lattice.mspk'));
+    const spec = DefaultPluginSpec();
+    // one plugin for the draws (a new one compiles the pipelines again), the scene before removed
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
     /**
      * the pixels drawn (`sphereRaster` off: sprites; only: the raster) of the root node alone, or of the lattice's
      * tiles (`base`: 16 particles seen along z, the others behind them)
      */
     const drawn = async (raster: 'off' | 'only', base: boolean) => {
-      const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
-      try {
-        await plugin.init();
-        if (raster === 'only' && !plugin.canvas3d!.graphics.capabilities.atomicMinMax64) return undefined;
-        plugin.canvas3d!.setProps({
-          renderer: { sphereRaster: raster, sphereRasterRadius: 64, backgroundColor: 0x000000 as never },
-          camera: { mode: 'orthographic' } as never,
-          cameraFog: { name: 'off', params: {} },
-          multiSample: { mode: 'off' } as never,
-          postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
-        });
-        const tiles = await plugin
-          .build()
-          .toRoot()
-          .apply(ParticleTileSetFromPack, { source: { name: 'file', params: file }, levels: true } as never)
-          .commit();
-        const levels = tiles.data!.set.levels!;
-        // a camera given that sees the set: the tiles themselves at the default detail, the root alone where any
-        // detail is too fine
-        const camera = {
-          snapshot: {
-            mode: 'perspective' as const,
-            fov: Math.PI / 4,
-            position: Vec3.create(45, 45, 400),
-            target: Vec3.create(45, 45, 0),
-            up: Vec3.create(0, 1, 0),
-            minNear: 1,
-          },
-          width: 512,
-          height: 512,
-        };
-        const detailPixels = base ? 4 : 1e9;
-        const view = await plugin
-          .build()
-          .to(tiles.ref)
-          .apply(ParticleTilesView, {
-            tiles: { name: 'camera', params: { minPixels: 0, occlusion: false, follow: false, detailPixels, camera } },
-            frame: 0,
-            slots: true,
-          } as never)
-          .commit();
-        const shown = Array.from(ParticleTileView.of(view.data!)!.tiles);
-        if (base) expect(shown.length).toBe(64);
-        else expect(shown).toEqual([levels.getNode(levels.count, 0)]);
-        await plugin
-          .build()
-          .to(view.ref)
-          .apply(ParticlesRepresentation3D, {
-            type: { name: 'target', params: { lodPixelSize: 0 } },
-            colorTheme: { name: 'uniform', params: { value: 0x00ff00 } },
-          } as never)
-          .commit();
-        for (let i = 0; i < 4; ++i) {
-          await plugin.getImageRaw({ width: Size, height: Size });
-          // the cull's read-backs landed (a room overflowed asks for another cull, tracked once it is read: on a slow
-          // device, a software Vulkan's, after the frame), then the work they asked for
-          await plugin.canvas3d!.graphics.waitForGpuCommandsComplete();
-          await new Promise((r) => setTimeout(r, 0));
-          await plugin.canvas3d!.graphics.resources.pending.whenReady();
-          const camera = plugin.canvas3d!.camera;
-          camera.setState(camera.getFocus(Vec3.create(45, 45, 45), 90), 0);
-        }
-        const { data } = await plugin.getImageRaw({ width: Size, height: Size });
-        expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
-        let n = 0;
-        for (let i = 0; i < data.length; i += 4) if (data[i + 1] > 40) n += 1;
-        return n;
-      } finally {
-        plugin.dispose();
+      await plugin.clear();
+      // committed empty: the next scene's camera reset immediate, as on a new canvas (else a transition from the last)
+      plugin.canvas3d!.commit(true);
+      if (raster === 'only' && !plugin.canvas3d!.graphics.capabilities.atomicMinMax64) return undefined;
+      plugin.canvas3d!.setProps({
+        renderer: { sphereRaster: raster, sphereRasterRadius: 64, backgroundColor: 0x000000 as never },
+        camera: { mode: 'orthographic' } as never,
+        cameraFog: { name: 'off', params: {} },
+        multiSample: { mode: 'off' } as never,
+        postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
+      });
+      const tiles = await plugin
+        .build()
+        .toRoot()
+        .apply(ParticleTileSetFromPack, { source: { name: 'file', params: file }, levels: true } as never)
+        .commit();
+      const levels = tiles.data!.set.levels!;
+      // a camera given that sees the set: the tiles themselves at the default detail, the root alone where any
+      // detail is too fine
+      const camera = {
+        snapshot: {
+          mode: 'perspective' as const,
+          fov: Math.PI / 4,
+          position: Vec3.create(45, 45, 400),
+          target: Vec3.create(45, 45, 0),
+          up: Vec3.create(0, 1, 0),
+          minNear: 1,
+        },
+        width: 512,
+        height: 512,
+      };
+      const detailPixels = base ? 4 : 1e9;
+      const view = await plugin
+        .build()
+        .to(tiles.ref)
+        .apply(ParticleTilesView, {
+          tiles: { name: 'camera', params: { minPixels: 0, occlusion: false, follow: false, detailPixels, camera } },
+          frame: 0,
+          slots: true,
+        } as never)
+        .commit();
+      const shown = Array.from(ParticleTileView.of(view.data!)!.tiles);
+      if (base) expect(shown.length).toBe(64);
+      else expect(shown).toEqual([levels.getNode(levels.count, 0)]);
+      await plugin
+        .build()
+        .to(view.ref)
+        .apply(ParticlesRepresentation3D, {
+          type: { name: 'target', params: { lodPixelSize: 0 } },
+          colorTheme: { name: 'uniform', params: { value: 0x00ff00 } },
+        } as never)
+        .commit();
+      for (let i = 0; i < 4; ++i) {
+        await plugin.getImageRaw({ width: Size, height: Size });
+        // the cull's read-backs landed (a room overflowed asks for another cull, tracked once it is read: on a slow
+        // device, a software Vulkan's, after the frame), then the work they asked for
+        await plugin.canvas3d!.graphics.waitForGpuCommandsComplete();
+        await new Promise((r) => setTimeout(r, 0));
+        await plugin.canvas3d!.graphics.resources.pending.whenReady();
+        const camera = plugin.canvas3d!.camera;
+        camera.setState(camera.getFocus(Vec3.create(45, 45, 45), 90), 0);
       }
+      const { data } = await plugin.getImageRaw({ width: Size, height: Size });
+      expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
+      let n = 0;
+      for (let i = 0; i < data.length; i += 4) if (data[i + 1] > 40) n += 1;
+      return n;
     };
-    for (const raster of ['off', 'only'] as const) {
-      const lattice = await drawn(raster, true);
-      if (lattice === undefined) continue;
-      const root = (await drawn(raster, false))!;
-      // a particle of the lattice drawn as it is, the root's 4 times larger: about 16 times its area (its sites
-      // overlap more, the discs of whole pixels)
-      const one = lattice / 16;
-      expect(root, raster).toBeGreaterThan(8 * one);
-      expect(root, raster).toBeLessThan(24 * one);
+    try {
+      await plugin.init();
+      for (const raster of ['off', 'only'] as const) {
+        const lattice = await drawn(raster, true);
+        if (lattice === undefined) continue;
+        const root = (await drawn(raster, false))!;
+        // a particle of the lattice drawn as it is, the root's 4 times larger: about 16 times its area (its sites
+        // overlap more, the discs of whole pixels)
+        const one = lattice / 16;
+        expect(root, raster).toBeGreaterThan(8 * one);
+        expect(root, raster).toBeLessThan(24 * one);
+      }
+    } finally {
+      plugin.dispose();
     }
   }, 120_000);
 });

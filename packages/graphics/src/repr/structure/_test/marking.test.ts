@@ -284,13 +284,13 @@ describe('representation marking and layers', async () => {
     const other = loci['one residue'];
 
     for (const [reprName, provider, props] of reprs) {
-      // the gaussian surface's layers are smoothed on the CPU, seconds on the cells: its marks on the model are the
-      // quick lane's representative, the rest is medium (AGENTS.md, Tests)
+      // the gaussian surface's layers are smoothed on the CPU, seconds on the cells: its marks are quick on a coarse
+      // surface (the marks do not depend on its vertices), its layers medium (AGENTS.md, Tests)
       const surface = reprName === 'gaussian surface';
-      const marksLane = surface && structureName === 'cells' ? { tags: ['medium'] } : {};
       const layersLane = surface ? { tags: ['medium'] } : {};
-      it(`marks ${reprName} on ${structureName}`, marksLane, async () => {
-        const repr = await createRepr(provider, structure, props);
+      it(`marks ${reprName} on ${structureName}`, async () => {
+        const coarse = surface ? { quality: 'custom', resolution: 2 } : {};
+        const repr = await createRepr(provider, structure, { ...props, ...coarse });
         const result: Record<string, string[]> = {};
         for (const [name, l] of Object.entries(loci)) result[name] = markSequence(repr, l, other);
         expect(result).toMatchSnapshot();
@@ -312,7 +312,12 @@ describe('representation marking and layers', async () => {
 
 describe('layers on surfaces', async () => {
   const model = await load1cbs();
-  const props = { smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } } };
+  // a coarse surface (smoothing applies below resolution 3): the same segments and parts, fewer vertices to smooth
+  const props = {
+    quality: 'custom',
+    resolution: 2,
+    smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+  };
   const protein = model.units.find((u) => Unit.isAtomic(u) && u.polymerElements.length > 0)!;
   const chain = StructureElement.Loci(model, [{ unit: protein, indices: Interval.ofLength(protein.elements.length) }]);
   const overpaint = Overpaint(chain.kind, [{ loci: chain, color: Color(0xff0000), clear: false }]);

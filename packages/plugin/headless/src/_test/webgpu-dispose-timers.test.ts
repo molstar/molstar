@@ -26,7 +26,7 @@ describe.skipIf(!WebGPU.module)('timers after dispose on WebGPU', () => {
       { backend: 'webgpu' },
     );
     await plugin.init();
-    const data = await plugin.builders.data.rawData({ data: readExample('1cbs_updated.cif'), label: '1cbs' });
+    const data = await plugin.builders.data.rawData({ data: readExample('1crn.cif'), label: '1crn' });
     const trajectory = await plugin.builders.structure.parseTrajectory(data, 'mmcif');
     await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
     await plugin.getImageRaw();

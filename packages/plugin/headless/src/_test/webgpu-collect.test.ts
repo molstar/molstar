@@ -27,6 +27,9 @@ ATOM      9  O   GLY A   2       4.570   1.610   0.000  1.00  0.00           O
 END
 `;
 
+// Medium: a sweep of every renderer pass, twice, over five representations' pipelines
+// @module-tag medium
+
 describe.skipIf(!WebGPU.module)('Renderer.collect on WebGPU', () => {
   it('collects the pipelines each renderer pass draws with', async () => {
     const plugin = await HeadlessPluginContext.create(

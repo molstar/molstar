@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import type { Clip } from '@molstar/core/util/clip';
 import { Color } from '@molstar/core/util/color';
@@ -57,24 +57,40 @@ function differing(a: { data: Uint8ClampedArray }, b: { data: Uint8ClampedArray 
   return count;
 }
 
+// Medium: a 256² image of solid interiors, clip objects and the overlay, its pipelines compiled first (a second)
+// @module-tag medium
+
 // a clip object's walls lie on the solid-interior cap it cuts: by the depth test alone (in the scene) or the overlay's
 // occlusion they would flip per pixel
 describe.skipIf(!WebGPU.module)('clip walls on a solid-interior cap', () => {
+  // one context for both layers, each case's representations removed after it
+  let shared: Promise<HeadlessPluginContext> | undefined;
+  const sharedPlugin = () => {
+    shared ??= HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    ).then(async (plugin) => {
+      await plugin.init();
+      return plugin;
+    });
+    return shared;
+  };
+  afterAll(async () => {
+    (await shared)?.dispose();
+  });
+
   for (const layer of ['scene', 'overlay'] as const) {
     it(`draws them evenly (${layer})`, async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await sharedPlugin();
+      const canvas = plugin.canvas3d!;
+      const reprs: ReturnType<typeof shape>[] = [];
       try {
-        await plugin.init();
         plugin.renderer.imagePass.setProps({
           multiSample: { ...DefaultCanvas3DParams.multiSample, mode: 'off' },
           overlay: layer === 'overlay',
         });
-        const canvas = plugin.canvas3d!;
         const state = MeshBuilder.createState(64, 64);
         state.currentGroup = 0;
         MeshBuilder.addPrimitive(state, Mat4.fromUniformScaling(Mat4(), 6), Box());
@@ -99,6 +115,7 @@ describe.skipIf(!WebGPU.module)('clip walls on a solid-interior cap', () => {
         });
         canvas.add(box);
         canvas.add(walls);
+        reprs.push(box, walls);
         canvas.commit(true);
         // from above the cap, obliquely: grazing enough that the two depths round differently
         canvas.camera.setState({ position: Vec3.create(3.5, 5.5, 3), target: Vec3(), up: Vec3.unitY }, 0);
@@ -115,7 +132,11 @@ describe.skipIf(!WebGPU.module)('clip walls on a solid-interior cap', () => {
 
         expect(differing(drawn, even)).toBeLessThan(MaxDiffering);
       } finally {
-        plugin.dispose();
+        for (const r of reprs) {
+          canvas.remove(r);
+          r.destroy();
+        }
+        canvas.commit(true);
       }
     });
   }

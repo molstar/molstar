@@ -98,8 +98,8 @@ jobs:
       - name: Test
         run: xvfb-run --auto-servernum pnpm test:native -- medium
 
-  # The headless WebGPU tests (`describe.skipIf(!WebGPU.module)`, quick-lane files) on Dawn's Node.js bindings over a
-  # software Vulkan (Mesa's lavapipe: the runners have no GPU). Required: without Dawn or an adapter they fail instead of
+  # The headless WebGPU tests (`describe.skipIf(!WebGPU.module)`, the quick and medium lanes) on Dawn's Node.js bindings
+  # over a software Vulkan (Mesa's lavapipe: the runners have no GPU). Required: without Dawn or an adapter they fail instead of
   # skipping (`MOLSTAR_REQUIRE_WEBGPU`). `auto` prefers WebGPU, and nothing else in CI renders with it.
   webgpu:
     name: WebGPU tests (Dawn)
@@ -137,7 +137,7 @@ jobs:
         run: |
           (while sleep 5; do echo "memory: $(free -m | awk 'NR==2 {print $3 " of " $2 " MB used"}')"; done) &
           xvfb-run --auto-servernum pnpm native:run -- pnpm test:unit packages/plugin/headless packages/graphics \
-            --testTimeout=180000 --hookTimeout=180000 --maxWorkers=2 --reporter=verbose
+            --mode pr --testTimeout=180000 --hookTimeout=180000 --maxWorkers=2 --reporter=verbose
 
   types:
     name: Full declaration check

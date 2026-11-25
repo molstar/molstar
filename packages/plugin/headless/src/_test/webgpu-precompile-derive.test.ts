@@ -138,6 +138,8 @@ function chainsPdb(count: number, copies: number) {
 }
 const copiesPdb = (copies: number) => chainsPdb(1, copies);
 
+// Medium: every representation type on a protein, DNA and copies, in two contexts compiling their pipelines
+// @module-tag medium
 describe.skipIf(!WebGPU.module)('precompile lists from params on WebGPU', () => {
   it('cover what the representations draw, and prepare it before the objects exist', async () => {
     const a = await createPlugin();

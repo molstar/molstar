@@ -64,7 +64,9 @@ async function firstFrame(plugin: HeadlessPluginContext, frame: () => void) {
 }
 
 // with the sphere raster on, what is prepared covers the raster: its kernels and the resolve's pipeline (the opaque
-// pass's requests), so the first frame after the commit draws the raster's spheres instead of the impostors
+// pass's requests), so the first frame after the commit draws the raster's spheres instead of the impostors. Medium: each
+// case on new devices (the first frame's compiles are what it tests), a second or more
+// @module-tag medium
 describe.skipIf(!WebGPU.module)('sphere raster prepared on WebGPU', () => {
   for (const prepare of [true, false]) {
     it(`while representations build: ${prepare ? 'drawn' : 'without it, not drawn'} in the first frame`, async () => {

@@ -127,7 +127,7 @@ describe.skipIf(!WebGPU.module)('Gaussian surfaces on WebGPU: CPU or GPU', () =>
 
   // a cell's group is its first corner's; at coarse resolutions that corner may lie beyond the range the density records
   // the nearest atom in (no group: drawn black), as for the separate atoms of a trace-only surface of a large structure
-  it('gives every vertex of a coarse GPU surface a group', async () => {
+  it('gives every vertex of a coarse GPU surface a group', { tags: ['medium'] }, async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),
@@ -173,7 +173,7 @@ describe.skipIf(!WebGPU.module)('Gaussian surfaces on WebGPU: CPU or GPU', () =>
     }
   });
 
-  it('chooses the GPU or the CPU per unit, and again when the props change', async () => {
+  it('chooses the GPU or the CPU per unit, and again when the props change', { tags: ['medium'] }, async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),

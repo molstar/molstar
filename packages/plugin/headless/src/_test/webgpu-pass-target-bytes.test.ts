@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { now } from '@molstar/core/util/now';
 import { MarkerAction } from '@molstar/core/util/marker-action';
-import { ReleaseDelayMs } from '@molstar/graphics/canvas3d/passes/pass-targets';
+import { PassTargets } from '@molstar/graphics/canvas3d/passes/pass-targets';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { WebGPU } from './webgpu-module.js';
@@ -24,13 +24,22 @@ const EveryLoci = { kind: 'every-loci' as const };
 
 const Size = 64;
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 // the storage of the pass targets per pixel of the drawing buffer, once the targets the props and the scene don't draw
 // into are released: a growth here is memory every viewer pays (at 1920×1080, 1 B/px is 2 MiB). The numbers are by
-// design; a change that saves memory updates them.
+// design; a change that saves memory updates them. Medium: six scenes and their pipelines, a second or more.
+// @module-tag medium
 describe.skipIf(!WebGPU.module)('pass target bytes on WebGPU', () => {
   it('stay as planned per scene', async () => {
+    // the release a while after the last change run when the frames are done, not waited for
+    const scheduleRelease = PassTargets.prototype.scheduleRelease;
+    const releases = new Map<PassTargets, () => void>();
+    const spy = vi.spyOn(PassTargets.prototype, 'scheduleRelease').mockImplementation(function (
+      this: PassTargets,
+      release,
+    ) {
+      releases.set(this, release);
+      scheduleRelease.call(this, release, 600_000);
+    });
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),
@@ -59,7 +68,10 @@ describe.skipIf(!WebGPU.module)('pass target bytes on WebGPU', () => {
           canvas.tick((time += 1000), { isSynchronous: true });
           await canvas.graphics.resources.pending.whenReady();
         }
-        await wait(ReleaseDelayMs + 200);
+        const release = releases.get(passes.targets);
+        releases.delete(passes.targets);
+        passes.targets.cancelRelease();
+        release?.();
         return passes.targets.getByteCount() / (Size * Size);
       };
 
@@ -102,6 +114,7 @@ describe.skipIf(!WebGPU.module)('pass target bytes on WebGPU', () => {
       });
     } finally {
       plugin.dispose();
+      spy.mockRestore();
     }
   }, 60_000);
 });

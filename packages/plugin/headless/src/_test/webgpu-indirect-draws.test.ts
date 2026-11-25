@@ -54,6 +54,9 @@ function getSegmentList(o: GraphicsRenderObject): MultiDrawBaseData {
   return list;
 }
 
+// Medium: the pipelines of two representations compiled on a new device, a second or more
+// @module-tag medium
+
 describe.skipIf(!WebGPU.module)('indirect draw lists on WebGPU', () => {
   it('draw what the same direct lists draw, indexed or not, from instances other than the first', async () => {
     const plugin = await HeadlessPluginContext.create(

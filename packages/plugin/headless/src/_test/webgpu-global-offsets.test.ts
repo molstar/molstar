@@ -26,7 +26,9 @@ END
 // passes; the global blocks have a ring of their own, so other blocks and compute kernels writing their ring between
 // the passes of a frame don't move them (not provoked here)
 describe.skipIf(!WebGPU.module)('global bindings on WebGPU', () => {
-  it('bind the same offsets in frames of the same passes, the camera and the data changing', async () => {
+  it('bind the same offsets in frames of the same passes, the camera and the data changing', {
+    tags: ['medium'],
+  }, async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),

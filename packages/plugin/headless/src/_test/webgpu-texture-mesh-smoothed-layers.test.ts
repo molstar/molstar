@@ -6,7 +6,7 @@
 
 // a smoothed layer on a texture mesh (a GPU surface): its grid splatted on the GPU (compute kernels), drawn as the CPU
 // mesh's grid, the instances it does not reach left out of the grid
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { Color } from '@molstar/core/util/color';
 import { Box3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -52,6 +52,11 @@ async function createPlugin() {
   await plugin.init();
   return plugin;
 }
+
+/** one plugin for the file: its device's pipelines compiled once */
+let shared: Promise<HeadlessPluginContext> | undefined;
+const sharedPlugin = () => (shared ??= createPlugin());
+afterAll(async () => (await shared)?.dispose());
 
 async function setup(plugin: HeadlessPluginContext) {
   const data = await plugin.builders.data.rawData({ data: TwoChainsPdb, label: 'test' });
@@ -144,9 +149,11 @@ async function image(graphics: GraphicsContext, repr: ReturnType<typeof UnitsRep
 }
 
 describe.skipIf(!WebGPU.module)('smoothed layers on texture meshes (WebGPU)', () => {
-  it('draws an overpaint on one chain as the CPU mesh does', async () => {
-    const plugin = await createPlugin();
-    try {
+  it(
+    'draws an overpaint on one chain as the CPU mesh does',
+    { tags: ['medium'] },
+    async () => {
+      const plugin = await sharedPlugin();
       const graphics = plugin.canvas3d!.graphics;
       const { structure, registries } = await setup(plugin);
       const overpaint = overpaintOf(structure, structure.units[0]);
@@ -176,64 +183,59 @@ describe.skipIf(!WebGPU.module)('smoothed layers on texture meshes (WebGPU)', ()
       expect(plainToCpu).toBeGreaterThan(200);
       expect(toCpu).toBeLessThan(plainToCpu * 0.75);
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
-  }, 60_000);
+    },
+    60_000,
+  );
 
   it('leaves the instances the layer does not reach out of the grid', async () => {
-    const plugin = await createPlugin();
-    try {
-      const graphics = plugin.canvas3d!.graphics;
-      const { structure: single, registries } = await setup(plugin);
-      // three copies 40 Å apart, a group of three instances a chain
-      const transforms = [0, 1, 2].map((i) => Mat4.fromTranslation(Mat4(), Vec3.create(i * 40, 0, 0)));
-      const structure = Structure.create([...Structure.instances(single, transforms).units]);
-      const reached = structure.units[0];
-      const repr = await createRepr(
-        graphics,
-        registries,
-        structure,
-        'texture-mesh',
-        overpaintOf(structure, reached),
-        Smooth,
-      );
-      const object = repr.renderObjects.find((o) => (o.values as any).dOverpaintType.ref.value === 'volumeInstance')!;
-      const values = object.values as any;
-      expect(values.instanceCount.ref.value).toBe(3);
-      const gridDim: Vec3 = values.uOverpaintGridDim.ref.value;
-      const texDim = values.uOverpaintGridTexDim.ref.value;
-      const transform = values.uOverpaintGridTransform.ref.value;
-      const { array } = await graphics.readTextureData(values.tOverpaintGrid.ref.value);
-      // the reached unit's atoms in grid cells, by the surface's reach (radius, offset, smoothness: 5 Å) and the
-      // splat's (2 cells) beyond them
-      const scale = transform[3];
-      // (the unit's boundary is its untransformed elements')
-      const box = Box3D.transform(Box3D(), reached.boundary.box, reached.conformation.operator.matrix);
-      Box3D.expand(box, box, Vec3.create(5, 5, 5));
-      const lo = [0, 1, 2].map((k) => (box.min[k] - transform[k]) * scale - 2);
-      const hi = [0, 1, 2].map((k) => (box.max[k] - transform[k]) * scale + 2);
-      const columns = Math.floor(texDim[0] / gridDim[0]);
-      let inside = 0;
-      let outside = 0;
-      for (let z = 0; z < gridDim[2]; ++z) {
-        const x0 = (z % columns) * gridDim[0];
-        const y0 = Math.floor(z / columns) * gridDim[1];
-        for (let y = 0; y < gridDim[1]; ++y) {
-          for (let x = 0; x < gridDim[0]; ++x) {
-            if (array[((y0 + y) * texDim[0] + x0 + x) * 4 + 3] === 0) continue;
-            const cell = [x, y, z];
-            if ([0, 1, 2].every((k) => cell[k] >= lo[k] && cell[k] <= hi[k])) inside++;
-            else outside++;
-          }
+    const plugin = await sharedPlugin();
+    const graphics = plugin.canvas3d!.graphics;
+    const { structure: single, registries } = await setup(plugin);
+    // three copies 40 Å apart, a group of three instances a chain
+    const transforms = [0, 1, 2].map((i) => Mat4.fromTranslation(Mat4(), Vec3.create(i * 40, 0, 0)));
+    const structure = Structure.create([...Structure.instances(single, transforms).units]);
+    const reached = structure.units[0];
+    const repr = await createRepr(
+      graphics,
+      registries,
+      structure,
+      'texture-mesh',
+      overpaintOf(structure, reached),
+      Smooth,
+    );
+    const object = repr.renderObjects.find((o) => (o.values as any).dOverpaintType.ref.value === 'volumeInstance')!;
+    const values = object.values as any;
+    expect(values.instanceCount.ref.value).toBe(3);
+    const gridDim: Vec3 = values.uOverpaintGridDim.ref.value;
+    const texDim = values.uOverpaintGridTexDim.ref.value;
+    const transform = values.uOverpaintGridTransform.ref.value;
+    const { array } = await graphics.readTextureData(values.tOverpaintGrid.ref.value);
+    // the reached unit's atoms in grid cells, by the surface's reach (radius, offset, smoothness: 5 Å) and the
+    // splat's (2 cells) beyond them
+    const scale = transform[3];
+    // (the unit's boundary is its untransformed elements')
+    const box = Box3D.transform(Box3D(), reached.boundary.box, reached.conformation.operator.matrix);
+    Box3D.expand(box, box, Vec3.create(5, 5, 5));
+    const lo = [0, 1, 2].map((k) => (box.min[k] - transform[k]) * scale - 2);
+    const hi = [0, 1, 2].map((k) => (box.max[k] - transform[k]) * scale + 2);
+    const columns = Math.floor(texDim[0] / gridDim[0]);
+    let inside = 0;
+    let outside = 0;
+    for (let z = 0; z < gridDim[2]; ++z) {
+      const x0 = (z % columns) * gridDim[0];
+      const y0 = Math.floor(z / columns) * gridDim[1];
+      for (let y = 0; y < gridDim[1]; ++y) {
+        for (let x = 0; x < gridDim[0]; ++x) {
+          if (array[((y0 + y) * texDim[0] + x0 + x) * 4 + 3] === 0) continue;
+          const cell = [x, y, z];
+          if ([0, 1, 2].every((k) => cell[k] >= lo[k] && cell[k] <= hi[k])) inside++;
+          else outside++;
         }
       }
-      expect(inside).toBeGreaterThan(0);
-      expect(outside).toBe(0);
-      expect(graphics.takeErrors?.() ?? []).toEqual([]);
-      repr.destroy();
-    } finally {
-      plugin.dispose();
     }
+    expect(inside).toBeGreaterThan(0);
+    expect(outside).toBe(0);
+    expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    repr.destroy();
   }, 60_000);
 });

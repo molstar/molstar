@@ -100,6 +100,8 @@ const ListOf = PluginStateTransform.BuiltIn({
   apply: ({ params }) => new SO.Particle.List(params.list, { label: 'nested' }),
 });
 
+// Medium: views of twelve frames each (the cull's read-backs landed, then the work they ask for), a list each
+// @module-tag medium
 describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", () => {
   it('draws a far copy at its coarse level (a sample, larger), a near one whole; picks and marks by path', async () => {
     const spec = DefaultPluginSpec();

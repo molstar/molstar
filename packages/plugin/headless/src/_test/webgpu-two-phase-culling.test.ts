@@ -70,7 +70,9 @@ function createMember(offset: Vec3, color: number, single: boolean, extra: objec
 // the second phase's inputs by hand: a pyramid hiding all stands for a previous frame's depth that hid what is visible
 // now, one at the far plane for the frame's depth so far hiding nothing
 describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
-  it('draws in the second phase what the first left out, once, by impostors and by the raster', async () => {
+  it('draws in the second phase what the first left out, once, by impostors and by the raster', {
+    tags: ['medium'],
+  }, async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),
@@ -348,7 +350,9 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
     }
   });
 
-  it("draws by impostors an object whose resolve isn't ready, also where the raster draws all its spheres", async () => {
+  it("draws by impostors an object whose resolve isn't ready, also where the raster draws all its spheres", {
+    tags: ['medium'],
+  }, async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),
@@ -456,7 +460,7 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
   });
 
   // the second part draws no caps of its own: the first draws those of a mesh's segments whole, whatever is culled
-  it('draws clipped objects with their solid interiors as without occlusion', async () => {
+  it('draws clipped objects with their solid interiors as without occlusion', { tags: ['medium'] }, async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),

@@ -42,6 +42,9 @@ function wallPdb() {
   return `${biomt.join('\n')}\n${atoms.join('\n')}\nEND\n`;
 }
 
+// Medium: a scene of 1000 atoms in 21 copies, two camera jumps of 11 frames each with illumination
+// @module-tag medium
+
 describe.skipIf(!WebGPU.module)('illumination inputs culled by occlusion on WebGPU', () => {
   // the inputs (tracing, back depth) culled on the GPU against the previous frame's pyramid, and in a second phase
   // against that of the tracing input's depth so far: a frame after a jump of the camera (the copies behind the front

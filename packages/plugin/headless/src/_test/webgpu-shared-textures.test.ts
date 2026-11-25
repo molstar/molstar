@@ -94,7 +94,10 @@ async function readR8(graphics: WebGPUContext, texture: GPUTexture, width: numbe
 // the texts of one font share its atlas: one texture, new glyphs uploaded as the
 // rows written, replayed draws of the other texts still bound to it
 describe.skipIf(!WebGPU.module)('shared textures on WebGPU', () => {
-  it('two label representations share the atlas, new glyphs uploaded as rows', async () => {
+  it('two label representations share the atlas, new glyphs uploaded as rows', {
+    tags: ['medium'],
+    timeout: 60_000,
+  }, async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),
@@ -176,9 +179,12 @@ describe.skipIf(!WebGPU.module)('shared textures on WebGPU', () => {
     } finally {
       plugin.dispose();
     }
-  }, 60_000);
+  });
 
-  it('an upload replacing the atlas storage records again what its other holders recorded', async () => {
+  it('an upload replacing the atlas storage records again what its other holders recorded', {
+    tags: ['medium'],
+    timeout: 60_000,
+  }, async () => {
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),
@@ -261,7 +267,7 @@ describe.skipIf(!WebGPU.module)('shared textures on WebGPU', () => {
     } finally {
       plugin.dispose();
     }
-  }, 60_000);
+  });
 
   it('a text given another atlas holds its texture, each texture counted once and freed with its last holder', async () => {
     const plugin = await HeadlessPluginContext.create(

@@ -47,7 +47,7 @@ describe.skipIf(!WebGPU.module)('HeadlessPluginContext on WebGPU', () => {
     }
   });
 
-  it('renders a structure', async () => {
+  it('renders a structure', { tags: ['medium'] }, async () => {
     const webgpu = WebGPU.module!;
 
     const plugin = await HeadlessPluginContext.create(
@@ -163,7 +163,9 @@ describe.skipIf(!WebGPU.module)('HeadlessPluginContext on WebGPU', () => {
     }
   });
 
-  it('draws the scale line again on a new context (the screen layer made again, as the axes)', async () => {
+  it('draws the scale line again on a new context (the screen layer made again, as the axes)', {
+    tags: ['medium'],
+  }, async () => {
     // its label drawn into a font atlas, which Node has no canvas for: a stand-in that draws nothing (the line drawn)
     const context = {
       measureText: () => ({ width: 8 }),

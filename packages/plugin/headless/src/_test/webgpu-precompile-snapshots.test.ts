@@ -66,6 +66,9 @@ async function getCompiledPipelines(plugin: HeadlessPluginContext, snapshot: Plu
   return pending.trackedSince(before).filter((label) => label.startsWith('pipeline '));
 }
 
+// Medium: 1cbs in five representations, three devices compiling their pipelines
+// @module-tag medium
+
 describe.skipIf(!WebGPU.module)('states loaded on WebGPU', () => {
   it('prepare what their snapshots draw, so that applying the next one compiles nothing', async () => {
     const state = await createState();

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
@@ -52,53 +52,71 @@ const object = (type: 'plane' | 'sphere', invert: boolean) => ({
   transform: Mat4.identity(),
 });
 
+/** One plugin for the file's renders (a new one compiles the pipelines again) */
+let shared: Promise<HeadlessPluginContext> | undefined;
+afterAll(async () => (await shared)?.dispose());
+
 /** The structure as spacefill clipped by pixel, the spheres by the raster (`only`) or as impostors */
 async function render(sphereRaster: 'off' | 'only', typeParams: { [k: string]: unknown }, pdb = Pdb) {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: Size, height: Size },
-    { backend: 'webgpu' },
-  );
-  try {
+  shared ??= (async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: Size, height: Size },
+      { backend: 'webgpu' },
+    );
     await plugin.init();
-    const { graphics } = plugin.canvas3d!;
-    if (!graphics.capabilities.atomicMinMax64) return undefined;
-    plugin.canvas3d!.setProps({
-      renderer: { sphereRaster, sphereRasterRadius: 32 },
-      camera: { mode: 'perspective' } as never,
-      postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
-    });
-    const data = await plugin.builders.data.rawData({ data: pdb, label: 'test' });
-    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
-    const model = await plugin.builders.structure.createModel(trajectory);
-    const structure = await plugin.builders.structure.createStructure(model);
-    await plugin.builders.structure.representation.addRepresentation(structure, {
-      type: 'spacefill',
-      // the structure's spheres as one plain object (`structure-element-sphere`), split by the raster per sphere: a
-      // merged object is split per instance, its one instance here through the near plane (its impostors draw it)
-      typeParams: { visuals: ['structure-element-sphere'], ...typeParams } as never,
-      color: 'element-index',
-    });
-    // the grid's front face toward the camera (its own view would be along a principal axis of either sign)
-    if (pdb !== Pdb) {
-      const { camera } = plugin.canvas3d!;
-      camera.setState(camera.getFocus(Vec3(), 9, Vec3.create(0, 1, 0), Vec3.create(0, 0, -1)), 0);
-    }
-    const image = () => plugin.getImageRaw({ width: Size, height: Size });
-    // pipelines and kernels compile in the background: frames drawn before they are ready draw impostors
-    for (let i = 0; i < 3; ++i) {
-      await image();
-      await graphics.resources.pending.whenReady();
-    }
-    const resolves = graphics.stats.sphereRasterResolves;
-    const pixels = Array.from((await image()).data);
-    const rasterDrawn = graphics.stats.sphereRasterResolves > resolves;
-    expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    return { pixels, rasterDrawn };
-  } finally {
-    plugin.dispose();
+    return plugin;
+  })();
+  const plugin = await shared;
+  // the scene of the render before removed
+  await plugin.clear();
+  // committed empty: the next scene's camera reset immediate, as on a new canvas (else a transition from the last)
+  plugin.canvas3d!.commit(true);
+  const { graphics, camera } = plugin.canvas3d!;
+  if (!graphics.capabilities.atomicMinMax64) return undefined;
+  plugin.canvas3d!.setProps({
+    renderer: { sphereRaster, sphereRasterRadius: 32 },
+    camera: { mode: 'perspective' } as never,
+    postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
+  });
+  // looking down -z, as a new canvas (the reset keeps the view direction)
+  camera.setState({ position: Vec3.create(0, 0, 100), target: Vec3(), up: Vec3.create(0, 1, 0) }, 0);
+  const data = await plugin.builders.data.rawData({ data: pdb, label: 'test' });
+  const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+  const model = await plugin.builders.structure.createModel(trajectory);
+  const structure = await plugin.builders.structure.createStructure(model);
+  await plugin.builders.structure.representation.addRepresentation(structure, {
+    type: 'spacefill',
+    // the structure's spheres as one plain object (`structure-element-sphere`), split by the raster per sphere: a
+    // merged object is split per instance, its one instance here through the near plane (its impostors draw it)
+    typeParams: { visuals: ['structure-element-sphere'], ...typeParams } as never,
+    color: 'element-index',
+  });
+  // the grid's front face toward the camera (its own view would be along a principal axis of either sign)
+  if (pdb !== Pdb) camera.setState(camera.getFocus(Vec3(), 9, Vec3.create(0, 1, 0), Vec3.create(0, 0, -1)), 0);
+  const image = () => plugin.getImageRaw({ width: Size, height: Size });
+  // pipelines and kernels compile in the background: frames drawn before they are ready draw impostors
+  for (let i = 0; i < 3; ++i) {
+    await image();
+    await graphics.resources.pending.whenReady();
   }
+  const resolves = graphics.stats.sphereRasterResolves;
+  const pixels = Array.from((await image()).data);
+  const rasterDrawn = graphics.stats.sphereRasterResolves > resolves;
+  expect(graphics.takeErrors?.() ?? []).toEqual([]);
+  return { pixels, rasterDrawn };
+}
+
+/** The unclipped impostors' image of each structure, made once */
+const unclippedImages = new Map<string, Promise<number[]>>();
+function unclipped(pdb = Pdb) {
+  if (!unclippedImages.has(pdb))
+    unclippedImages.set(
+      pdb,
+      render('off', {}, pdb).then((r) => r!.pixels),
+    );
+  return unclippedImages.get(pdb)!;
 }
 
 /** pixels whose color differs by more than 8 levels */
@@ -157,15 +175,16 @@ const Cases: { name: string; params: { [k: string]: unknown }; pdb?: string }[] 
 ];
 
 // pixel clipping in the raster as the impostors clip: per pixel the point a sphere shows (its front, a cap, its back,
-// none), or spheres whole by their centers
+// none), or spheres whole by their centers. Medium: the first case alone compiles the impostors' and the raster's
+// pipelines of a new device and of its clip variants, seconds
+// @module-tag medium
 describe.skipIf(!WebGPU.module)('sphere raster pixel clipping on WebGPU', () => {
   for (const { name, params, pdb } of Cases) {
     it(`draws the image of the impostors: ${name}`, async () => {
       const impostors = await render('off', params, pdb);
       if (!impostors) return;
-      const unclipped = (await render('off', {}, pdb))!.pixels;
       // the clip objects cut what is drawn
-      expect(countDiffer(impostors.pixels, unclipped)).toBeGreaterThan(50);
+      expect(countDiffer(impostors.pixels, await unclipped(pdb))).toBeGreaterThan(50);
       const raster = (await render('only', params, pdb))!;
       expect(raster.rasterDrawn).toBe(true);
       // but where a pixel's center lies on an edge (the raster's arithmetic is not the fragment stage's)

@@ -109,7 +109,10 @@ function describeMiss(r: ObjectSignature, derived: readonly ObjectSignature[]) {
 // them meanwhile: the data resolves what params alone take every way (themes' granularity, 'auto' quality, visuals,
 // merging), and the first frame after the commit finds its pipelines
 describe.skipIf(!WebGPU.module)('representations prepared while they build on WebGPU', () => {
-  it('cover what they draw, also what params alone take otherwise (auto merging)', async () => {
+  it('cover what they draw, also what params alone take otherwise (auto merging)', {
+    tags: ['medium'],
+    timeout: 120_000,
+  }, async () => {
     const plugin = await createPlugin();
     try {
       const prepared = capturePrepared(plugin, false);
@@ -153,7 +156,7 @@ describe.skipIf(!WebGPU.module)('representations prepared while they build on We
     } finally {
       plugin.dispose();
     }
-  }, 120_000);
+  });
 
   it('cover what volume and particle representations draw', async () => {
     const plugin = await createPlugin();
@@ -205,7 +208,7 @@ describe.skipIf(!WebGPU.module)('representations prepared while they build on We
         };
         frame();
         await pending.whenReady();
-        const protein = await loadStructure(plugin, '1cbs_updated.cif');
+        const protein = await loadStructure(plugin, '1crn.cif');
         await plugin.builders.structure.representation.addRepresentation(protein, {
           type: 'cartoon',
           color: 'secondary-structure',

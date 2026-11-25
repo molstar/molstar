@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { Quat, Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { OrderedSet } from '@molstar/core/data/int';
 import { ShapeGroup } from '@molstar/model/model/shape/shape';
@@ -97,21 +97,33 @@ function expected(i: number, sigma: number) {
 }
 
 describe.skipIf(!WebGPU.module)('gaussian splats on WebGPU', () => {
-  async function render(list: Splat[], eye = Vec3.create(0, 0, Distance), sh?: SplatSh) {
-    const plugin = await HeadlessPluginContext.create(
+  // one context for the tests that draw a representation of their own, removed after
+  let shared: Promise<HeadlessPluginContext> | undefined;
+  const sharedPlugin = () => {
+    shared ??= HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),
       { width: Size, height: Size },
       { backend: 'webgpu' },
-    );
-    try {
+    ).then(async (plugin) => {
       await plugin.init();
-      const canvas = plugin.canvas3d!;
-      canvas.setProps({ renderer: { backgroundColor: Color(0x000000) }, cameraFog: { name: 'off', params: {} } });
-      const repr = splatRepr(list, sh);
-      await repr.createOrUpdate(PD.getDefaultValues(GaussianSplats.Params), {}).run();
-      canvas.add(repr);
-      canvas.commit(true);
+      return plugin;
+    });
+    return shared;
+  };
+  afterAll(async () => {
+    (await shared)?.dispose();
+  });
+
+  async function render(list: Splat[], eye = Vec3.create(0, 0, Distance), sh?: SplatSh) {
+    const plugin = await sharedPlugin();
+    const canvas = plugin.canvas3d!;
+    canvas.setProps({ renderer: { backgroundColor: Color(0x000000) }, cameraFog: { name: 'off', params: {} } });
+    const repr = splatRepr(list, sh);
+    await repr.createOrUpdate(PD.getDefaultValues(GaussianSplats.Params), {}).run();
+    canvas.add(repr);
+    canvas.commit(true);
+    try {
       canvas.camera.setState({ position: eye, target: Vec3(), up: Vec3.unitY }, 0);
       // the pixels per unit at the splat's distance
       const focal = Size / 2 / Math.tan(canvas.camera.state.fov / 2);
@@ -132,7 +144,9 @@ describe.skipIf(!WebGPU.module)('gaussian splats on WebGPU', () => {
       expect(canvas.graphics.takeErrors?.() ?? []).toEqual([]);
       return { image, pxPerUnit };
     } finally {
-      plugin.dispose();
+      canvas.remove(repr);
+      canvas.commit(true);
+      repr.destroy();
     }
   }
 
@@ -188,23 +202,17 @@ describe.skipIf(!WebGPU.module)('gaussian splats on WebGPU', () => {
 
   // a splat's group picked where its coverage reaches the picking threshold (0.5), not in its faint tail
   it('picks a splat where it is at least half opaque, not by its tail', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await sharedPlugin();
+    const canvas = plugin.canvas3d!;
+    const sigma = 3;
+    const repr = splatRepr([
+      { center: Vec3.create(-8, 0, 0), scale: Vec3.create(sigma, sigma, sigma) },
+      { center: Vec3.create(8, 0, 0), scale: Vec3.create(sigma, sigma, sigma), opacity: 0.4 },
+    ]);
+    await repr.createOrUpdate(PD.getDefaultValues(GaussianSplats.Params), {}).run();
+    canvas.add(repr);
+    canvas.commit(true);
     try {
-      await plugin.init();
-      const canvas = plugin.canvas3d!;
-      const sigma = 3;
-      const repr = splatRepr([
-        { center: Vec3.create(-8, 0, 0), scale: Vec3.create(sigma, sigma, sigma) },
-        { center: Vec3.create(8, 0, 0), scale: Vec3.create(sigma, sigma, sigma), opacity: 0.4 },
-      ]);
-      await repr.createOrUpdate(PD.getDefaultValues(GaussianSplats.Params), {}).run();
-      canvas.add(repr);
-      canvas.commit(true);
       canvas.camera.setState({ position: Vec3.create(0, 0, Distance), target: Vec3(), up: Vec3.unitY }, 0);
       const pxPerUnit = Size / 2 / Math.tan(canvas.camera.state.fov / 2) / Distance;
 
@@ -231,7 +239,9 @@ describe.skipIf(!WebGPU.module)('gaussian splats on WebGPU', () => {
       expect(await pickAt(8)).toBeUndefined();
       expect(canvas.graphics.takeErrors?.() ?? []).toEqual([]);
     } finally {
-      plugin.dispose();
+      canvas.remove(repr);
+      canvas.commit(true);
+      repr.destroy();
     }
   }, 60_000);
 
@@ -251,7 +261,10 @@ describe.skipIf(!WebGPU.module)('gaussian splats on WebGPU', () => {
   }, 60_000);
 
   // the splats' programs blended whatever the scene's transparency (their own pass), the GPU sort's kernels with them
-  it('a precompile list of splats prepares what their frames draw and sort them with, before they exist', async () => {
+  it('a precompile list of splats prepares what their frames draw and sort them with, before they exist', {
+    tags: ['medium'],
+    timeout: 60_000,
+  }, async () => {
     const create = async () => {
       const plugin = await HeadlessPluginContext.create(
         { webgpu: WebGPU.module! },
@@ -303,5 +316,5 @@ describe.skipIf(!WebGPU.module)('gaussian splats on WebGPU', () => {
       a.dispose();
       b.dispose();
     }
-  }, 60_000);
+  });
 });

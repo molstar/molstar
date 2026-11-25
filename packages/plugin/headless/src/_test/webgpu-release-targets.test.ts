@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { now } from '@molstar/core/util/now';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { ReleaseDelayMs } from '@molstar/graphics/canvas3d/passes/pass-targets';
@@ -22,13 +22,16 @@ const Pdb = `${Array.from({ length: 40 }, (_, i) => {
 /** every element (`EveryLoci` of the model package, which this package doesn't depend on) */
 const EveryLoci = { kind: 'every-loci' as const };
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+/** the release delay passed (fake timers: the release timers fired, no real wait) */
+const wait = (ms: number) => vi.advanceTimersByTimeAsync(ms);
 
 // pass targets take memory while the props and the scene draw into them: a pass turned off releases its targets a
 // while after the change, those of the passes still drawn (and of hovering: marking) stay; an image pass releases its
 // targets a while after its last render
 describe.skipIf(!WebGPU.module)('releasing pass targets on WebGPU', () => {
   it('releases the targets of passes turned off, and of image passes after rendering', async () => {
+    // the timeouts faked, advancing with real time too (what the GPU's work waits for runs on)
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
     const plugin = await HeadlessPluginContext.create(
       { webgpu: WebGPU.module! },
       DefaultPluginSpec(),
@@ -95,6 +98,7 @@ describe.skipIf(!WebGPU.module)('releasing pass targets on WebGPU', () => {
       expect(imagePass.getByteCount()).toBeGreaterThan(0);
     } finally {
       plugin.dispose();
+      vi.useRealTimers();
     }
   });
 });
