@@ -308,19 +308,22 @@ type SplatInstances = Pick<AccumulateInput, 'instanceCount' | 'transformBuffer' 
  * texture, which the CPU does not check: the groups of gaussian surfaces are in range or -1 (a cell whose voxel has no
  * atom, packed 0), which reads the last item of the row before; so that item counts for a row, and row 0 is always
  * reached.
+ *
+ * `region`: the reached instances' cells (`getSplatInstances`), where the compute path sums (the other cells 0, as
+ * above); undefined where every instance is drawn for want of a layer or vertex box (all of the grid).
  */
 export function getTextureMeshSplatInstances(
   input: ColorSmoothingInput,
   gridDim: Vec3,
   min: Vec3,
   scaleFactor: number,
-): SplatInstances & { splatCount: number } {
+): SplatInstances & { splatCount: number; region?: Float64Array } {
   const { instanceCount, transformBuffer, instanceBuffer, layer, vertexBox } = input;
   const all = { instanceCount, transformBuffer, instanceBuffer, splatCount: instanceCount };
   if (!input.colorType.endsWith('Instance') || !layer || !vertexBox) return all;
 
   const isRowReached = getRowReachedTest(layer.image.array, input.groupCount, layer.itemSize, 1);
-  const { splat } = getSplatInstances(
+  const { splat, region } = getSplatInstances(
     transformBuffer,
     vertexBox,
     instanceCount,
@@ -334,7 +337,8 @@ export function getTextureMeshSplatInstances(
   let splatCount = 0;
   for (let i = 0; i < instanceCount; ++i) splatCount += splat[i];
   // none (not expected: row 0 is always reached, and the grid holds every instance) would bind empty buffers
-  if (splatCount === instanceCount || splatCount === 0) return all;
+  if (splatCount === 0) return all;
+  if (splatCount === instanceCount) return { ...all, region };
 
   const transforms = new Float32Array(splatCount * 16);
   const instances = new Uint32Array(splatCount);
@@ -344,7 +348,7 @@ export function getTextureMeshSplatInstances(
     instances[k] = instanceBuffer[i];
     k += 1;
   }
-  return { instanceCount: splatCount, transformBuffer: transforms, instanceBuffer: instances, splatCount };
+  return { instanceCount: splatCount, transformBuffer: transforms, instanceBuffer: instances, splatCount, region };
 }
 
 export type ColorSmoothingOptions = {
@@ -548,10 +552,11 @@ export function calcTextureMeshColorSmoothing(
       texture = resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     }
     const bboxSize = Box3D.size(Vec3(), expandedBox);
+    // the sums over the reached instances' cells, not the whole grid (the other cells 0)
     computeColorSmoothing(
       graphics.compute,
       { ...samples, chunks, stride },
-      { gridDim, texCols, width, height, bboxMin: min, bboxSize, resolution },
+      { gridDim, texCols, width, height, bboxMin: min, bboxSize, resolution, region: subset.region },
       texture,
     );
     if (isTimingMode) graphics.timer.groupEnd('calcTextureMeshColorSmoothing');

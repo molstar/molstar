@@ -175,6 +175,23 @@ describe('texture mesh smoothing instances', () => {
       const all = accumulate(instances, vertices, layer, itemSize, grid);
       expect(all.some((x) => x !== 0)).toBe(true);
       expect(countDiffs(accumulate(subset, vertices, layer, itemSize, grid), all)).toBe(0);
+      // the cells the compute path sums: every non-zero cell of every instance drawn, fewer than the grid's
+      const region = subset.region!;
+      const [nx, ny, nz] = grid.gridDim;
+      let outside = 0;
+      for (let z = 0; z < nz; ++z) {
+        for (let y = 0; y < ny; ++y) {
+          for (let x = 0; x < nx; ++x) {
+            const inside =
+              x >= region[0] && y >= region[1] && z >= region[2] && x < region[3] && y < region[4] && z < region[5];
+            if (inside) continue;
+            const c = (x + y * nx + z * nx * ny) * itemSize;
+            for (let k = 0; k < itemSize; ++k) if (all[c + k] !== 0) outside += 1;
+          }
+        }
+      }
+      expect(outside).toBe(0);
+      expect((region[3] - region[0]) * (region[4] - region[1]) * (region[5] - region[2])).toBeLessThan(nx * ny * nz);
     }
   });
 

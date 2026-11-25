@@ -1,7 +1,7 @@
 # Smoothed layers sampled on the GPU (merged surfaces)
 
-Status: steps 1 to 3 and the follow-ups done; step 4 (the splat on the GPU): 4a to 4e done on WebGPU; left: WebGL's
-splat (decide), the texture meshes' sums over the reached region. Follows [merged-units-core.md](merged-units-core.md) step
+Status: steps 1 to 3 and the follow-ups done; step 4 (the splat on the GPU): done (WebGPU; WebGL stays on the CPU
+splat). Follows [merged-units-core.md](merged-units-core.md) step
 4b.
 
 ## Why
@@ -153,10 +153,14 @@ atlas), from the isosurface's vertex arena; CPU meshes have no vertices on the G
   | all units | 1.88 s → 33 ms  | 1.90 s → 20 ms  | 56 → 38 ms     |
   | one unit  | 13.4 → 1.5 ms   | 13.2 → 2.8 ms   | 7.5 → 7.4 ms   |
 
-  The CPU meshes now ahead of the texture meshes, whose sums still span the whole grid (`computeColorSmoothing`
-  without a region: `getTextureMeshSplatInstances` could give it the reached instances' cells). WebGL still splats CPU
-  meshes on the CPU (2.2–2.7 s on all units): the point sprites (1.06 s for the texture meshes) need positions as a
-  texture; to decide.
+  The CPU meshes now ahead of the texture meshes: not their splat (0.14 ms of GPU time on one unit) but their draw (the
+  opaque pass 6 ms against 2, unindexed). Their sums now span the reached instances' cells too
+  (`getTextureMeshSplatInstances`' `region`, tested: every non-zero cell of every instance inside it): less memory
+  (20 bytes a cell of the whole grid before), no time measured (one unit 7.4 to 6.8 ms, all 38 to 46: noise).
+- **WebGL stays on the CPU splat** (decided): the point sprites (the texture meshes' WebGL path) would take per-group
+  visuals from 2.2 s to about 1.06 s on all units at best, slower on one unit (31 against 11.5 ms: a pass a slice over
+  every vertex), and need positions and groups as float textures; the merged visuals, most units, sample per vertex on
+  the CPU and would read the grid back synchronously, so gain nothing.
 
 ## Follow-ups
 
