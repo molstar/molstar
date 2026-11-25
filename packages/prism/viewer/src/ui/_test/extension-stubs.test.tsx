@@ -117,7 +117,9 @@ describe('lazy placeholders', () => {
     for (const movedOn of [false, true]) {
       const shell = new ShellModel();
       const port = extensionUIPort(shell, {} as never, {} as ViewerUIContext);
-      const removeOther = shell.registerTabs([{ id: 'other', title: 'Other', render: { mount() {} } as never }]);
+      const removeOther = shell.registerTabs([
+        { id: 'other', title: 'Other', icon: 'house', render: { mount() {} } as never },
+      ]);
       const stub = { parts: [{ id: 'x.tab.a', kind: 'tab' as const, title: 'A' }] };
       let resolve!: (ok: boolean) => void;
       const load = vi.fn(() => new Promise<boolean>((r) => (resolve = r)));
