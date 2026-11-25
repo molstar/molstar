@@ -1,6 +1,6 @@
 # Smoothed layers sampled on the GPU (merged surfaces)
 
-Status: steps 1 to 3 and the follow-ups done; step 4 (the splat on the GPU) planned, 4a next. Follows [merged-units-core.md](merged-units-core.md) step
+Status: steps 1 to 3 and the follow-ups done; step 4 (the splat on the GPU): 4a done, 4b next. Follows [merged-units-core.md](merged-units-core.md) step
 4b.
 
 ## Why
@@ -100,13 +100,24 @@ atlas), from the isosurface's vertex arena; CPU meshes have no vertices on the G
 
 ### Steps
 
-- **4a. Baseline** (next): per-group cases beside `merging/assembly-gaussian-smooth-layer-{one,all}` (the per-group
-  visuals, without the merge builder, as the headless test draws them), and the splat's share of each frame (timing
-  mode: the splat, the region's normalize, the sampling, the upload). The texture meshes too (`tryUseGpu: true`, the
-  default: GPU surfaces above a size, never merged, a grid per group splatted on the GPU), WebGPU and WebGL2: what the
-  GPU splat costs today, step 4's reference; which path the assembly's units take. And a headless WebGPU test of a
-  layer on a texture mesh (none yet: the visual cases `gaussian-surface-gpu-smooth-*` only): the image against the CPU
-  mesh's, the grid's unreached instances zero.
+- **4a. Baseline** (done): `merging/assembly-gaussian-smooth-layer-{one,all}` with `-per-group` (the mesh visual
+  without its merge builder) and `-texture-mesh` (`tryUseGpu: true`, the default) variants, 4 frames a run (a frame of
+  seconds), the render objects by type in their notes. A frame, the layer set each:
+
+  | Layer on              | WebGPU merged | per group | texture meshes | WebGL2 merged | per group | texture meshes |
+  | --------------------- | ------------- | --------- | -------------- | ------------- | --------- | -------------- |
+  | all units             | 1.88 s        | 1.90 s    | 56 ms          | 2.75 s        | 2.23 s    | 1.06 s         |
+  | one unit              | 13.4 ms       | 13.2 ms   | 7.5 ms         | 18.2 ms       | 11.5 ms   | 31 ms          |
+
+  The texture meshes' compute splat 34 times faster than the CPU's on all units: step 4's target. Their WebGL point
+  sprites half the CPU's on all units, slower on one (a pass a slice over the whole grid). Paths: on WebGPU 5 of the 7
+  groups texture meshes, the 2 smaller CPU meshes (below `SmallSurfaceCells` and `SmallSurfaceAtoms`), merged; on
+  WebGL2 all 7 texture meshes. On CPU meshes the frame is the splat (per group nothing else: the fragments sample).
+  Tested (headless WebGPU, `webgpu-texture-mesh-smoothed-layers`): a texture mesh's layer drawn near the CPU mesh's
+  (134 to 171 pixels from run to run against the plain layer's 283; the surfaces 32 apart without a layer), its grid
+  non-zero only around the reached instance of three. Its grid not as the CPU's: another lattice (`getGridDim` on the
+  sphere's box, not `getGrid`'s cells), every ninth arena vertex (never indexed) in the order of the kernels' appends;
+  4c's kernels on CPU meshes use the CPU's grid and vertices.
 - **4b. The vertices on the GPU**: `GpuMeshVertices` and its release; the sampling kernel reading them (no upload a
   layer). Tested: the layer's bytes as step 3's, the buffers released with the segment, made again with the geometry,
   of the new context after a loss.

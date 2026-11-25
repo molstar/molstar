@@ -25,6 +25,11 @@ import { BallAndStickRepresentationProvider } from '@molstar/graphics/repr/struc
 import { LineRepresentationProvider } from '@molstar/graphics/repr/structure/representation/line';
 import { CartoonRepresentationProvider } from '@molstar/graphics/repr/structure/representation/cartoon';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
+import { UnitsRepresentation } from '@molstar/graphics/repr/structure/units-representation';
+import {
+  GaussianSurfaceMeshParams,
+  GaussianSurfaceMeshVisual,
+} from '@molstar/graphics/repr/structure/visual/gaussian-surface-mesh';
 import { MolecularSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/molecular-surface';
 import { SpacefillRepresentationProvider } from '@molstar/graphics/repr/structure/representation/spacefill';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -127,6 +132,10 @@ export type RenderInput = {
   readonly setupNotes?: boolean;
   /** the GPU bytes of the scene (`getByteCounts` after its setup) among the notes */
   readonly byteNotes?: boolean;
+  /** forced frames per run (default `Frames`): fewer for frames of seconds (a smoothed layer on all units) */
+  readonly frames?: number;
+  /** the render objects by type among the notes (which geometry the representations built: CPU or texture meshes) */
+  readonly objectNotes?: boolean;
   /**
    * a change before each frame (a hover, a theme): its time a stage of its own (`update`; with draws it forces, e.g. a
    * commit), its uploads the frame's
@@ -405,9 +414,10 @@ export async function renderFrames(id: string, graphics: GraphicsContext, input:
   if (input.bundles?.noCulling) Frustum3D.intersectsSphere3D = () => true;
   const skippedBefore = graphics.stats.skippedDraws;
   let idle = 0;
+  const frames = input.frames ?? Frames;
   const start = performance.now();
   try {
-    for (let i = 0; i < Frames; ++i) {
+    for (let i = 0; i < frames; ++i) {
       if (input.idleMs) {
         // after the last frame's GPU work, so that the pause is idle; only the pause left out (the wait is the
         // frame's)
@@ -455,6 +465,16 @@ export async function renderFrames(id: string, graphics: GraphicsContext, input:
       `setup: representations ${reprsMs.toFixed(0)} ms, add and commit ${commitMs.toFixed(0)} ms, first frame ${firstFrameMs?.toFixed(0)} ms`,
     );
   }
+  if (input.objectNotes && current) {
+    const types = new Map<string, number>();
+    for (const repr of current.reprs) {
+      for (const o of repr.renderObjects) {
+        const type = isMergedRenderObject(o) ? `merged ${o.type}` : o.type;
+        types.set(type, (types.get(type) ?? 0) + 1);
+      }
+    }
+    notes.push(`objects: ${[...types].map(([t, n]) => `${t} ${n}`).join(', ')}`);
+  }
   if ((input.byteNotes || BenchmarkEnv.byteNotes) && current?.setup.bytes) {
     const b = current.setup.bytes;
     const mb = (n: number) => (n / 1048576).toFixed(1);
@@ -491,25 +511,25 @@ export async function renderFrames(id: string, graphics: GraphicsContext, input:
   if (input.bundles?.visibility) {
     const visible = visibleKey?.split('').filter((v) => v === '1').length ?? 0;
     notes.push(
-      `visible set: ${(visibilityMs / Frames).toFixed(3)} ms per frame, changed in ${visibleChanges} of ${Frames - 1} frames, ${visible} of ${visibleKey?.length ?? 0} objects visible at the end`,
+      `visible set: ${(visibilityMs / frames).toFixed(3)} ms per frame, changed in ${visibleChanges} of ${frames - 1} frames, ${visible} of ${visibleKey?.length ?? 0} objects visible at the end`,
     );
   }
-  if (drawn !== Frames) throw new Error(`${drawn} of ${Frames} frames drawn`);
+  if (drawn !== frames) throw new Error(`${drawn} of ${frames} frames drawn`);
   const gpuPasses = BenchmarkEnv.gpuTiming ? await getGpuPasses(graphics) : undefined;
   if (BenchmarkEnv.images && BenchmarkEnv.context?.canvas) {
     // a frame of its own, read in the task that drew it (before the canvas is presented and cleared); rotating cases
     // turned on as in their frames (what lags behind the view shows)
     if (input.rotate) rotateCamera(canvas3d, input.rotateDegrees);
-    if (input.dolly) dollyCamera(canvas3d, input.dolly, Frames);
+    if (input.dolly) dollyCamera(canvas3d, input.dolly, frames);
     canvas3d.requestDraw();
     canvas3d.tick(now(), { isSynchronous: true });
     BenchmarkEnv.images[id] = BenchmarkEnv.context.canvas.toDataURL('image/png');
   }
   return {
     stages: [
-      ...(input.update ? [{ label: 'update', ms: updateMs / Frames }] : []),
-      { label: 'submit', ms: submit / Frames },
-      { label: 'wait', ms: (total - submit - updateMs) / Frames },
+      ...(input.update ? [{ label: 'update', ms: updateMs / frames }] : []),
+      { label: 'submit', ms: submit / frames },
+      { label: 'wait', ms: (total - submit - updateMs) / frames },
     ],
     triangles: 0,
     drawCalls: calls,
@@ -1189,39 +1209,82 @@ const MergingSmoothCases: BenchmarkCase<RenderInput>[] = [true].map((merged) =>
 );
 
 /**
- * A smoothed overpaint on the merged assembly's surfaces (CPU meshes), on one unit or on all: set each frame in one of
- * two colors in turn, so that every frame smooths it (its time the update's: the splat, the per-vertex sampling and
- * the upload)
+ * The Gaussian surfaces of `s` per group: the units representation of the surface's mesh visual without its builder,
+ * which merges (`UnitsVisual.builder`), so each group a visual and a render object of its own as before merging
  */
-const MergingSmoothLayerCases: BenchmarkCase<RenderInput>[] = (['one', 'all'] as const).map((on) =>
-  renderCase(
-    `merging/assembly-gaussian-smooth-layer-${on}`,
-    `60 copies of 7qpd (420 units) as Gaussian surfaces, merged, a smoothed overpaint set each frame on ${on === 'one' ? 'one unit' : 'all units'}`,
-    async () => {
-      const s = await getRootAssembly();
-      const props = {
-        tryUseGpu: false,
-        // a fine grid: `auto` quality gives this assembly resolution 3, which no smoothing applies to (from below 3)
-        quality: 'custom',
-        resolution: 1,
-        smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
-      };
-      const unit = s.units[0];
-      const loci =
-        on === 'one'
-          ? StructureElement.Loci(s, [{ unit, indices: Interval.ofLength(unit.elements.length) }])
-          : Structure.toStructureElementLoci(s);
-      const colors = [Color(0xff2222), Color(0x2222ff)];
-      return {
-        setupNotes: true,
-        update: (canvas3d, reprs, i) => {
-          const color = colors[i % 2];
-          reprs[0].setState({ overpaint: { kind: 'element-loci', layers: [{ loci, color, clear: false }] } });
-          canvas3d.update(reprs[0]);
-        },
-        scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, props as any)]),
-      };
-    },
+async function perGroupGaussianSurface(graphics: GraphicsContext, s: Structure, props: object) {
+  const registries = getThemeRegistries();
+  const visual = (materialId: number) =>
+    new Proxy(GaussianSurfaceMeshVisual(materialId), {
+      get: (t, k) => (k === 'builder' ? undefined : Reflect.get(t, k)),
+    });
+  const repr = UnitsRepresentation(
+    'per-group gaussian surface',
+    { graphics, ...registries },
+    () => GaussianSurfaceMeshParams,
+    visual as never,
+  );
+  const provider = GaussianSurfaceRepresentationProvider;
+  repr.setTheme(
+    Theme.create(
+      registries,
+      { structure: s },
+      {
+        colorTheme: { name: provider.defaultColorTheme.name, params: provider.defaultColorTheme.props ?? {} },
+        sizeTheme: { name: provider.defaultSizeTheme.name, params: provider.defaultSizeTheme.props ?? {} },
+      },
+    ),
+  );
+  await repr.createOrUpdate({ ...PD.getDefaultValues(GaussianSurfaceMeshParams), ...props }, s).run();
+  return repr as unknown as Representation.Any;
+}
+
+/**
+ * A smoothed overpaint on the assembly's surfaces, on one unit or on all: set each frame in one of two colors in turn,
+ * so that every frame smooths it (its time the update's: the splat, the sampling, the upload). CPU meshes merged (the
+ * per-vertex sampling), per group (a grid each, sampled by the fragments), and texture meshes (`tryUseGpu`, the
+ * default: GPU surfaces above a size, a grid each splatted on the GPU, never merged)
+ */
+const MergingSmoothLayerCases: BenchmarkCase<RenderInput>[] = (
+  ['merged', 'per-group', 'texture-mesh'] as const
+).flatMap((variant) =>
+  (['one', 'all'] as const).map((on) =>
+    renderCase(
+      `merging/assembly-gaussian-smooth-layer-${on}${variant === 'merged' ? '' : `-${variant}`}`,
+      `60 copies of 7qpd (420 units) as Gaussian surfaces, ${variant === 'merged' ? 'CPU meshes merged' : variant === 'per-group' ? 'CPU meshes per group' : 'texture meshes where the GPU builds them'}, a smoothed overpaint set each frame on ${on === 'one' ? 'one unit' : 'all units'}`,
+      async () => {
+        const s = await getRootAssembly();
+        const props = {
+          tryUseGpu: variant === 'texture-mesh',
+          // a fine grid: `auto` quality gives this assembly resolution 3, which no smoothing applies to (from below 3)
+          quality: 'custom',
+          resolution: 1,
+          smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+        };
+        const unit = s.units[0];
+        const loci =
+          on === 'one'
+            ? StructureElement.Loci(s, [{ unit, indices: Interval.ofLength(unit.elements.length) }])
+            : Structure.toStructureElementLoci(s);
+        const colors = [Color(0xff2222), Color(0x2222ff)];
+        return {
+          setupNotes: true,
+          objectNotes: true,
+          frames: 4,
+          update: (canvas3d, reprs, i) => {
+            const color = colors[i % 2];
+            reprs[0].setState({ overpaint: { kind: 'element-loci', layers: [{ loci, color, clear: false }] } });
+            canvas3d.update(reprs[0]);
+          },
+          scene: (g) =>
+            Promise.all([
+              variant === 'per-group'
+                ? perGroupGaussianSurface(g, s, props)
+                : structureRepr(g, GaussianSurfaceRepresentationProvider, s, props as any),
+            ]),
+        };
+      },
+    ),
   ),
 );
 
