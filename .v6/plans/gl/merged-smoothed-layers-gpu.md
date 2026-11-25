@@ -1,6 +1,7 @@
 # Smoothed layers sampled on the GPU (merged surfaces)
 
-Status: steps 1 to 3 and the follow-ups done; step 4 (the splat on the GPU): 4a to 4c done, 4d next. Follows [merged-units-core.md](merged-units-core.md) step
+Status: steps 1 to 3 and the follow-ups done; step 4 (the splat on the GPU): 4a to 4e done on WebGPU; left: WebGL's
+splat (decide), the texture meshes' sums over the reached region. Follows [merged-units-core.md](merged-units-core.md) step
 4b.
 
 ## Why
@@ -137,11 +138,25 @@ atlas), from the isosurface's vertex arena; CPU meshes have no vertices on the G
   layer on one, `rgba8` and `r8` grids as the CPU's (layout, transform, instances splatted), within a byte but cells of
   near-zero weight (at most one in a thousand, by up to 8), none outside the region; the texture meshes' visual cases
   (17 on WebGPU) and their test unchanged.
-- **4d. The meshes' smoothing on the GPU**: `calcMeshColorSmoothing` with a compute context splatting by the kernels,
-  per group and merged, colors and layers. Tested: images as step 3's (merged and per group against the CPU splat),
-  the export's grids read back, the visual geometry cases on WebGPU.
-- **4e. Measured** against 4a, merged and per group, one unit and all; then WebGL decided (the CPU splat kept, or
-  positions as a texture for the point sprites).
+- **4d. The meshes' smoothing on the GPU** (done): `applyMesh*Smoothing` give `calcMeshColorSmoothing` the mesh's
+  vertices on the GPU where the context splats meshes there (`isComputeMeshColorSmoothingSupported`), per group and
+  merged, colors and layers; the per-group visuals release them with their render object (replaced or destroyed:
+  `units-visual.ts`, `complex-visual.ts`). The export reads a grid back four bytes a texel, red for single-channel
+  layers: rgba grids unchanged for it. Tested (headless WebGPU): a per-group visual's layer splatted, its vertices (16
+  bytes a vertex) held and released with it (not without the release); step 3's images (merged against per group, both
+  splatted on the GPU now) and 4c's grid against the CPU's unchanged; the visual geometry cases (77 on WebGPU and
+  WebGL2) and smoke.
+- **4e. Measured** (done; WebGPU, the layer set each frame, 4 frames a run):
+
+  | Layer on  | merged          | per group       | texture meshes |
+  | --------- | --------------- | --------------- | -------------- |
+  | all units | 1.88 s → 33 ms  | 1.90 s → 20 ms  | 56 → 38 ms     |
+  | one unit  | 13.4 → 1.5 ms   | 13.2 → 2.8 ms   | 7.5 → 7.4 ms   |
+
+  The CPU meshes now ahead of the texture meshes, whose sums still span the whole grid (`computeColorSmoothing`
+  without a region: `getTextureMeshSplatInstances` could give it the reached instances' cells). WebGL still splats CPU
+  meshes on the CPU (2.2–2.7 s on all units): the point sprites (1.06 s for the texture meshes) need positions as a
+  texture; to decide.
 
 ## Follow-ups
 

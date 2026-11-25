@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { releaseGpuMeshVertices } from '@molstar/graphics/geo/geometry/mesh/gpu-vertices';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Structure, Unit, StructureElement, Bond } from '@molstar/model/model/structure';
 import type { RepresentationProps } from '../representation.js';
@@ -511,6 +512,8 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     if (updateState.createNew) {
       locationIt = createLocationIterator(newStructureGroup, newProps);
       if (newGeometry) {
+        // the old object's mesh vertices on the GPU (the smoothing's splat), kept by its values
+        if (renderObject) releaseGpuMeshVertices(renderObject.values);
         renderObject = createUnitsRenderObject(
           newStructureGroup,
           newGeometry,
@@ -708,6 +711,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     destroy() {
       dispose?.(geometry);
       if (renderObject) {
+        releaseGpuMeshVertices(renderObject.values);
         renderObject.state.disposed = true;
         renderObject = undefined;
       }

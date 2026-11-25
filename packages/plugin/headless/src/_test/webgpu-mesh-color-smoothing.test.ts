@@ -53,8 +53,17 @@ async function setup(plugin: HeadlessPluginContext) {
   return { structure, registries, loci };
 }
 
-/** the per-group mesh visuals (no merge builder), the layers plain (`groupInstance`): their values the input */
-async function meshValues(graphics: GraphicsContext, registries: any, structure: Structure, loci: any) {
+/**
+ * the per-group mesh visuals (no merge builder) with the layers, plain (`groupInstance`: their values the input) or
+ * smoothed (`smoothColors`)
+ */
+async function meshValues(
+  graphics: GraphicsContext,
+  registries: any,
+  structure: Structure,
+  loci: any,
+  smoothColors: object = { name: 'off' },
+) {
   const visualCtor = (materialId: number) =>
     new Proxy(GaussianSurfaceMeshVisual(materialId), {
       get: (t, k) => (k === 'builder' ? undefined : Reflect.get(t, k)),
@@ -68,16 +77,19 @@ async function meshValues(graphics: GraphicsContext, registries: any, structure:
   repr.setTheme(
     Theme.create(registries, { structure }, { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'physical' } }),
   );
-  const props = { ...PD.getDefaultValues(GaussianSurfaceMeshParams), resolution: 0.5, smoothColors: { name: 'off' } };
+  const props = { ...PD.getDefaultValues(GaussianSurfaceMeshParams), resolution: 0.5, smoothColors };
   await repr.createOrUpdate(props as any, structure).run();
+  const created = graphics.compute!.getStorageBufferByteCount();
   repr.setState({
     overpaint: { kind: 'element-loci', layers: [{ loci, color: Color(0xff8020), clear: false }] },
     transparency: { kind: 'element-loci', layers: [{ loci, value: 0.6 }] },
   } as any);
   const values = repr.renderObjects
     .map((o) => o.values as unknown as MeshValues)
-    .find((v) => v.overpaintType.ref.value === 'groupInstance')!;
-  return { repr, values };
+    .find(
+      (v) => v.overpaintType.ref.value === ((smoothColors as any).name === 'off' ? 'groupInstance' : 'volumeInstance'),
+    )!;
+  return { repr, values, created };
 }
 
 /** `calcMeshColorSmoothing` of `layer` on the mesh of `values`, its grid read back (four bytes a texel) */
@@ -154,6 +166,35 @@ describe.skipIf(!WebGPU.module)('mesh color smoothing on the GPU (WebGPU)', () =
       }
       releaseGpuMeshVertices(values);
       repr.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it("splats a per-group visual's layer on the GPU, its vertices released with the visual", async () => {
+    const plugin = await HeadlessPluginContext.create(
+      { webgpu: WebGPU.module! },
+      DefaultPluginSpec(),
+      { width: 16, height: 16 },
+      { backend: 'webgpu' },
+    );
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      const compute = graphics.compute!;
+      const { structure, registries, loci } = await setup(plugin);
+      const smooth = { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } };
+      const { repr, values, created } = await meshValues(graphics, registries, structure, loci, smooth);
+      expect(values).toBeDefined();
+      // its positions and groups on the GPU (16 bytes a vertex), kept by its values
+      const vertexBytes = values.uVertexCount.ref.value * 16;
+      expect(compute.getStorageBufferByteCount() - created).toBeGreaterThanOrEqual(vertexBytes);
+      const { array } = await graphics.readTextureData(values.tOverpaintGrid.ref.value);
+      expect((array as Uint8Array).some((b) => b > 0)).toBe(true);
+      const before = compute.getStorageBufferByteCount();
+      repr.destroy();
+      expect(before - compute.getStorageBufferByteCount()).toBeGreaterThanOrEqual(vertexBytes);
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
     } finally {
       plugin.dispose();

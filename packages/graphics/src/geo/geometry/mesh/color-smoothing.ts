@@ -903,6 +903,15 @@ function createGpuLayerData(
   return { array: getSharedZeros(Uint8Array, byteLength), count, gpu: writer };
 }
 
+/**
+ * The mesh's vertices on the GPU where `graphics` splats meshes there (WebGPU compute): the grid splatted by the kernels
+ * (`computeMeshColorSmoothing`), the CPU's splat otherwise
+ */
+function gpuVerticesOf(values: MeshValues, graphics: GraphicsContext | undefined) {
+  if (!graphics || !isComputeMeshColorSmoothingSupported(graphics)) return undefined;
+  return getGpuMeshVertices(values, graphics.compute);
+}
+
 function isSupportedColorType(x: string): x is 'group' | 'groupInstance' {
   return x === 'group' || x === 'groupInstance';
 }
@@ -929,6 +938,7 @@ export function applyMeshColorSmoothing(
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 4,
+      gpuVertices: gpuVerticesOf(values, graphics),
     },
     options,
     graphics,
@@ -976,6 +986,7 @@ export function applyMeshOverpaintSmoothing(
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 4,
+      gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
     options,
     gpu || !perVertexOnGpu ? graphics : undefined,
@@ -1027,6 +1038,7 @@ export function applyMeshTransparencySmoothing(
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 1,
+      gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
     options,
     gpu || !perVertexOnGpu ? graphics : undefined,
@@ -1078,6 +1090,7 @@ export function applyMeshEmissiveSmoothing(
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 1,
+      gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
     options,
     gpu || !perVertexOnGpu ? graphics : undefined,
@@ -1129,6 +1142,7 @@ export function applyMeshSubstanceSmoothing(
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 4,
+      gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
     options,
     gpu || !perVertexOnGpu ? graphics : undefined,
