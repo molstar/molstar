@@ -22,6 +22,7 @@ import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { RendererParams } from '@molstar/graphics/gl/renderer';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 // A list with templates drawn by a page store's object (`paged.ts`, `addNested`): a template's particles stored once,
@@ -129,11 +130,9 @@ describe.skipIf(!WebGPU.module)('a list with templates as a page store on WebGPU
   it("draws its flattened list's frame, never flattened: three copies and a leaf, a small canvas", async () => {
     const size = 32;
     const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
+    const plugin = await createWebGPUPlugin(
       { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
       { width: size, height: size },
-      { backend: 'webgpu' },
     );
     if (typeof ImageData === 'undefined') {
       vi.stubGlobal(
@@ -225,11 +224,9 @@ describe.skipIf(!WebGPU.module)('a list with templates as a page store on WebGPU
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
       if (typeof ImageData === 'undefined') {
@@ -499,11 +496,9 @@ describe.skipIf(!WebGPU.module)('a list with templates as a page store on WebGPU
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       try {
         await plugin.init();
@@ -610,12 +605,9 @@ describe.skipIf(!WebGPU.module)('a list with templates as a page store on WebGPU
     async () => {
       const spec = DefaultPluginSpec();
       const size = 256;
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
-        // large enough for the pyramid to hide copies behind copies
+      const plugin = await createWebGPUPlugin(
+        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] }, // large enough for the pyramid to hide copies behind copies
         { width: size, height: size },
-        { backend: 'webgpu' },
       );
       if (typeof ImageData === 'undefined') {
         vi.stubGlobal(

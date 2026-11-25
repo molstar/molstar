@@ -12,18 +12,15 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { PluginState } from '@molstar/plugin/state';
 import { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
 import { OverpaintStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
+// contexts of their own (`own`): two at once compared (what one compiles, the other does not)
 import { WebGPU } from './webgpu-module.js';
 
 const readExample = (name: string) =>
   readFileSync(new URL(`../../../../../data/examples/${name}`, import.meta.url), 'utf8');
 
 const createPlugin = async () => {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: 32, height: 32 },
-    { backend: 'webgpu' },
-  );
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 32, height: 32 }, { own: true });
   await plugin.init();
   return plugin;
 };

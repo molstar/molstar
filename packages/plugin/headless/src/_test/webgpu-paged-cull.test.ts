@@ -41,6 +41,7 @@ import { createMergedValues, type MergeableValues } from '@molstar/graphics/gl/r
 import { createPagedMergedCuller } from '@molstar/graphics/gl/renderable/merged-paged-culler';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 // A page store's particles culled and their poses composed on the GPU (`paged-cull.ts`): the regions' counts and the
@@ -149,12 +150,7 @@ function createView(eye: Vec3, target: Vec3, t = 0.08) {
 
 describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
   beforeAll(async () => {
-    plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
-    );
+    plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
     await plugin.init();
   });
   afterAll(() => plugin?.dispose());

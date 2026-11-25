@@ -25,6 +25,7 @@ import {
 } from '@molstar/graphics/repr/structure/visual/gaussian-surface-mesh';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const TwoChainsPdb = `${Array.from({ length: 48 }, (_, i) => {
@@ -127,12 +128,7 @@ async function grid(graphics: GraphicsContext, values: MeshValues, layer: 'overp
 
 describe.skipIf(!WebGPU.module)('mesh color smoothing on the GPU (WebGPU)', () => {
   it('splats a layer into the grid the CPU splats, rgba8 and r8, only the reached region', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
     try {
       await plugin.init();
       const graphics = plugin.canvas3d!.graphics;
@@ -178,12 +174,7 @@ describe.skipIf(!WebGPU.module)('mesh color smoothing on the GPU (WebGPU)', () =
   }, 60_000);
 
   it("splats a per-group visual's layer on the GPU, its vertices released with the visual", async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
     try {
       await plugin.init();
       const graphics = plugin.canvas3d!.graphics;

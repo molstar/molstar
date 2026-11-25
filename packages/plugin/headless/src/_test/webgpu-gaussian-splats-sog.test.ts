@@ -19,6 +19,8 @@ import type { PostprocessingProps } from '@molstar/graphics/canvas3d/passes/post
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { createSplatSorter, SplatSortKernels } from '@molstar/graphics/gl/compute/splat-sort';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
+// contexts of their own (`own`): two at once compared (what one compiles, the other does not)
 import { WebGPU } from './webgpu-module.js';
 
 type SogFile = Parameters<typeof gaussianSplatsFromSog>[0];
@@ -187,15 +189,12 @@ describe.skipIf(!WebGPU.module)('SOG read in place on WebGPU', () => {
   // one context for the tests that draw a representation of their own (removed after) or use its graphics alone
   let shared: Promise<HeadlessPluginContext> | undefined;
   const sharedPlugin = () => {
-    shared ??= HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    ).then(async (plugin) => {
-      await plugin.init();
-      return plugin;
-    });
+    shared ??= createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }, { own: true }).then(
+      async (plugin) => {
+        await plugin.init();
+        return plugin;
+      },
+    );
     return shared;
   };
   afterAll(async () => {
@@ -267,12 +266,7 @@ describe.skipIf(!WebGPU.module)('SOG read in place on WebGPU', () => {
     timeout: 60_000,
   }, async () => {
     const create = async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: 32, height: 32 },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 32, height: 32 }, { own: true });
       await plugin.init();
       return plugin;
     };

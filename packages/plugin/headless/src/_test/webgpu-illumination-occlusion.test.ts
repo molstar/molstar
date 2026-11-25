@@ -12,6 +12,7 @@ import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /**
@@ -55,12 +56,7 @@ async function jumps(options: {
   stillFrames: number;
 }) {
   const { size, side, copies, frontFrames, stillFrames } = options;
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: size, height: size },
-    { backend: 'webgpu' },
-  );
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: size, height: size });
   // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
   if (typeof ImageData === 'undefined') {
     vi.stubGlobal(

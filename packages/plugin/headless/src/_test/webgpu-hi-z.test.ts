@@ -17,6 +17,7 @@ import { Renderer } from '@molstar/graphics/gl/renderer';
 import type { Camera } from '@molstar/graphics/canvas3d/camera';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 128;
@@ -35,12 +36,7 @@ describe.skipIf(!WebGPU.module)('Hi-Z on WebGPU', () => {
   let shared: Promise<{ plugin: HeadlessPluginContext; camera: Camera.Snapshot }> | undefined;
   const sharedPlugin = async () => {
     shared ??= (async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
       const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
@@ -243,12 +239,8 @@ describe.skipIf(!WebGPU.module)('Hi-Z on WebGPU', () => {
   // a frame drawn straight to the drawing buffer leaves the opaque depth texture as an earlier frame drew it: levels
   // built from it hid what is visible now (the GPU culling of an image pass, which has no second phase, lost instances)
   it('levels only of a frame that drew the opaque depth texture', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    // a context of its own beside the file's shared plugin (`own`)
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }, { own: true });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });

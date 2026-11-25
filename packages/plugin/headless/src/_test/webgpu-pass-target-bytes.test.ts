@@ -10,6 +10,7 @@ import { MarkerAction } from '@molstar/core/util/marker-action';
 import { PassTargets } from '@molstar/graphics/canvas3d/passes/pass-targets';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `${Array.from({ length: 40 }, (_, i) => {
@@ -36,12 +37,7 @@ async function createScene() {
     releases.set(this, release);
     scheduleRelease.call(this, release, 600_000);
   });
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: Size, height: Size },
-    { backend: 'webgpu' },
-  );
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
   const dispose = () => {
     plugin.dispose();
     spy.mockRestore();

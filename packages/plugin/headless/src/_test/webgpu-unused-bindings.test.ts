@@ -9,6 +9,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Canvas3DParams, type Canvas3DPrecompileProps } from '@molstar/graphics/canvas3d/canvas3d';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `${Array.from({ length: 40 }, (_, i) => {
@@ -104,12 +105,7 @@ describe.skipIf(!WebGPU.module)('WebGPU bindings', () => {
       return original.createRenderPipelineAsync.call(this, d);
     };
 
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 64, height: 64 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });

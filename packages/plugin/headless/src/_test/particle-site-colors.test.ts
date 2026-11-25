@@ -22,6 +22,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Particle } from '@molstar/model/model/particles/particle-list';
 import { RelionStarParticlesProvider } from '@molstar/plugin/state/formats/particles/star';
 import { ParticleListWithTargets } from '@molstar/plugin/state/transforms/particles/ops';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const readExample = (name: string) => readFileSync(new URL(`../../../../../data/examples/${name}`, import.meta.url));
@@ -143,11 +144,9 @@ async function renderCenter(
  */
 async function renderStructureTarget(distances: number[], raster: 'off' | 'only') {
   const spec = DefaultPluginSpec();
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
+  const plugin = await createWebGPUPlugin(
     { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
     { width: Size, height: Size },
-    { backend: 'webgpu' },
   );
   try {
     await plugin.init();

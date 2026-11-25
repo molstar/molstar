@@ -11,6 +11,7 @@ import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import type { Camera } from '@molstar/graphics/canvas3d/camera';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `${Array.from({ length: 16 }, (_, i) => {
@@ -26,12 +27,8 @@ const Frame = { width: 64, height: 40 };
 
 /** A spacefill scene on a canvas of `width` × `height` */
 async function create(width: number, height: number) {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width, height },
-    { backend: 'webgpu' },
-  );
+  // a context of its own: a plugin a size, kept alive together (one drawing buffer a context, `own`)
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width, height }, { own: true });
   await plugin.init();
   const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
   const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');

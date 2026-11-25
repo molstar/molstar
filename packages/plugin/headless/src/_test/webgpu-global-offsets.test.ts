@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `ATOM      1  N   ALA A   1      -1.458   0.000   0.000  1.00  0.00           N
@@ -29,12 +30,7 @@ describe.skipIf(!WebGPU.module)('global bindings on WebGPU', () => {
   it('bind the same offsets in frames of the same passes, the camera and the data changing', {
     tags: ['medium'],
   }, async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 64, height: 64 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 });
     // the dynamic offsets of the global bind group (0), per frame
     const encoder = (WebGPU.module!.globals as { GPURenderPassEncoder: { prototype: GPURenderPassEncoder } })
       .GPURenderPassEncoder.prototype;

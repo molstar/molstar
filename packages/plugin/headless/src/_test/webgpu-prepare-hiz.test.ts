@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { now } from '@molstar/core/util/now';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const readExample = (name: string) =>
@@ -19,12 +20,7 @@ const readExample = (name: string) =>
 // frame drawn with those props
 describe.skipIf(!WebGPU.module)('Hi-Z prepared with given props on WebGPU', () => {
   it('compile the Hi-Z pyramid when preparing, nothing of it when drawing', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 64, height: 64 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: readExample('1cbs_updated.cif'), label: '1cbs' });

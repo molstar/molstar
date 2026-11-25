@@ -28,6 +28,7 @@ import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 64;
@@ -97,12 +98,7 @@ describe.skipIf(!WebGPU.module)('merged objects of data per vertex and instance'
   ])(
     'draw as their members alone (%s): each segment its own vertices and instances',
     async (_, overpaint) => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         const graphics = plugin.canvas3d!.graphics;

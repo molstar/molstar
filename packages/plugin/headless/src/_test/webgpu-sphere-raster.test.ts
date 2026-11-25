@@ -33,6 +33,7 @@ import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 64;
@@ -139,12 +140,7 @@ describe.skipIf(!WebGPU.module)('sphere raster on WebGPU', () => {
   let context: HeadlessPluginContext | undefined;
   const shared = async () => {
     if (!context) {
-      context = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      context = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       await context.init();
     }
     return context;

@@ -18,6 +18,7 @@ import * as Shape from '@molstar/graphics/geo/shape/shape';
 import { ShapeRepresentation } from '@molstar/graphics/repr/shape/representation';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /** Where the walls enter the box the two offsets differ by a line of pixels: up to 40 at 256 px */
@@ -62,12 +63,7 @@ describe.skipIf(!WebGPU.module)('clip walls on a solid-interior cap', () => {
   // one context for both layers, each case's representations removed after it
   let shared: Promise<HeadlessPluginContext> | undefined;
   const sharedPlugin = () => {
-    shared ??= HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 256, height: 256 },
-      { backend: 'webgpu' },
-    ).then(async (plugin) => {
+    shared ??= createWebGPUPlugin(DefaultPluginSpec(), { width: 256, height: 256 }).then(async (plugin) => {
       await plugin.init();
       return plugin;
     });

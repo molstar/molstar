@@ -14,6 +14,7 @@ import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /** `chains` chains of `perChain` atoms side by side: a unit each, merged */
@@ -35,12 +36,7 @@ const Size = 64;
 /** one plugin for the file's tests: its device's pipelines compiled once, each test's structure cleared after it */
 let shared: Promise<HeadlessPluginContext> | undefined;
 const sharedPlugin = () =>
-  (shared ??= HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: Size, height: Size },
-    { backend: 'webgpu' },
-  ).then(async (plugin) => {
+  (shared ??= createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }).then(async (plugin) => {
     await plugin.init();
     return plugin;
   }));

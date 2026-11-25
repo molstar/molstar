@@ -19,6 +19,7 @@ import { Theme } from '@molstar/graphics/theme/theme';
 import { GaussianSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/gaussian-surface';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 96;
@@ -33,12 +34,7 @@ const TwoChainsPdb = `${Array.from({ length: 48 }, (_, i) => {
 describe.skipIf(!WebGPU.module)('merged layers set before a scene adds the objects (WebGPU)', () => {
   for (const order of ['state then scene', 'scene then state'] as const) {
     it(`draws the overpaint: ${order}`, async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         const graphics = plugin.canvas3d!.graphics;

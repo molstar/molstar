@@ -8,6 +8,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `ATOM      1  N   ALA A   1      -1.458   0.000   0.000  1.00  0.00           N
@@ -59,12 +60,7 @@ afterAll(async () => (await shared)?.dispose());
 /** The structure as spacefill clipped by pixel, the spheres by the raster (`only`) or as impostors */
 async function render(sphereRaster: 'off' | 'only', typeParams: { [k: string]: unknown }, pdb = Pdb) {
   shared ??= (async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     await plugin.init();
     return plugin;
   })();

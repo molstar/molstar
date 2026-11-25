@@ -10,6 +10,7 @@ import { MarkerAction } from '@molstar/core/util/marker-action';
 import { ReleaseDelayMs } from '@molstar/graphics/canvas3d/passes/pass-targets';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `${Array.from({ length: 40 }, (_, i) => {
@@ -32,12 +33,7 @@ describe.skipIf(!WebGPU.module)('releasing pass targets on WebGPU', () => {
   it('releases the targets of passes turned off, and of image passes after rendering', async () => {
     // the timeouts faked, advancing with real time too (what the GPU's work waits for runs on)
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 64, height: 64 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });

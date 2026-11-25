@@ -22,6 +22,7 @@ import { transformHandles } from '@molstar/graphics/util/gizmo/transform';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { BehaviorSubject } from 'rxjs';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = 'ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C\nEND\n';
@@ -156,12 +157,7 @@ function knobAndLineBinding(): GizmoBinding<number> {
 /** one plugin for the file, with an atom's spacefill: each test's controller its own, disposed after it */
 let shared: Promise<HeadlessPluginContext> | undefined;
 async function createPlugin() {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: Size, height: Size },
-    { backend: 'webgpu' },
-  );
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
   await plugin.init();
   const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
   const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');

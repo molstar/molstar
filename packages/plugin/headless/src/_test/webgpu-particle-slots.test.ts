@@ -28,6 +28,7 @@ import { ParticleTileView } from '@molstar/model/model/particles/particle-tile-v
 import { writeParticlePack } from '@molstar/model/formats/particles/pack';
 import { Asset } from '@molstar/core/util/assets';
 
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 // A slot view of a tile set (`ParticleTilesView`'s `slots`) drawn by the target representation's store-backed object
@@ -103,11 +104,9 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
   it('draws as the flat view of the same tiles; a pick its slot: eight particles in four tiles, a small canvas', async () => {
     const size = 32;
     const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
+    const plugin = await createWebGPUPlugin(
       { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
       { width: size, height: size },
-      { backend: 'webgpu' },
     );
     // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
     if (typeof ImageData === 'undefined') {
@@ -218,11 +217,9 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       try {
         await plugin.init();
@@ -427,11 +424,9 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles on WebGPU', () =>
       const file = Asset.File(new File([bytes], 'lattice.mspk'));
       const spec = DefaultPluginSpec();
       // one plugin for the draws (a new one compiles the pipelines again), the scene before removed
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       /**
        * the pixels drawn (`sphereRaster` off: sprites; only: the raster) of the root node alone, or of the lattice's

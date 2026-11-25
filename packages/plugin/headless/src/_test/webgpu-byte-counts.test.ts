@@ -8,6 +8,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `ATOM      1  N   ALA A   1      -1.458   0.000   0.000  1.00  0.00           N
@@ -25,12 +26,7 @@ END
 /** one plugin for the file's tests: its device's pipelines compiled once */
 let shared: Promise<HeadlessPluginContext> | undefined;
 const sharedPlugin = () =>
-  (shared ??= HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: 64, height: 64 },
-    { backend: 'webgpu' },
-  ).then(async (plugin) => {
+  (shared ??= createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 }).then(async (plugin) => {
     await plugin.init();
     return plugin;
   }));

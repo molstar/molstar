@@ -12,6 +12,8 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { getTreePrecompileList } from '@molstar/plugin/state/precompile';
 import { OverpaintStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
 import { TransparencyStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/transparency';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
+// contexts of their own (`own`): two at once compared (what one compiles, the other does not)
 import { WebGPU } from './webgpu-module.js';
 
 const readExample = (name: string) =>
@@ -51,12 +53,7 @@ END
 `;
 
 const createPlugin = async () => {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: 32, height: 32 },
-    { backend: 'webgpu' },
-  );
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 32, height: 32 }, { own: true });
   await plugin.init();
   return plugin;
 };

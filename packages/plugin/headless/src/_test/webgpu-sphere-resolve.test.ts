@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `ATOM      1  N   ALA A   1      -1.458   0.000   0.000  1.00  0.00           N
@@ -27,12 +28,7 @@ const Size = 64;
 const ViewHeight = 16;
 
 function createPlugin() {
-  return HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: Size, height: Size },
-    { backend: 'webgpu' },
-  ).then(async (plugin) => {
+  return createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }).then(async (plugin) => {
     await plugin.init();
     return plugin;
   });

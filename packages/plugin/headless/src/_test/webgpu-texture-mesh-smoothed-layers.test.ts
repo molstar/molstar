@@ -28,6 +28,7 @@ import {
 } from '@molstar/graphics/repr/structure/visual/gaussian-surface-mesh';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 128;
@@ -43,12 +44,7 @@ const Smooth = { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } };
 const Off = { name: 'off', params: {} };
 
 async function createPlugin() {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: Size, height: Size },
-    { backend: 'webgpu' },
-  );
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
   await plugin.init();
   return plugin;
 }

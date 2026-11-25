@@ -9,18 +9,15 @@ import { describe, expect, it } from 'vitest';
 import { now } from '@molstar/core/util/now';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
+// contexts of their own (`own`): two at once compared (what one compiles, the other does not)
 import { WebGPU } from './webgpu-module.js';
 
 const readExample = (name: string) =>
   readFileSync(new URL(`../../../../../data/examples/${name}`, import.meta.url), 'utf8');
 
 async function createPlugin(sphereRaster: 'on' | 'off') {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: 64, height: 64 },
-    { backend: 'webgpu' },
-  );
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 }, { own: true });
   await plugin.init();
   plugin.canvas3d!.setProps({
     renderer: { sphereRaster, sphereRasterRadius: 32 },

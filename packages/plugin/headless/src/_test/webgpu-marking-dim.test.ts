@@ -10,6 +10,7 @@ import { MarkerAction } from '@molstar/core/util/marker-action';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /** two chains of a grid of atoms, side by side: an object each, chain A on the left */
@@ -48,12 +49,7 @@ describe.skipIf(!WebGPU.module)('dimming by the marking pass on WebGPU', () => {
   // dimming set after the canvas was created reached the marking pass (the frames' props kept the renderer's as created),
   // and transparent unmarked objects are dimmed (the marking depth taken from the scene's opaque depth lacked them)
   it('dims the unmarked transparent chain, the dimming set on the created canvas', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
     if (typeof ImageData === 'undefined') {
       vi.stubGlobal(

@@ -25,6 +25,7 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 // A list with templates' far copies (`ParticleNesting.getTemplateLevels`): a copy whose template's particles are a few
@@ -104,11 +105,9 @@ const ListOf = PluginStateTransform.BuiltIn({
 describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", () => {
   it('draws a far copy at its coarse level (a sample, larger), a near one whole: four copies of 512 particles', async () => {
     const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
+    const plugin = await createWebGPUPlugin(
       { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
       { width: Size, height: Size },
-      { backend: 'webgpu' },
     );
     if (typeof ImageData === 'undefined') {
       vi.stubGlobal(
@@ -212,11 +211,9 @@ describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", (
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       if (typeof ImageData === 'undefined') {
         vi.stubGlobal(
@@ -369,11 +366,9 @@ describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", (
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       if (typeof ImageData === 'undefined') {
         vi.stubGlobal(

@@ -19,6 +19,7 @@ import {
 } from '@molstar/graphics/canvas3d/helper/camera-helper';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = 'ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C\nEND\n';
@@ -45,12 +46,7 @@ const Origin = [75, Size - 75];
 
 /** A plugin with an atom's spacefill, looking down -z with y up, and what the tests ask of its canvas */
 async function setup() {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: Size, height: Size },
-    { backend: 'webgpu' },
-  );
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
   await plugin.init();
   const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
   const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');

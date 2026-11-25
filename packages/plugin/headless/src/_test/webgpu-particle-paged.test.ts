@@ -37,6 +37,7 @@ import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { ParticleTileSetFromList, ParticleTilesView } from '@molstar/plugin/state/transforms/particles/tiles';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 // A slot view of particle tiles as a page store's object (`paged.ts`): its instances culled
@@ -133,11 +134,9 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
   it("draws the flat view's frame by a page store's object: eight particles in four tiles, a small canvas", async () => {
     const size = 32;
     const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
+    const plugin = await createWebGPUPlugin(
       { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
       { width: size, height: size },
-      { backend: 'webgpu' },
     );
     if (typeof ImageData === 'undefined') {
       vi.stubGlobal(
@@ -240,11 +239,9 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
       if (typeof ImageData === 'undefined') {
@@ -397,12 +394,9 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
-        // large enough for the pyramid to resolve a small sphere behind a large one
+      const plugin = await createWebGPUPlugin(
+        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] }, // large enough for the pyramid to resolve a small sphere behind a large one
         { width: OcclusionSize, height: OcclusionSize },
-        { backend: 'webgpu' },
       );
       if (typeof ImageData === 'undefined') {
         vi.stubGlobal(
@@ -495,11 +489,9 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       if (typeof ImageData === 'undefined') {
         vi.stubGlobal(
@@ -662,11 +654,9 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       try {
         await plugin.init();
@@ -822,11 +812,9 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       try {
         await plugin.init();
@@ -957,11 +945,9 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       if (typeof ImageData === 'undefined') {
         vi.stubGlobal(

@@ -9,6 +9,7 @@ import { now } from '@molstar/core/util/now';
 import { ReleaseDelayMs } from '@molstar/graphics/canvas3d/passes/pass-targets';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `${Array.from({ length: 20 }, (_, i) => {
@@ -21,12 +22,7 @@ const Pdb = `${Array.from({ length: 20 }, (_, i) => {
 // the headless canvas context takes its props as the browser's: transparency and pick scale reach the passes
 describe.skipIf(!WebGPU.module)('headless canvas context props on WebGPU', () => {
   it('switch the transparency mode, holding frames until it is prepared, and the pick scale', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 64, height: 64 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });

@@ -43,6 +43,8 @@ import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
+// contexts of their own (`own`): two at once compared (what one compiles, the other does not)
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 64;
@@ -565,12 +567,7 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
     tags: ['medium'],
     timeout: 60_000,
   }, async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }, { own: true });
     try {
       await plugin.init();
       const pdb = `${Array.from({ length: 48 }, (_, i) => {
@@ -610,12 +607,7 @@ describe.skipIf(!WebGPU.module)('GPU culling of merged render objects', () => {
     tags: ['medium'],
     timeout: 60_000,
   }, async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }, { own: true });
     try {
       await plugin.init();
       // two chains, solid walls of atoms (spaced closer than their radii), as 20 copies one behind the other along z
@@ -1727,12 +1719,7 @@ function createPosedMembers(pendingGrid = false, shift?: Vec3) {
 }
 
 async function createPlugin() {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: Size, height: Size },
-    { backend: 'webgpu' },
-  );
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }, { own: true });
   await plugin.init();
   return plugin;
 }

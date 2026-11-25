@@ -24,6 +24,7 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 // A nested pack read by range (`openParticleListFromPackStream`): its templates' particles read by page as the GPU's
@@ -114,11 +115,9 @@ describe.skipIf(!WebGPU.module)('a nested pack read by range on WebGPU', () => {
   it("draws as the pack read whole, near: its template's pages there read alone (16 pages, a small canvas)", async () => {
     const size = 32;
     const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
+    const plugin = await createWebGPUPlugin(
       { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
       { width: size, height: size },
-      { backend: 'webgpu' },
     );
     if (typeof ImageData === 'undefined') {
       vi.stubGlobal(
@@ -227,11 +226,9 @@ describe.skipIf(!WebGPU.module)('a nested pack read by range on WebGPU', () => {
     { tags: ['medium'] },
     async () => {
       const spec = DefaultPluginSpec();
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
+      const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { backend: 'webgpu' },
       );
       // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
       if (typeof ImageData === 'undefined') {

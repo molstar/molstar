@@ -9,6 +9,7 @@ import { ValueCell } from '@molstar/core/util';
 import { Scene } from '@molstar/graphics/gl/scene';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `ATOM      1  N   ALA A   1      -1.458   0.000   0.000  1.00  0.00           N
@@ -21,12 +22,7 @@ END
 
 describe.skipIf(!WebGPU.module)('Scene changed objects on WebGPU', () => {
   it('an object updated by `update(objects)` is not updated again by `updateChanged`', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 32, height: 32 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 32, height: 32 });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });

@@ -14,6 +14,7 @@ import { SegmentedArray } from '@molstar/graphics/gl/segmented-array';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /** a compact grid of atoms, filling the view */
@@ -71,12 +72,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     'pick as the direct passes do, replayed',
     { tags: ['medium'] },
     async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
@@ -132,12 +128,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     'record again where the shared quad indices were replaced (grown)',
     { tags: ['medium'] },
     async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
@@ -191,12 +182,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     'record again where a draw of the recording grew the shared quad indices',
     { tags: ['medium'] },
     async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
@@ -263,12 +249,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     'replay with changed markers written, not recorded again (hover)',
     { tags: ['medium'] },
     async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
@@ -321,12 +302,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
   );
 
   it('replay the marking passes of marking-only redraws (the camera resting, no new frame)', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
@@ -372,12 +348,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     'hover single groups and whole objects: changing chunks of few objects drawn directly, nothing recorded again',
     { tags: ['medium'] },
     async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         await addPerChain(plugin, TwoChainsPdb, { type: 'spacefill' });
@@ -462,12 +433,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     'draw the marker ranges uploaded as a whole upload of the layer draws them',
     { tags: ['medium'] },
     async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         const data = await plugin.builders.data.rawData({ data: TwoChainsPdb, label: 'test' });
@@ -523,12 +489,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     'hover residue after residue (%s, marking pass %s): no earlier highlight stays',
     { tags: ['medium'] },
     async (type, marking) => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         const data = await plugin.builders.data.rawData({ data: TwoChainsPdb, label: 'test' });
@@ -580,12 +541,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     'draw the marker parts of a merged object uploaded as a whole upload of its layer draws them',
     { tags: ['medium'] },
     async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         const data = await plugin.builders.data.rawData({ data: TwoChainsPdb, label: 'test' });
@@ -652,12 +608,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     'replay without planning only while nothing the plan read changed (state, camera)',
     { tags: ['medium'] },
     async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
@@ -718,12 +669,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     'replay unculled while objects enter and leave the view, culled again at rest',
     { tags: ['medium'] },
     async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         // an object per chain, side by side (12 Å apart); drawn alike at every distance (no levels)
@@ -791,12 +737,7 @@ describe.skipIf(!WebGPU.module)('draw lists on WebGPU', () => {
     'replay solid interiors while the camera moves, their caps of the near cut as drawn directly',
     { tags: ['medium'] },
     async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: Size, height: Size },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
       try {
         await plugin.init();
         // solid interiors on by default for Gaussian surfaces; an object per chain

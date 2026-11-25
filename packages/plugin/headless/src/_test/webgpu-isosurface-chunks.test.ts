@@ -36,6 +36,7 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
 import { isNullTexture } from '@molstar/graphics/gl/texture';
 import { createWrappedTensor } from '@molstar/graphics/repr/volume/util';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /** A density falling off from the grid center, `n` minus the distance: a sphere of radius `r` at iso value `n - r` */
@@ -94,12 +95,8 @@ function sphereError(points: Iterable<{ p: Vec3 }>, center: Vec3, r: number) {
 }
 
 async function withCompute(fn: (graphics: GraphicsContext & { compute: ComputeContext }) => Promise<void>) {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: 16, height: 16 },
-    { backend: 'webgpu' },
-  );
+  // a context of its own: its pages and bytes counted (`own`)
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 }, { own: true });
   try {
     await plugin.init();
     const graphics = plugin.canvas3d!.graphics;

@@ -16,6 +16,7 @@ import type { PostprocessingProps } from '@molstar/graphics/canvas3d/passes/post
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { STYLIZED_POSTPROCESSING } from '@molstar/plugin-headless/screenshot';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /** one atom: its spacefill hides its ball-and-stick */
@@ -29,12 +30,8 @@ function isRed([r, g, b]: number[]) {
 /** plugins by canvas size, shared by the tests (their pipelines compiled once), and the props a test may change */
 const plugins = new Map<number, Promise<{ plugin: HeadlessPluginContext; reset: () => void }>>();
 async function createPlugin(size: number) {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: size, height: size },
-    { backend: 'webgpu' },
-  );
+  // a context of its own: a plugin a size, kept alive together (one drawing buffer a context, `own`)
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: size, height: size }, { own: true });
   await plugin.init();
   const canvas = plugin.canvas3d!;
   const { imagePass } = plugin.renderer;

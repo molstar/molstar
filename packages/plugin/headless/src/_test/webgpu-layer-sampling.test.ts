@@ -11,6 +11,7 @@ import { computeLayerSampling, isComputeLayerSamplingSupported } from '@molstar/
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const GridDim = Vec3.create(7, 5, 6);
@@ -164,12 +165,7 @@ const Tolerance = 2;
 
 describe.skipIf(!WebGPU.module)('layer sampling per vertex and instance (WebGPU compute)', () => {
   it('samples rgba8 and r8 layers as the mesh shaders sample their grids', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
     try {
       await plugin.init();
       const graphics = plugin.canvas3d!.graphics;

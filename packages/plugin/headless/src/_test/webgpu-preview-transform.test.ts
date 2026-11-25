@@ -18,6 +18,7 @@ import * as Shape from '@molstar/graphics/geo/shape/shape';
 import { ShapeRepresentation } from '@molstar/graphics/repr/shape/representation';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 128;
@@ -35,12 +36,7 @@ function differing(a: Uint8ClampedArray, b: Uint8ClampedArray) {
 // transform as a placement (`transform`, baked into the instances), culled and bounded where it is drawn
 describe.skipIf(!WebGPU.module)('a transient transform on WebGPU', () => {
   it('draws a mesh and impostor spheres as the same transform as a placement', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     try {
       await plugin.init();
       plugin.renderer.imagePass.setProps({ multiSample: { ...DefaultCanvas3DParams.multiSample, mode: 'off' } });
