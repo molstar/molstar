@@ -1288,10 +1288,44 @@ const MergingSmoothLayerCases: BenchmarkCase<RenderInput>[] = (
   ),
 );
 
+/**
+ * The smoothed overpaint moved between two units each frame: every frame the part of the one it leaves joins the rest
+ * again, the one it reaches splits off (their merged objects made again: their geometry uploaded)
+ */
+const MergingSmoothLayerMoveCase = renderCase(
+  'merging/assembly-gaussian-smooth-layer-move',
+  '60 copies of 7qpd (420 units) as Gaussian surfaces, CPU meshes merged, a smoothed overpaint moved between two units each frame',
+  async () => {
+    const s = await getRootAssembly();
+    const props = {
+      tryUseGpu: false,
+      quality: 'custom',
+      resolution: 1,
+      smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+    };
+    const lociOf = (unit: (typeof s.units)[number]) =>
+      StructureElement.Loci(s, [{ unit, indices: Interval.ofLength(unit.elements.length) }]);
+    const loci = [lociOf(s.units[0]), lociOf(s.units[1])];
+    return {
+      setupNotes: true,
+      objectNotes: true,
+      frames: 4,
+      update: (canvas3d, reprs, i) => {
+        reprs[0].setState({
+          overpaint: { kind: 'element-loci', layers: [{ loci: loci[i % 2], color: Color(0xff2222), clear: false }] },
+        });
+        canvas3d.update(reprs[0]);
+      },
+      scene: (g) => Promise.all([structureRepr(g, GaussianSurfaceRepresentationProvider, s, props as any)]),
+    };
+  },
+);
+
 export const MergingMeshCases: BenchmarkCase<RenderInput>[] = [
   ...MergingAssemblyMeshCases,
   ...MergingSmoothCases,
   ...MergingSmoothLayerCases,
+  MergingSmoothLayerMoveCase,
 ];
 
 /** The folder of the large models some cases load (from the repository root; not checked in, `.gitignore`d) */
