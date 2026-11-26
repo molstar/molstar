@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- `cameraClipping.near` (`Camera.Snapshot.clipNear`, default on), as `far`: off, the clipping radius moves only the far
+  plane, so a scene can be cut behind a plane with its front intact (#2067)
 - Fix unit transforms (Unwind Assembly, Explode) not moving the representations whose symmetry groups are not the
   structure's own (e.g. with `includeParent`): their units' transforms are now found by unit
 - Fix clearing unit transforms (`unitTransforms: null`) leaving the units at their last transforms

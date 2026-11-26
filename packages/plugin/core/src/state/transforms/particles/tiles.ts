@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { Box3D } from '@molstar/core/math/geometry/primitives/box3d';
@@ -570,6 +571,7 @@ function getCameraKey(
     s.minNear,
     s.radius,
     s.radiusMax,
+    s.clipNear,
     s.clipFar,
     s.minFar,
     ...s.position,

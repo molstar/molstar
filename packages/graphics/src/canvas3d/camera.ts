@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { Viewport, cameraProject, cameraUnproject } from './camera/util.js';
@@ -473,10 +474,13 @@ export namespace Camera {
 
   /**
    * The distances of the near and far planes a camera in `state` draws between (its own's: the scene's radius
-   * clipped, `minNear`, `clipFar`), in the world's units: what draws nothing nearer or farther
+   * clipped, `minNear`, `clipNear`, `clipFar`), in the world's units: what draws nothing nearer or farther
    */
   export function getClipDistances(
-    state: Pick<Snapshot, 'position' | 'target' | 'radius' | 'radiusMax' | 'clipFar' | 'minNear' | 'minFar'>,
+    state: Pick<
+      Snapshot,
+      'position' | 'target' | 'radius' | 'radiusMax' | 'clipNear' | 'clipFar' | 'minNear' | 'minFar'
+    >,
   ): { readonly near: number; readonly far: number } {
     const { near, far } = getClipRange(state, 1, false);
     return { near, far };
@@ -494,6 +498,7 @@ export namespace Camera {
       radius: 0,
       radiusMax: 10,
       fog: 50,
+      clipNear: true,
       clipFar: true,
       minNear: 5,
       minFar: 0,
@@ -511,6 +516,8 @@ export namespace Camera {
     radius: number;
     radiusMax: number;
     fog: number;
+    /** whether `radius` clips the scene in front of the target (the near plane, as `clipFar` the far one): off, the near plane is at the scene's `radiusMax` */
+    clipNear: boolean;
     clipFar: boolean;
     minNear: number;
     minFar: number;
@@ -529,6 +536,7 @@ export namespace Camera {
     if (typeof source.radius !== 'undefined') out.radius = source.radius;
     if (typeof source.radiusMax !== 'undefined') out.radiusMax = source.radiusMax;
     if (typeof source.fog !== 'undefined') out.fog = source.fog;
+    if (typeof source.clipNear !== 'undefined') out.clipNear = source.clipNear;
     if (typeof source.clipFar !== 'undefined') out.clipFar = source.clipFar;
     if (typeof source.minNear !== 'undefined') out.minNear = source.minNear;
     if (typeof source.minFar !== 'undefined') out.minFar = source.minFar;
@@ -543,6 +551,7 @@ export namespace Camera {
       a.radius === b.radius &&
       a.radiusMax === b.radiusMax &&
       a.fog === b.fog &&
+      a.clipNear === b.clipNear &&
       a.clipFar === b.clipFar &&
       a.minNear === b.minNear &&
       a.minFar === b.minFar &&
@@ -644,11 +653,14 @@ function updatePers(camera: Camera) {
  * scaled by `scale`; `forceFull`: all of the scene's radius
  */
 function getClipRange(
-  state: Pick<Camera.Snapshot, 'position' | 'target' | 'radius' | 'radiusMax' | 'clipFar' | 'minNear' | 'minFar'>,
+  state: Pick<
+    Camera.Snapshot,
+    'position' | 'target' | 'radius' | 'radiusMax' | 'clipNear' | 'clipFar' | 'minNear' | 'minFar'
+  >,
   scale: number,
   forceFull: boolean,
 ) {
-  let { radius, radiusMax, clipFar, minNear, minFar } = state;
+  let { radius, radiusMax, clipNear, clipFar, minNear, minFar } = state;
   radiusMax *= scale;
   minFar *= scale;
   minNear *= scale;
@@ -662,7 +674,7 @@ function getClipRange(
   Vec3.scale(tmpTarget, state.target, scale);
   Vec3.scale(tmpPosition, state.position, scale);
   const cameraDistance = Vec3.distance(tmpPosition, tmpTarget);
-  let near = forceFull ? 0.01 : cameraDistance - radius;
+  let near = forceFull ? 0.01 : cameraDistance - (clipNear ? radius : radiusMax);
   let far = cameraDistance + normalizedFar;
   if (forceFull) minNear = near;
 

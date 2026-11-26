@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
@@ -17,7 +18,7 @@ export type ParticleTileCameraSnapshot = Pick<
   Camera.Snapshot,
   'mode' | 'fov' | 'position' | 'target' | 'up' | 'minNear'
 > &
-  Partial<Pick<Camera.Snapshot, 'radius' | 'radiusMax' | 'clipFar' | 'minFar'>>;
+  Partial<Pick<Camera.Snapshot, 'radius' | 'radiusMax' | 'clipNear' | 'clipFar' | 'minFar'>>;
 
 /**
  * A tile set's camera (`ParticleTileVisibility`) of a canvas camera's snapshot and a viewport of `width` × `height`
@@ -42,6 +43,7 @@ export function getParticleTileCamera(
           target,
           radius,
           radiusMax,
+          clipNear: snapshot.clipNear ?? true,
           clipFar: clipFar ?? true,
           minNear: near,
           minFar: minFar ?? 0,

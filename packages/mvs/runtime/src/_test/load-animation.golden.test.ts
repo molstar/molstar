@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
 /**
@@ -129,6 +130,7 @@ function stubCanvas3D() {
     radius: 20,
     radiusMax: 20,
     fog: 50,
+    clipNear: true,
     clipFar: true,
     minNear: 5,
     minFar: 0,
