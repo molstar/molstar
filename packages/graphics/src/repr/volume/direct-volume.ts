@@ -428,6 +428,18 @@ function computeHighContourControlPoints(grid: Grid): Vec2[] {
 }
 
 /**
+ * Curves for the projections (`renderMode` maximum, attenuated and additive), where the curve is the brightness: none
+ * below the first point; per point σ above the mean (`Infinity`: the map's maximum) and the brightness
+ */
+function computeProjectionControlPoints(grid: Grid, points: [number, number][]): Vec2[] {
+  const { min, max } = grid.stats;
+  const range = max - min;
+  const { mean, sigma, count } = Grid.getRobustStats(grid, { ignoreZero: true });
+  if (!(range > 0) || !isFinite(sigma) || !(sigma > 0) || count === 0) return fallbackControlPoints();
+  return points.map(([k, alpha]) => Vec2.create(clamp((mean + k * sigma - min) / range, 0.001, 0.999), alpha));
+}
+
+/**
  * Wide soft ramp starting at the mean, plateauing around mean+σ; reveals
  * weak density (low-resolution maps, partial occupancy).
  */
@@ -571,6 +583,31 @@ function buildPresets(grid: Grid): [Vec2[], string][] {
     [computeSharpSurfaceControlPoints(grid), 'Sharp surface (~+2σ)'],
     [computeHighContourControlPoints(grid), 'High contour (~+3σ)'],
     [computeLowContourControlPoints(grid), 'Low contour (~+1σ)'],
+    [
+      computeProjectionControlPoints(grid, [
+        [2, 0],
+        [Infinity, 1],
+      ]),
+      'Projection, linear (from ~+2σ)',
+    ],
+    [
+      computeProjectionControlPoints(grid, [
+        [2, 0],
+        [15, 1],
+        [Infinity, 1],
+      ]),
+      'Projection, bright (~+2σ to +15σ)',
+    ],
+    [
+      computeProjectionControlPoints(grid, [
+        [3.3, 0],
+        [4.2, 0.03],
+        [11, 0.08],
+        [14, 0.5],
+        [Infinity, 0.8],
+      ]),
+      'Projection, solid (from ~+3σ)',
+    ],
   ];
   // Tomogram preset: include when the data has meaningful negative spread
   // (signed maps, or unsigned but strongly left-skewed).
