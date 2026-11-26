@@ -44,6 +44,7 @@ The merged path grew beside the per-group one instead of under it. Five choices 
 5. **`MergedRenderable` is a second renderable with its own culling state.** GPU culling exists only for merged
    objects, and a view not culled on the GPU for one draws nothing (`'none'`, no CPU fallback), so every view must call
    `prepareCullView`, and a side view (a ray pick) overwrites the frame's GPU state that a marking redraw then misses.
+   (Kept, step 5: every view culls on the GPU, a marking redraw after a side view culls again, `isGpuCullStale`.)
 
 ## Design
 
@@ -152,11 +153,9 @@ The merged path grew beside the per-group one instead of under it. Five choices 
   `members`; `createMergedRenderObject(members)` takes its members' values as its records, the first's as the shared
   values. Member views (`getMergedMembers`: a record's own cells over the shared values; none of a source's) for the
   export and the debug helpers; the per-group merging's entry keeps its members' ids for picking (`pickMergedLoci`).
-- **Culling not tied to merging** (last, larger): a view not culled on the GPU draws the CPU culling's lists of the
-  identity region (as `merged-render-objects.md` describes the fallback) instead of nothing; the GPU state of a side
-  view (`prepareCullView`) kept apart from the frame's, so a pass of the frame after it needs no culling again (now
-  `Renderer.isGpuCullStale` and a new `prepareCull`, the marking redraw's). Then the question whether one segmented renderable with the
-  culler chosen in `createRenderable` replaces `MergedRenderable`.
+- **Culling not tied to merging** (proposed: decided otherwise, see step 5): a view not culled on the GPU drawing the
+  CPU culling's lists, a side view's GPU state apart from the frame's, then one segmented renderable with the culler
+  chosen in `createRenderable` in place of `MergedRenderable`.
 
 ## Steps
 
@@ -185,8 +184,24 @@ The merged path grew beside the per-group one instead of under it. Five choices 
     case `geometry/mesh/gaussian-surface-cpu-smooth-layers` smoothed on both backends; the image against the per-group
     grids a headless WebGPU test (the visual suite compares backends, not paths). Measure: `setState` time and the JS heap of a layer on one
     chain and on all of a 60-copy assembly surface, merged against the per-group grids.
-5. **Culling without merging's coupling**: the CPU fallback for views not culled on the GPU, the side view's GPU state
-   apart; then decide on one segmented renderable.
+5. **Culling without merging's coupling** (decided: kept as it is). The design's parts:
+   - **No CPU fallback, the side views in the same buffers**: as [gpu-culled-views.md](gpu-culled-views.md) decided
+     (done): every view of its own culls on the GPU (`prepareCullView`), one that does not draws none of these objects
+     (a debug warning, `merged.ts`). Why: a fallback holds the members' instance grids, built and kept in grid order, for
+     the object's whole life (the yeast's 1.6 s to build). A side view's culling into the frame's buffers, the frame's
+     view culled again where a pass after it draws (`Renderer.isGpuCullStale`).
+   - **One segmented renderable: not done.** What each holds alone: `createRenderable` (`gl/renderable.ts`, about 300
+     lines) one instance grid culled on the CPU and the instance expansion (WebGL2's poses, `instance-expansion.ts`);
+     `MergedRenderable` (about 720 lines, with `merged-culler.ts` and `merged-paged-culler.ts` 2,650) the CPU culling
+     per segment (a member's grid built lazily), the GPU cullers and their second phase, the raster's input, the
+     segments' draws (`renderSegments`), the lists shifted to the identity region, the records' sync. What they share
+     is shared already (`gl/renderable.ts`: the segmented lists, the cull view, the draw versions, the marked lists' key
+     and positions). One renderable would give every render object type segments (text, volumes, images, splats and
+     texture meshes too) for the five that merge, and the expansion would need segments too; the gain, a lone object culled on the GPU, exists already: a
+     units visual merges one group too, and a particle target merges a lone object culled on the GPU
+     (`mergeRenderObjectsByType`). The objects not merged (complex visuals, shapes, volumes, text, images) are culled on
+     the CPU; taken up if one of a mergeable type needs the GPU's culling (from `AutoGpuCullingMinInstances`), by
+     merging it as one member.
 
 ## Open questions
 
