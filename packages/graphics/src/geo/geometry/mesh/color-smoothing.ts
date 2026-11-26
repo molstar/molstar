@@ -865,10 +865,12 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Data
 //
 
 /**
- * A smoothed layer as `vertexInstance` data written on the GPU (`DataArray.gpu`): its grid (`smoothing`, splatted on the
- * CPU and uploaded) sampled per vertex and instance by `computeLayerSampling` into the storage its render item draws it
- * from; its array zeros (`getSharedZeros`). The positions those of the mesh on the GPU (`getGpuMeshVertices`, once a
- * version of them), resolved at each write; the transforms and reached flags the layer's.
+ * A smoothed layer or color as `vertexInstance` data written on the GPU (`DataArray.gpu`): its grid (`smoothing`,
+ * splatted on the CPU and uploaded) sampled per vertex and instance by `computeLayerSampling` into the storage its render
+ * item draws it from; its array zeros (`getSharedZeros`). The positions those of the mesh on the GPU
+ * (`getGpuMeshVertices`, once a version of them), resolved at each write; the transforms and reached flags the layer's.
+ * Not `perInstance`: `vertex` data (colors by group, the instances alike), its grid in the mesh's own space sampled once
+ * a vertex (one identity transform)
  */
 function createGpuLayerData(
   values: MeshValues,
@@ -877,13 +879,16 @@ function createGpuLayerData(
   graphics: GraphicsContext,
   /** the layer's data it was sampled from: kept for its next set (`DataArray.spare`) */
   source: DataArray<Uint8Array>,
+  perInstance = true,
 ): DataArray<Uint8Array> {
   const compute = graphics.compute!;
   const vertexCount = values.uVertexCount.ref.value;
-  const instanceCount = values.uInstanceCount.ref.value;
+  const instanceCount = perInstance ? values.uInstanceCount.ref.value : 1;
   const count = vertexCount * instanceCount;
   // by instance, as the reached flags (`calcMeshColorSmoothing`) and the data read by `aInstance`
-  const matrices = getInstanceMatricesById(values).subarray(0, instanceCount * 16);
+  const matrices = perInstance
+    ? getInstanceMatricesById(values).subarray(0, instanceCount * 16)
+    : (Mat4.toArray(Mat4.identity(), new Float32Array(16), 0) as Float32Array);
   const transforms = compute.createBuffer(Math.max(64, matrices.byteLength), 'layer sampling transforms');
   transforms.write(matrices);
   const flags = new Uint32Array(Math.max(1, instanceCount));

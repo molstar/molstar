@@ -222,4 +222,76 @@ describe.skipIf(!WebGPU.module)('layer sampling per vertex and instance (WebGPU 
       plugin.dispose();
     }
   }, 60_000);
+
+  it('samples data per vertex alone (colors by group: one identity transform) as the CPU path does', async () => {
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      if (!isComputeLayerSamplingSupported(graphics)) throw new Error('expected layer sampling support');
+      const { compute } = graphics;
+      const grid = createGrid();
+      const texture = graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+      texture.load({ array: grid, width: TexWidth, height: TexHeight, filter: 'linear' });
+      const local = createPositions();
+      const positions = compute.createBuffer(local.byteLength, 'test positions');
+      positions.write(local);
+      const transforms = compute.createBuffer(64, 'test transform');
+      transforms.write(Mat4.toArray(Mat4.identity(), new Float32Array(16), 0) as Float32Array);
+      const reached = compute.createBuffer(4, 'test reached');
+      reached.write(new Uint32Array([1]));
+      const out = compute.createBuffer(VertexCount * 4, 'test rgba8');
+      computeLayerSampling(
+        compute,
+        {
+          vertexCount: VertexCount,
+          instanceCount: 1,
+          positions,
+          vertexOffset: 0,
+          transforms,
+          instanceOffset: 0,
+          reached,
+          grid: texture,
+          gridDim: GridDim,
+          gridTexDim: Vec2.create(TexWidth, TexHeight),
+          gridTransform: GridTransform,
+          itemSize: 4,
+        },
+        out,
+        0,
+      );
+      const bytes = new Uint8Array(await out.readAsync());
+      // the CPU path's data per vertex (`volume`: no instance, the mesh's own space)
+      const cpu = getTrilinearlyInterpolated({
+        vertexCount: VertexCount,
+        instanceCount: 1,
+        transformBuffer: Mat4.toArray(Mat4.identity(), new Float32Array(16), 0) as Float32Array,
+        positionBuffer: local,
+        colorType: 'volume',
+        grid,
+        gridDim: GridDim,
+        gridTexDim: Vec2.create(TexWidth, TexHeight),
+        gridTransform: GridTransform,
+        vertexStride: 3,
+        colorStride: 4,
+        outputStride: 4,
+      }).array;
+      let refMax = 0;
+      let cpuMax = 0;
+      for (let v = 0; v < VertexCount; ++v) {
+        const p = Vec3.fromArray(Vec3(), local, v * 3);
+        for (let c = 0; c < 4; ++c) {
+          refMax = Math.max(refMax, Math.abs(bytes[v * 4 + c] - sampleReference(grid, p, c)));
+          cpuMax = Math.max(cpuMax, Math.abs(bytes[v * 4 + c] - cpu[v * 4 + c]));
+        }
+      }
+      expect(refMax).toBeLessThanOrEqual(Tolerance);
+      expect(cpuMax).toBeLessThanOrEqual(Tolerance);
+      expect(bytes.some((b) => b > 0)).toBe(true);
+      for (const b of [positions, transforms, reached, out]) b.destroy();
+      texture.destroy();
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
 });
