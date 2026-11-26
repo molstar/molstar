@@ -15,6 +15,7 @@ import { getDispatchSize } from '@molstar/graphics/gl/compute/prefix-sum';
 import { CulledData } from '@molstar/graphics/gl/culled-data';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /** a particle list of `count` elements, a scale not above 0 among them (read as 1) */
@@ -34,12 +35,7 @@ function createList(count: number) {
 
 describe.skipIf(!WebGPU.module)('poses of culled data expanded on the GPU', () => {
   it('writes the slots the CPU writes, for every kind of positions, rotations and scales, in batches; the runs too', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
     try {
       await plugin.init();
       const graphics = plugin.canvas3d!.graphics;

@@ -18,7 +18,7 @@ import { floatBitsToInt32, getDataWords } from '@molstar/graphics/geo/geometry/c
 import { LineStride } from '@molstar/graphics/geo/geometry/lines/lines';
 import type { TextureMeshValues } from '@molstar/graphics/gl/renderable/texture-mesh';
 import type { BaseValues, SizeValues } from '@molstar/graphics/gl/renderable/schema';
-import type { DataArray } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, readGpuDataArrays } from '@molstar/graphics/gl/renderable/util';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import type { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
@@ -1040,9 +1040,16 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
   async add(renderObject: GraphicsRenderObject, graphics: GraphicsContext, ctx: RuntimeContext): Promise<void> {
     if (!renderObject.state.visible && !this.options.includeHidden) return;
     // a merged object's values are its members' in segments (group and layer offsets per member): its members are
-    // exported, each with its own values
+    // exported, each with its own values; layers written on the GPU (smoothed, `DataArray.gpu`) read back as drawn
     if (isMergedRenderObject(renderObject)) {
-      for (const member of getMergedMembers(renderObject)) await this.add(member, graphics, ctx);
+      for (const member of getMergedMembers(renderObject)) {
+        const values = await readGpuDataArrays(member.values);
+        await this.add(
+          values === member.values ? member : ({ ...member, values } as GraphicsRenderObject),
+          graphics,
+          ctx,
+        );
+      }
       return;
     }
     if (renderObject.values.drawCount.ref.value === 0) return;

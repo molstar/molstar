@@ -5,6 +5,11 @@
  */
 
 export const assign_size = `
+#if !defined(vertexInstanceIndex)
+    // an object's own data per vertex and instance: its instances' its vertex count apart (merged: by the segment's
+    // offset, \`common_vert_params\`)
+    #define vertexInstanceIndex(inst, vid) (int(inst) * uVertexCount + int(vid))
+#endif
 #if defined(dSizeType_uniform)
     float size = uSize;
 #elif defined(dSizeType_texture)
@@ -18,7 +23,7 @@ export const assign_size = `
     } else if (uSizeIndexType == 3) {
         sizeIndex = vertexId;
     } else if (uSizeIndexType == 4) {
-        sizeIndex = int(aInstance) * uVertexCount + vertexId;
+        sizeIndex = vertexInstanceIndex(aInstance, vertexId);
     }
     #if defined(dSites)
         if (uSizeIndexType == 5) sizeIndex = siteSizeIndex;

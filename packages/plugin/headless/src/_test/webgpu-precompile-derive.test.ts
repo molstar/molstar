@@ -12,6 +12,8 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { getTreePrecompileList } from '@molstar/plugin/state/precompile';
 import { OverpaintStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/overpaint';
 import { TransparencyStructureRepresentation3DFromScript } from '@molstar/plugin/state/transforms/structure/effects/transparency';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
+// contexts of their own (`own`): two at once compared (what one compiles, the other does not)
 import { WebGPU } from './webgpu-module.js';
 
 const readExample = (name: string) =>
@@ -38,13 +40,20 @@ function describeMiss(r: ObjectSignature, derived: readonly ObjectSignature[]) {
   return `${r.type}${r.merged ? ' merged' : ''}: ${best ? best.join('; ') : 'no derived signature of the kind'}`;
 }
 
+const Pdb = `ATOM      1  N   ALA A   1      -1.458   0.000   0.000  1.00  0.00           N
+ATOM      2  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C
+ATOM      3  C   ALA A   1       0.551   1.420   0.000  1.00  0.00           C
+ATOM      4  O   ALA A   1      -0.200   2.390   0.000  1.00  0.00           O
+ATOM      5  CB  ALA A   1       0.540  -0.760  -1.210  1.00  0.00           C
+ATOM      6  N   GLY A   2       1.870   1.550   0.000  1.00  0.00           N
+ATOM      7  CA  GLY A   2       2.520   2.860   0.000  1.00  0.00           C
+ATOM      8  C   GLY A   2       4.030   2.720   0.000  1.00  0.00           C
+ATOM      9  O   GLY A   2       4.570   1.610   0.000  1.00  0.00           O
+END
+`;
+
 const createPlugin = async () => {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: 32, height: 32 },
-    { backend: 'webgpu' },
-  );
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 32, height: 32 }, { own: true });
   await plugin.init();
   return plugin;
 };
@@ -78,6 +87,13 @@ async function addScene(plugin: HeadlessPluginContext) {
     color: 'uniform',
   });
   await representation.addRepresentation(protein, { type: 'cartoon', color: 'sequence-id' });
+  // a merged surface's smoothed colors and layer: drawn per vertex (not the per-group visuals' grids)
+  const smoothed = await representation.addRepresentation(protein, {
+    type: 'molecular-surface',
+    typeParams: { smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } } } as any,
+    color: 'chain-id',
+  });
+  await plugin.build().to(smoothed).apply(TransparencyStructureRepresentation3DFromScript).commit();
   const spacefill = await representation.addRepresentation(protein, { type: 'spacefill', color: 'chain-id' });
   await plugin
     .build()
@@ -93,8 +109,7 @@ async function addScene(plugin: HeadlessPluginContext) {
     await representation.addRepresentation(dna, { type });
   }
 
-  // merged (`renderMerged` on: 'auto' is derived as unmerged); one chain in 40 copies, merged alone to be culled
-  // on the GPU
+  // merged (a units representation's always); one chain in 40 copies, culled on the GPU
   const loadPdb = async (pdb: string, assembly: boolean) => {
     const data = await plugin.builders.data.rawData({ data: pdb, label: 'pdb' });
     const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
@@ -105,8 +120,8 @@ async function addScene(plugin: HeadlessPluginContext) {
     );
   };
   const chains = await loadPdb(chainsPdb(32, 0), false);
-  await representation.addRepresentation(chains, { type: 'spacefill', typeParams: { renderMerged: true } });
-  await representation.addRepresentation(chains, { type: 'ball-and-stick', typeParams: { renderMerged: true } });
+  await representation.addRepresentation(chains, { type: 'spacefill' });
+  await representation.addRepresentation(chains, { type: 'ball-and-stick' });
   const copies = await loadPdb(copiesPdb(40), true);
   await representation.addRepresentation(copies, { type: 'spacefill', typeParams: { gpuCulling: true } });
   plugin.canvas3d!.commit(true);
@@ -139,50 +154,91 @@ function chainsPdb(count: number, copies: number) {
 }
 const copiesPdb = (copies: number) => chainsPdb(1, copies);
 
+/** The recorded signatures the derived list misses (by key or by the ways they drew) */
+function getMisses(recorded: readonly ObjectSignature[], derived: readonly ObjectSignature[]) {
+  const byKey = new Map(derived.map((d) => [getSignatureKey(d), d]));
+  const missing = recorded.filter((r) => !byKey.has(getSignatureKey(r))).map((r) => describeMiss(r, derived));
+  const flags = recorded
+    .map((r) => [r.type, getMissingFlags(r, byKey.get(getSignatureKey(r)) ?? r)] as const)
+    .filter(([, f]) => f.length);
+  return { byKey, missing, flags };
+}
+
+// Quick: one transparent ball-and-stick on two residues, in one context; medium: every representation type on a protein,
+// DNA and copies, in two contexts compiling their pipelines
 describe.skipIf(!WebGPU.module)('precompile lists from params on WebGPU', () => {
-  it('cover what the representations draw, and prepare it before the objects exist', async () => {
-    const a = await createPlugin();
-    const b = await createPlugin();
+  it('cover what a representation draws: ball-and-stick, transparent', async () => {
+    const plugin = await createPlugin();
     try {
-      const canvas = a.canvas3d!;
+      const canvas = plugin.canvas3d!;
+      // the lists under test only
+      canvas.prepareObjects = () => {};
       canvas.resetPrecompileList();
-      await addScene(a);
+      const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
+      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+      const model = await plugin.builders.structure.createModel(trajectory);
+      const structure = await plugin.builders.structure.createStructure(model);
+      await plugin.builders.structure.representation.addRepresentation(structure, {
+        type: 'ball-and-stick',
+        typeParams: { alpha: 0.5 },
+      });
+      canvas.commit(true);
 
       const recorded = canvas.getPrecompileList().objects;
-      const derived = getTreePrecompileList(a, a.state.data.tree).objects;
-      const derivedKeys = new Set(derived.map(getSignatureKey));
-      const missing = recorded.filter((r) => !derivedKeys.has(getSignatureKey(r))).map((r) => describeMiss(r, derived));
-      expect(recorded.length, `recorded ${recorded.length}, derived ${derived.length}`).toBeGreaterThan(10);
+      const derived = getTreePrecompileList(plugin, plugin.state.data.tree).objects;
+      // spheres and cylinders
+      expect(new Set(recorded.map((r) => r.type))).toEqual(new Set(['spheres', 'cylinders']));
+      const { missing, flags } = getMisses(recorded, derived);
       expect(missing).toEqual([]);
-      const byKey = new Map(derived.map((d) => [getSignatureKey(d), d]));
-      const flags = recorded
-        .map((r) => [r.type, getMissingFlags(r, byKey.get(getSignatureKey(r))!)] as const)
-        .filter(([, f]) => f.length);
       expect(flags).toEqual([]);
-      // merged objects, one of them culled on the GPU: derived as well, the GPU culling's kernels prepared with them
-      expect(recorded.some((r) => r.merged)).toBe(true);
-      const gpuCulled = recorded.filter((r) => r.gpuCulled);
-      expect(gpuCulled.length).toBeGreaterThan(0);
-      expect(gpuCulled.filter((r) => !byKey.get(getSignatureKey(r))?.gpuCulled).map((r) => r.type)).toEqual([]);
-      // the over-approximation stays small: a few derived per recorded signature
-      expect(derived.length, `recorded ${recorded.length}, derived ${derived.length}`).toBeLessThan(
-        recorded.length * 4,
-      );
-
-      // in a new context, the derived list prepared first: the same scene, its frames and first interaction compile no
-      // render pipeline more
-      const pending = b.canvas3d!.graphics.resources.pending;
-      await b.canvas3d!.prepare({ interaction: true });
-      await b.canvas3d!.precompile({ objects: derived });
-      const before = pending.trackedCount;
-      await addScene(b);
-      await b.canvas3d!.prepare({ interaction: true });
-      await pending.whenReady();
-      // render pipelines only: the GPU surfaces' compute kernels and readbacks are their own (prepared as they compute)
-      expect(pending.trackedSince(before).filter((label) => label.startsWith('pipeline '))).toEqual([]);
     } finally {
-      a.dispose();
-      b.dispose();
+      plugin.dispose();
     }
-  }, 120_000);
+  }, 60_000);
+
+  it(
+    'cover what the representations draw, and prepare it before the objects exist',
+    { tags: ['medium'] },
+    async () => {
+      const a = await createPlugin();
+      const b = await createPlugin();
+      try {
+        const canvas = a.canvas3d!;
+        canvas.resetPrecompileList();
+        await addScene(a);
+
+        const recorded = canvas.getPrecompileList().objects;
+        const derived = getTreePrecompileList(a, a.state.data.tree).objects;
+        const { byKey, missing, flags } = getMisses(recorded, derived);
+        expect(recorded.length, `recorded ${recorded.length}, derived ${derived.length}`).toBeGreaterThan(10);
+        expect(missing).toEqual([]);
+        expect(flags).toEqual([]);
+        // merged objects, one of them culled on the GPU: derived as well, the GPU culling's kernels prepared with them
+        expect(recorded.some((r) => r.merged)).toBe(true);
+        const gpuCulled = recorded.filter((r) => r.gpuCulled);
+        expect(gpuCulled.length).toBeGreaterThan(0);
+        expect(gpuCulled.filter((r) => !byKey.get(getSignatureKey(r))?.gpuCulled).map((r) => r.type)).toEqual([]);
+        // the over-approximation stays small: a few derived per recorded signature
+        expect(derived.length, `recorded ${recorded.length}, derived ${derived.length}`).toBeLessThan(
+          recorded.length * 4,
+        );
+
+        // in a new context, the derived list prepared first: the same scene, its frames and first interaction compile no
+        // render pipeline more
+        const pending = b.canvas3d!.graphics.resources.pending;
+        await b.canvas3d!.prepare({ interaction: true });
+        await b.canvas3d!.precompile({ objects: derived });
+        const before = pending.trackedCount;
+        await addScene(b);
+        await b.canvas3d!.prepare({ interaction: true });
+        await pending.whenReady();
+        // render pipelines only: the GPU surfaces' compute kernels and readbacks are their own (prepared as they compute)
+        expect(pending.trackedSince(before).filter((label) => label.startsWith('pipeline '))).toEqual([]);
+      } finally {
+        a.dispose();
+        b.dispose();
+      }
+    },
+    120_000,
+  );
 });

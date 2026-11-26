@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
@@ -47,6 +48,9 @@ const showsBuilt = (v: PrismViewer, title: string) =>
 async function viewer(files: File[] = [cbs()]) {
   const v = await headlessViewer({ extensions: [LoadersFeature], files });
   v.plugin.state.setSnapshotParams({ camera: false });
+  // the sequence's runtime is a chunk of its own, imported when a structure is shown: awaited, not polled for (a cold
+  // import in a busy worker outlasts `until`'s wait)
+  await v.views.sequence?.load();
   return v;
 }
 

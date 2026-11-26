@@ -10,6 +10,7 @@ import { now } from '@molstar/core/util/now';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 // Passes binding their inputs in turn every frame (Hi-Z's levels, bloom's blur) find the bind groups they made for
@@ -25,12 +26,7 @@ const Pdb = `${Array.from({ length: 100 }, (_, i) => {
 
 describe.skipIf(!WebGPU.module)('bind groups of passes on WebGPU', () => {
   it('are made once for the inputs a pass binds in turn: none in a moving view’s frames (Hi-Z, bloom)', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 128, height: 128 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 128, height: 128 });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });

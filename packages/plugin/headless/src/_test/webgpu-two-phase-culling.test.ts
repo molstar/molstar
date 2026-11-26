@@ -26,6 +26,7 @@ import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { now } from '@molstar/core/util/now';
 import { HiZPass } from '@molstar/graphics/canvas3d/passes/hi-z';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 96;
@@ -70,13 +71,10 @@ function createMember(offset: Vec3, color: number, single: boolean, extra: objec
 // the second phase's inputs by hand: a pyramid hiding all stands for a previous frame's depth that hid what is visible
 // now, one at the far plane for the frame's depth so far hiding nothing
 describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
-  it('draws in the second phase what the first left out, once, by impostors and by the raster', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+  it('draws in the second phase what the first left out, once, by impostors and by the raster', {
+    tags: ['medium'],
+  }, async () => {
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     try {
       await plugin.init();
       const graphics = plugin.canvas3d!.graphics;
@@ -270,12 +268,7 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
 
   // the frame of a jump without levels of its own (a draw compiling, so no second phase): the next frame culls again
   it('culls again after a view moved with no new levels', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     try {
       await plugin.init();
       const graphics = plugin.canvas3d!.graphics;
@@ -348,13 +341,10 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
     }
   });
 
-  it("draws by impostors an object whose resolve isn't ready, also where the raster draws all its spheres", async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+  it("draws by impostors an object whose resolve isn't ready, also where the raster draws all its spheres", {
+    tags: ['medium'],
+  }, async () => {
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     try {
       await plugin.init();
       const graphics = plugin.canvas3d!.graphics;
@@ -404,12 +394,7 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
 
   // the levels are of the main camera: built from the eyes' depth they could hide what the next mono frame sees
   it('builds one pyramid of both eyes from the depth of a stereo frame', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     try {
       await plugin.init();
       const canvas = plugin.canvas3d!;
@@ -456,13 +441,8 @@ describe.skipIf(!WebGPU.module)('two-phase GPU culling on WebGPU', () => {
   });
 
   // the second part draws no caps of its own: the first draws those of a mesh's segments whole, whatever is culled
-  it('draws clipped objects with their solid interiors as without occlusion', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+  it('draws clipped objects with their solid interiors as without occlusion', { tags: ['medium'] }, async () => {
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     try {
       await plugin.init();
       const graphics = plugin.canvas3d!.graphics;

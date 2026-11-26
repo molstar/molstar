@@ -8,6 +8,7 @@
 // those of objects not yet built (`precompile`, `prepareObjects`), and the pass targets no frame draws released
 
 import { getDenoiseKernels, isComputeDenoiseSupported } from '@molstar/graphics/gl/compute/denoise';
+import { prepareLayerSampling } from '@molstar/graphics/gl/compute/layer-sampling';
 import { SphereRasterKernels } from '@molstar/graphics/gl/compute/sphere-raster';
 import { isSplatSortSupported, SplatSortKernels } from '@molstar/graphics/gl/compute/splat-sort';
 import { Object3D } from '@molstar/graphics/gl/object3d';
@@ -18,6 +19,7 @@ import {
   type PrecompileList,
 } from '@molstar/graphics/gl/precompile';
 import type { ProgramItem } from '@molstar/graphics/gl/render-item';
+import { AutoGpuCullingMinRasterSpheres } from '@molstar/graphics/gl/renderable/merged';
 import { MergedCullKernels } from '@molstar/graphics/gl/renderable/merged-culler';
 import { type GlobalDefines, MaxLightCount } from '@molstar/graphics/gl/renderable/schema';
 import type { Scene } from '@molstar/graphics/gl/scene';
@@ -159,6 +161,7 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
     options: PlanSignaturesOptions,
   ) {
     const { graphics, renderer, scene, helper, frame, passes, camera, hiZ, pickHelper, multiSampleHelper } = parts;
+    // objects with a culler (its kernels compiled as it is made, also where it culls on the CPU this frame)
     const gpuCulled = list.objects.some((s) => s.gpuCulled);
     // the passes plan against scenes of the list's objects: groups with their counts (the requests come from the
     // signatures, see `collect`) and averages that take the branches drawing objects (opaque and transparent or
@@ -166,6 +169,8 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
     const group = (n: number): Scene.Group => ({ ...Object3D.create(), renderables: new Array(n) });
     for (const { transparency: mode, ...overrides } of propsList) {
       const props: Canvas3DProps = { ...parts.props, ...overrides };
+      // the Hi-Z's GPU test where objects cull there with these props (for the raster alone only where it takes them)
+      const culled = list.objects.some((s) => isCulledOnGpu(s, props.renderer.sphereRaster));
       const transparency = passes.draw.resolveTransparency(mode ?? passes.draw.transparency);
       const globals = getGlobals(props);
       const primitives: { signature: ObjectSignature; item: ProgramItem }[] = [];
@@ -241,7 +246,7 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
             }
             // as `planFrame`: with the props' Hi-Z (e.g. the Mesoscale Explorer turns it on), built for the GPU's test
             // where the list has objects culled there
-            hiZ.plan(b, camera, props.hiZ, gpuCulled);
+            hiZ.plan(b, camera, props.hiZ, culled);
           }
           if (options.interaction && MarkingPass.isEnabled(props.marking)) {
             passes.draw.plan(b, { ...ctx, scene: markedScenes[i] }, props, true, false, true);
@@ -254,6 +259,19 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
   }
 
   /**
+   * whether `s`'s objects are culled on the GPU with the raster's mode `mode`: those culled for the raster alone
+   * (`rasterSpheres`) only where it takes them (`'on'`, `'only'`; `'auto'` from `AutoGpuCullingMinRasterSpheres`), on
+   * the CPU otherwise
+   */
+  function isCulledOnGpu(s: ObjectSignature, mode: Canvas3DProps['renderer']['sphereRaster']) {
+    if (!s.gpuCulled) return false;
+    if (s.rasterSpheres === undefined) return true;
+    const { graphics } = parts;
+    if (mode === 'off' || !graphics.compute || !graphics.capabilities.atomicMinMax64) return false;
+    return mode !== 'auto' || s.rasterSpheres >= AutoGpuCullingMinRasterSpheres;
+  }
+
+  /**
    * whether the sphere raster may draw spheres of `list` (`RendererProps.sphereRaster`, a device with it; `auto`: of
    * objects culled on the GPU)
    */
@@ -261,7 +279,14 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
     const { graphics } = parts;
     const mode = parts.renderer.props.sphereRaster;
     if (mode === 'off' || !graphics.compute || !graphics.capabilities.atomicMinMax64) return false;
-    return list.objects.some((s) => s.type === 'spheres' && s.opaque && (mode !== 'auto' || s.gpuCulled === true));
+    return list.objects.some(
+      (s) =>
+        s.type === 'spheres' &&
+        s.opaque &&
+        (mode !== 'auto' ||
+          (s.gpuCulled === true &&
+            (s.rasterSpheres === undefined || s.rasterSpheres >= AutoGpuCullingMinRasterSpheres))),
+    );
   }
 
   /** the GPU sort's kernels where `list` has splats and compute shaders run, else compiled at their first frame */
@@ -269,6 +294,16 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
     const { compute } = parts.graphics;
     if (!compute || !list.objects.some((s) => s.type === 'gaussian-splats') || !isSplatSortSupported(compute)) return;
     return compute.prepareKernels(SplatSortKernels);
+  }
+
+  /**
+   * the per-vertex sampling's kernels where `list` has merged meshes, which may smooth a layer per vertex and instance
+   * on the GPU where compute shaders run (their visual compiles them once it smooths; whether it does is not in the
+   * signature), else compiled once such a visual is made
+   */
+  function prepareLayerSamplingOf(list: PrecompileList) {
+    const merged = list.objects.some((s) => s.type === 'mesh' && s.merged);
+    return merged ? prepareLayerSampling(parts.graphics) : undefined;
   }
 
   function precompile(list: PrecompileList, propsList: readonly Canvas3DPrecompileProps[] = [{}]): Promise<void> {
@@ -295,7 +330,15 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
         ? graphics.compute.prepareKernels(getDenoiseKernels())
         : undefined;
     const splatSort = prepareSplatSort(list);
-    return Promise.all([graphics.resources.pending.whenReady(), kernels, raster, denoise, splatSort]).then(() => {});
+    const layerSampling = prepareLayerSamplingOf(list);
+    return Promise.all([
+      graphics.resources.pending.whenReady(),
+      kernels,
+      raster,
+      denoise,
+      splatSort,
+      layerSampling,
+    ]).then(() => {});
   }
 
   /**
@@ -353,6 +396,7 @@ export function createCanvas3DPreparer(parts: Canvas3DParts): Canvas3DPreparer {
     if (graphics.compute && gpuCulled) graphics.compute.prepareKernels(MergedCullKernels);
     if (hasSphereRaster({ objects })) graphics.compute!.prepareKernels(SphereRasterKernels);
     prepareSplatSort({ objects });
+    prepareLayerSamplingOf({ objects });
     // the items this request uses too move to it: with an earlier one's they could go before its owners are added
     for (const entry of preparedObjects) for (const key of items.keys()) entry.items.delete(key);
     preparedObjects.push({ owners: new Set(requests.keys()), added: new Set(), items, time: now() });

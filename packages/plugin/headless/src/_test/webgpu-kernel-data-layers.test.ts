@@ -16,6 +16,7 @@ import { KernelCode, StorageBufferSpec } from '@molstar/graphics/gl/compute';
 import { UniformSpec } from '@molstar/graphics/gl/renderable/schema';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const CopySchema = {
@@ -39,12 +40,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
 // kernels read a render item's data layers where its programs do: the item's page, from the layer's word offset
 describe.skipIf(!WebGPU.module)('data layers as kernel bindings on WebGPU', () => {
   it('read the positions and sizes the item draws with', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
     try {
       await plugin.init();
       const graphics = plugin.canvas3d!.graphics;

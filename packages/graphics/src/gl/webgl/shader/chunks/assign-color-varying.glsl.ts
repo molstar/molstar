@@ -7,6 +7,11 @@
  */
 
 export const assign_color_varying = `
+#if !defined(vertexInstanceIndex)
+    // an object's own data per vertex and instance: its instances' its vertex count apart (merged: by the segment's
+    // offset, \`common_vert_params\`)
+    #define vertexInstanceIndex(inst, vid) (int(inst) * uVertexCount + int(vid))
+#endif
 #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
     #if defined(dColorType_texture)
         // the texture's index by the color type (\`ColorTypeIndex\`): instance, group, groupInstance, vertex,
@@ -19,7 +24,7 @@ export const assign_color_varying = `
         } else if (uColorIndexType == 3) {
             colorIndex = vertexId;
         } else if (uColorIndexType == 4) {
-            colorIndex = int(aInstance) * uVertexCount + vertexId;
+            colorIndex = vertexInstanceIndex(aInstance, vertexId);
         } else if (uColorIndexType == 5) {
             // the object's texel: merged, its segment's
             #if defined(dSegmented)
@@ -45,7 +50,7 @@ export const assign_color_varying = `
         // the local position (volume) or the model position (volumeInstance), see \`ColorTypeIndex\`
         vec3 cgridSource = uColorIndexType == 1 ? gridModelPosition : position;
         vec3 cgridPos = (uColorGridTransform.w * (cgridSource - uColorGridTransform.xyz)) / uColorGridDim;
-        vColor.rgb = texture3dFrom2dLinear(tColorGrid, cgridPos, uColorGridDim, uColorGridTexDim).rgb;
+        vColor.rgb = texture3dFrom2dLinearCorners(tColorGrid, cgridPos, uColorGridDim, uColorGridTexDim).rgb;
     #endif
 
     #ifdef dUsePalette
@@ -56,10 +61,10 @@ export const assign_color_varying = `
         #if defined(dOverpaintType_texture)
             vOverpaint = read_tOverpaint(granularityIndex(aInstance, group));
         #elif defined(dOverpaintType_vertexInstance)
-            vOverpaint = read_tOverpaint(int(aInstance) * uVertexCount + vertexId);
+            vOverpaint = read_tOverpaint(vertexInstanceIndex(aInstance, vertexId));
         #elif defined(dOverpaintType_volumeInstance)
             vec3 ogridPos = (uOverpaintGridTransform.w * (gridModelPosition - uOverpaintGridTransform.xyz)) / uOverpaintGridDim;
-            vOverpaint = texture3dFrom2dLinear(tOverpaintGrid, ogridPos, uOverpaintGridDim, uOverpaintGridTexDim);
+            vOverpaint = texture3dFrom2dLinearCorners(tOverpaintGrid, ogridPos, uOverpaintGridDim, uOverpaintGridTexDim);
         #endif
         // an expanded instance's copy's own, where it has one (\`copyLayerOr\`)
         vOverpaint = copyLayerOr4(0, vOverpaint);
@@ -77,10 +82,10 @@ export const assign_color_varying = `
         #if defined(dEmissiveType_texture)
             vEmissive = read_tEmissive(granularityIndex(aInstance, group)).r;
         #elif defined(dEmissiveType_vertexInstance)
-            vEmissive = read_tEmissive(int(aInstance) * uVertexCount + vertexId).r;
+            vEmissive = read_tEmissive(vertexInstanceIndex(aInstance, vertexId)).r;
         #elif defined(dEmissiveType_volumeInstance)
             vec3 egridPos = (uEmissiveGridTransform.w * (gridModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
-            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveGridTexDim).r;
+            vEmissive = texture3dFrom2dLinearCorners(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveGridTexDim).r;
         #endif
         vEmissive = copyLayerOr1(3, vEmissive);
         vEmissive *= uEmissiveStrength;
@@ -90,10 +95,10 @@ export const assign_color_varying = `
         #if defined(dSubstanceType_texture)
             vSubstance = read_tSubstance(granularityIndex(aInstance, group));
         #elif defined(dSubstanceType_vertexInstance)
-            vSubstance = read_tSubstance(int(aInstance) * uVertexCount + vertexId);
+            vSubstance = read_tSubstance(vertexInstanceIndex(aInstance, vertexId));
         #elif defined(dSubstanceType_volumeInstance)
             vec3 sgridPos = (uSubstanceGridTransform.w * (gridModelPosition - uSubstanceGridTransform.xyz)) / uSubstanceGridDim;
-            vSubstance = texture3dFrom2dLinear(tSubstanceGrid, sgridPos, uSubstanceGridDim, uSubstanceGridTexDim);
+            vSubstance = texture3dFrom2dLinearCorners(tSubstanceGrid, sgridPos, uSubstanceGridDim, uSubstanceGridTexDim);
         #endif
         vSubstance = copyLayerOr4(4, vSubstance);
 
@@ -106,10 +111,10 @@ export const assign_color_varying = `
         #if defined(dEmissiveType_texture)
             vEmissive = read_tEmissive(granularityIndex(aInstance, group)).r;
         #elif defined(dEmissiveType_vertexInstance)
-            vEmissive = read_tEmissive(int(aInstance) * uVertexCount + vertexId).r;
+            vEmissive = read_tEmissive(vertexInstanceIndex(aInstance, vertexId)).r;
         #elif defined(dEmissiveType_volumeInstance)
             vec3 egridPos = (uEmissiveGridTransform.w * (gridModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
-            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveGridTexDim).r;
+            vEmissive = texture3dFrom2dLinearCorners(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveGridTexDim).r;
         #endif
         vEmissive = copyLayerOr1(3, vEmissive);
         vEmissive *= uEmissiveStrength;
@@ -140,10 +145,10 @@ export const assign_color_varying = `
     #if defined(dTransparencyType_texture)
         vTransparency = read_tTransparency(granularityIndex(aInstance, group)).r;
     #elif defined(dTransparencyType_vertexInstance)
-        vTransparency = read_tTransparency(int(aInstance) * uVertexCount + vertexId).r;
+        vTransparency = read_tTransparency(vertexInstanceIndex(aInstance, vertexId)).r;
     #elif defined(dTransparencyType_volumeInstance)
         vec3 tgridPos = (uTransparencyGridTransform.w * (gridModelPosition - uTransparencyGridTransform.xyz)) / uTransparencyGridDim;
-        vTransparency = texture3dFrom2dLinear(tTransparencyGrid, tgridPos, uTransparencyGridDim, uTransparencyGridTexDim).r;
+        vTransparency = texture3dFrom2dLinearCorners(tTransparencyGrid, tgridPos, uTransparencyGridDim, uTransparencyGridTexDim).r;
     #endif
     vTransparency = copyLayerOr1(1, vTransparency);
     vTransparency *= uTransparencyStrength;

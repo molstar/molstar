@@ -2,14 +2,16 @@
 
 ## Status
 
-- **Proposed**: a units representation that merges builds its merged render object from the symmetry groups directly,
-  through one visual over all of them, not from a visual, geometry values and render object per group that
-  `createMergedValues` then joins. Follows [many-units.md](many-units.md): after its steps a member costs about 19.5 KB,
-  spread over its own objects; this removes most of them.
+- **Done** (steps 1 to 6): a units representation that merges builds its merged render object from the symmetry
+  groups directly, through one visual over all of them, not from a visual, geometry values and render object per group
+  that `createMergedValues` then joins. Follows [many-units.md](many-units.md): after its steps a member costs about
+  19.5 KB, spread over its own objects; this removes most of them. What it left (mergeability found by building, the
+  implicit per-segment keys, the merged visual's own update paths) continues in
+  [merged-units-core.md](merged-units-core.md).
 - **Step 2 done**: merged objects built from records and shared values; the particle pool on records (its first
   user).
 - **Steps 1, 3 to 6 done**: `UnitsMergedVisual` (`repr/structure/units-merged-visual.ts`) used by
-  `UnitsRepresentation` wherever `renderMerged` merges two or more groups and the factory chooses by the props alone
+  `UnitsRepresentation` for every group of a kind that merges (`renderMerged` removed, merged-units-core.md)
   (the element spheres, the bonds' cylinders and lines, the meshes on the CPU path); a part a merge key (step 4);
   per-group visuals where it does not merge. `repr/units-100k-spacefill` (WebGPU): 5.4 to 3.6 s, 19.6 to 7.9 KB a unit
   (the heap read after a second collection, see step 6); the marking and layer snapshots and the visual suite's images
@@ -99,8 +101,9 @@ What the per-group objects give that a merged object needs, and where it comes f
      of no granularity), an argument of its own: the cull's clip and level of detail, the second color's type and the
      dual color factor read from them, not from each member.
    - **The calls**: `createMergedRenderObject(members)` passes the members' values as their records (no copies) and the
-     first's as the shared values; `createMergedRecordsRenderObject(type, shared, records, state, materialId)` has no
-     member render objects (`members` empty, `Merged.records` the records).
+     first's as the shared values; `createMergedRecordsRenderObject(type, shared, records, state, materialId)` takes
+     records. Either gives one form, `Merged.records` and `shared` (no `members`: views of the records,
+     `getMergedMembers`).
    - **A source's records** (`getSourceRecordFillKeys`, `fillMergeRecord`): what a fill writes its own cells
      (geometry, counts, bounds, levels, sites, aggregates, the layers of its own granularity), the rest the empty
      record's (what the source holds: instances, grid, markers; the layers of no granularity). A record's cells are
@@ -114,13 +117,15 @@ What the per-group objects give that a merged object needs, and where it comes f
    bonds (cylinders, lines), then the meshes (surfaces per unit merge only on the CPU path). The contract:
    - **The builder**: a units visual carries its builder and geometry utils (`UnitsVisual.builder`, a reference); a
      factory choosing by the props alone (`chooseVisual`) or not at all gives one for all groups. One choosing by the
-     data (`selectVisual`: GPU or CPU surfaces by a unit's size) stays per group, unmerged by this visual.
+     data (`selectVisual`: GPU or CPU surfaces by a unit's size) gives a merged visual for each kind it selects that
+     merges, per-group visuals for the others ([merged-units-core.md](merged-units-core.md)).
    - **The writers unchanged**: `createValues`, `createColors`, `createSizes`, `createMarkers`, `createUnitsTransform`,
      `updateValues` and `Visual.mark`, `setOverpaint` and the other layer setters write cells by name. A segment is
      written through its record, the shared values its prototype (one view set per segment was most of a recolor):
      the record's cells change, the shared ones are written alike by every segment (`updateIfChanged`). A segment's
      values made new (`createValues`) are picked to its record (a fast object from a template, its prototype set once)
-     and dropped; the first segment's become the shared values. Who walks a record's keys reads its own alone
+     and dropped; the first segment's become the shared values, their segment-owned cells (`getMergeSegmentKeys`)
+     following the part's first live segment ([merged-units-core.md](merged-units-core.md)). Who walks a record's keys reads its own alone
      (`Object.keys`). The layers' known-clear state and the previous mark keyed
      by the segment, not a render object.
    - **Updates**: the props' and theme's part of the update state decided once (they are shared), a group's part
@@ -137,14 +142,19 @@ What the per-group objects give that a merged object needs, and where it comes f
      taken of the records: one function both call, `resolveMergedCulling`), per part; the merge check (`canMergeValues`)
      on each part's shared values, a segment in the part of its merge key (`getMergeKey` of its values made, step 4).
    - **Measured**: as step 6, against the per-group visuals merged (images identical, `merging/*`, both backends).
-4. **The representation chooses** (done): a units representation whose merging resolves on (`renderMerged`, `auto`
-   above `AutoRenderMergedThreshold` units, two groups or more) uses the merged visual where its factory makes one
+4. **The representation chooses** (done; now always merging, merged-units-core.md): a units representation whose
+   merging resolves on (`renderMerged`, `auto` above `AutoRenderMergedThreshold` units, two groups or more) uses the merged visual where its factory makes one
    visual for all groups (`choosesByProps`) of a type that merges, per-group visuals otherwise (unmerged, a factory
    choosing by the data, palettes and the other cases `canMergeValues` rejects: all parts alike, their props and theme
    shared). The groups of another merge key are a part of their own (`Part`: its shared values, records and merged
    object; one or a few a representation), not visuals of their own: `auto` instance granularity resolves by a
    group's counts, and the first group made, whose values are shared, may be the one apart. Before, any group of
-   another key left the whole representation unmerged. A new instance granularity makes the parts again.
+   another key left the whole representation unmerged. A new instance granularity makes the parts again. Whether the
+   groups merge is found by building, not decided up front: a probe visual gives the builder, the merged visual's update
+   ends at a part that does not merge (destroyed, the per-group visuals used), the failure kept by the props, theme and
+   structure (`unmergeableAt`), and merging tried again where the per-group visuals' values merge after an update
+   (`mergesAgain`, without their layers' types: smoothed there, not merged). Replaced by
+   [merged-units-core.md](merged-units-core.md) step 4.
 5. **The structure-level switch** (measured again after the frames' work, kept): representations still switch to
    their structure-level visuals above 10,000 unit groups (`getSpacefillParams`, `getBallAndStickParams`, …). At 100k
    units (`merging/units-*` at that count, WebGPU, by hand, a case a process), the structure-level spacefill against the

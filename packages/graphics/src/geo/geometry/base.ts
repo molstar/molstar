@@ -9,6 +9,7 @@ import { ValueCell } from '@molstar/core/util';
 import { clamp } from '@molstar/core/math/interpolate';
 import type { BaseValues } from '@molstar/graphics/gl/renderable/schema';
 import type { DrawIndirect } from '@molstar/graphics/gl/compute';
+import { AutoGpuCullingMinRasterSpheres } from '@molstar/graphics/gl/renderable/merged';
 import { LocationIterator } from '../util/location-iterator.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { type TransformData, createIdentityTransform } from './transform-data.js';
@@ -132,14 +133,8 @@ export const AutoGpuCullingThreshold = 30;
  */
 export const AutoGpuCullingMinInstances = 50000;
 
-/**
- * Spheres from which `gpuCulling: 'auto'` culls on the GPU where the device has the sphere raster, which takes merged
- * objects culled there only: faster at 300k spheres and up on both GPUs measured (3J3Q 1.48 -> 0.63 ms, 61.9 -> 11.5 ms on
- * an integrated GPU), about 0.1 ms slower at a few hundred. Such an object is merged for
- * it, the renderer culling it on the GPU only where the raster takes it (`Renderable.rasterSpheres`,
- * `sphereRasterObjects`), else on the CPU
- */
-export const AutoGpuCullingMinRasterSpheres = 100_000;
+// defined with the renderer's culling of merged objects, which reads it too (`gl/renderable/merged.ts`)
+export { AutoGpuCullingMinRasterSpheres };
 
 /**
  * Resolves the `gpuCulling` param value for `instanceCount` instances drawn by `drawCount` segments times levels;
@@ -155,27 +150,6 @@ export function resolveGpuCulling(
     if (rasterSpheres >= AutoGpuCullingMinRasterSpheres) return true;
     return instanceCount >= Math.max(AutoGpuCullingMinInstances, AutoGpuCullingThreshold * Math.max(1, drawCount));
   }
-  return value;
-}
-
-export type RenderMergedValue = true | false | 'auto';
-export const RenderMergedOptions: [RenderMergedValue, string][] = [
-  [true, 'On'],
-  [false, 'Off'],
-  ['auto', 'Auto'],
-];
-
-/**
- * Threshold (in number of mergeable units) above which `renderMerged: 'auto'`
- * resolves to `true`.
- */
-export const AutoRenderMergedThreshold = 30;
-
-/**
- * Resolves the `renderMerged` param value to a boolean.
- */
-export function resolveRenderMerged(value: RenderMergedValue, unitCount: number): boolean {
-  if (value === 'auto') return unitCount > AutoRenderMergedThreshold;
   return value;
 }
 
@@ -234,10 +208,6 @@ export namespace BaseGeometry {
     instanceGranularity: PD.Select<InstanceGranularityValue>('auto', InstanceGranularityOptions, {
       description:
         'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory. When set to `auto`, granularity is enabled if `groupCount * instanceCount` exceeds `AutoInstanceGranularityThreshold`.',
-    }),
-    renderMerged: PD.Select<RenderMergedValue>('auto', RenderMergedOptions, {
-      description:
-        'Render all units of the representation through a single shared render item per geometry kind to reduce draw calls. When set to `auto`, enabled if the number of mergeable units exceeds `AutoRenderMergedThreshold`. Supported for spheres, mesh, cylinders, lines, and points geometry.',
     }),
     gpuCulling: PD.Select<GpuCullingValue>('auto', GpuCullingOptions, {
       ...CullingLodCategory,
@@ -320,8 +290,12 @@ export namespace BaseGeometry {
     };
   }
 
-  /** The clip props each values were updated with last (`updateValues`) */
-  const clipProps = new WeakMap<BaseValues, Clip.Props>();
+  /**
+   * The clip props each values' clip cells were updated with last (`updateValues`), by their `clipObjects` cell: values
+   * that share the cells (a merged visual's records and their part's shared values) share the entry, so a write through
+   * either is seen by both
+   */
+  const clipProps = new WeakMap<object, Clip.Props>();
   /**
    * The clip of a clip props object, made once: the visuals of a representation share their props' clip (each target of
    * a particle list, each unit), so a moved clip object is computed once, not per visual. Read only.
@@ -361,8 +335,8 @@ export namespace BaseGeometry {
    * cells written by another, e.g. `createEmptyMergeMember` copying a member's)
    */
   export function updateClip(values: BaseValues, clip: Clip.Props, force = false) {
-    if (!force && clipProps.get(values) === clip) return;
-    clipProps.set(values, clip);
+    if (!force && clipProps.get(values.clipObjects) === clip) return;
+    clipProps.set(values.clipObjects, clip);
     const c = getSharedClip(clip);
     ValueCell.updateIfChanged(values.dClipObjects, c.objects.count > 0);
     ValueCell.updateIfChanged(values.dClipObjectCount, c.objects.count);

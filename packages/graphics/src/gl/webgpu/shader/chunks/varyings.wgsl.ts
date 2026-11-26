@@ -134,8 +134,9 @@ const GridTextures = [
 
 /**
  * `texture3dFrom2dLinear_<texture>(pos)`: a grid stored as z-slices in a 2d atlas (rows in upload order, as the CPU
- * and the GPU color smoothing write them), linear within a slice and between slices, as `texture3dFrom2dLinear` on
- * WebGL; for the mesh programs, which can have grid data
+ * and the GPU color smoothing write them), linear within a slice and between slices, as `texture3dFrom2dLinearCorners`
+ * on WebGL: the values at the cells' corners (cell i at i, as the smoothing splats them), the filter reading a texel at
+ * its center half a cell on in x and y; for the mesh programs, which can have grid data
  */
 export const grid_functions_wgsl = GridTextures.map(
   ({ texture, prefix, type }) => /* wgsl */ `
@@ -153,7 +154,7 @@ export const grid_functions_wgsl = GridTextures.map(
         let row0 = f32(start0 / width);
         let column1 = f32(start1 % width);
         let row1 = f32(start1 / width);
-        let offset = pos.xy * gridDim.xy;
+        let offset = pos.xy * gridDim.xy + 0.5;
         let color0 = textureSampleLevel(${texture}, sLinear, (vec2<f32>(column0, row0 * gridDim.y) + offset) / texDim, 0.0);
         let color1 = textureSampleLevel(${texture}, sLinear, (vec2<f32>(column1, row1 * gridDim.y) + offset) / texDim, 0.0);
         return mix(color0, color1, abs(pos.z * gridDim.z - zSlice0));
@@ -201,7 +202,17 @@ export const assign_varyings_wgsl = /* wgsl */ `
         let groupInstanceIndex = i32(in.aInstance) * i32(uObject.uGroupCount) + i32(group);
         let groupIndex = i32(group);
     #endif
-    let vertexInstanceIndex = instanceIndex * uObject.uVertexCount + vertexId;
+    #if defined(dSegmented)
+        // by the segment's offset (a read of its data) where read: the layers of that type; a color of it reads its own
+        // (\`uColorIndexType\` 4); sizes of it do not merge (\`canMergeValues\`)
+        #if defined(dOverpaintType_vertexInstance) || defined(dTransparencyType_vertexInstance) || defined(dEmissiveType_vertexInstance) || defined(dSubstanceType_vertexInstance)
+            let vertexInstanceIndex = segmentVertexInstanceIndex(in, instanceIndex, vertexId);
+        #else
+            let vertexInstanceIndex = 0;
+        #endif
+    #else
+        let vertexInstanceIndex = instanceIndex * uObject.uVertexCount + vertexId;
+    #endif
 
     #if defined(dRenderVariant_pick)
         #if defined(dCulledPaged)
@@ -248,7 +259,11 @@ export const assign_varyings_wgsl = /* wgsl */ `
                 case 1: { colorIndex = groupIndex; }
                 case 2: { colorIndex = groupInstanceIndex; }
                 case 3: { colorIndex = vertexId; }
-                case 4: { colorIndex = vertexInstanceIndex; }
+                #if defined(dSegmented)
+                    case 4: { colorIndex = segmentVertexInstanceIndex(in, instanceIndex, vertexId); }
+                #else
+                    case 4: { colorIndex = vertexInstanceIndex; }
+                #endif
                 #if defined(dSegmented)
                     case 5: { colorIndex = i32(in.aSegment.w); }
                 #else

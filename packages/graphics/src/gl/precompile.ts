@@ -51,6 +51,12 @@ export interface ObjectSignature extends RenderableKind {
    */
   readonly gpuCulled?: boolean;
   /**
+   * Of spheres culled on the GPU for the sphere raster alone (`Renderable.rasterSpheres`): their count, which the
+   * raster's `auto` takes them by (`AutoGpuCullingMinRasterSpheres`); not part of the key. Unset where not known (a
+   * list derived without the data)
+   */
+  readonly rasterSpheres?: number;
+  /**
    * Holds poses (`instancePoses`): its programs read the instances from storage where the context does
    * (`dInstanceStorage`, `instance-storage.ts`) and it is not culled on the GPU; part of the key. Unset in lists
    * derived from params
@@ -73,13 +79,27 @@ function getDrawFlags(values: { [k: string]: ValueCell<unknown> | undefined }) {
 
 /** `a` with the draw flags of `b` added (signatures of the same key) */
 export function mergeSignatures(a: ObjectSignature, b: ObjectSignature): ObjectSignature {
-  if ((a.opaque || !b.opaque) && (a.transparent || !b.transparent) && (a.emissive || !b.emissive)) return a;
+  const rasterSpheres = maxRasterSpheres(a.rasterSpheres, b.rasterSpheres);
+  if (
+    (a.opaque || !b.opaque) &&
+    (a.transparent || !b.transparent) &&
+    (a.emissive || !b.emissive) &&
+    rasterSpheres === a.rasterSpheres
+  ) {
+    return a;
+  }
   return {
     ...a,
     opaque: a.opaque || b.opaque,
     transparent: a.transparent || b.transparent,
     emissive: a.emissive || b.emissive,
+    rasterSpheres,
   };
+}
+
+/** the larger count, unknown where either is (it may be any) */
+function maxRasterSpheres(a: number | undefined, b: number | undefined) {
+  return a === undefined || b === undefined ? undefined : Math.max(a, b);
 }
 
 /**
@@ -103,6 +123,7 @@ export function getObjectSignature(renderable: GraphicsRenderable): ObjectSignat
     hasReflection: !!renderable.values.hasReflection?.ref.value,
     ...getDrawFlags(renderable.values as { [k: string]: ValueCell<unknown> | undefined }),
     gpuCulled: !!renderable.values.gpuCulling?.ref.value,
+    ...(renderable.rasterSpheres !== undefined ? { rasterSpheres: renderable.rasterSpheres } : {}),
     instancePoses: hasInstancePoses(renderable.values),
   };
 }
@@ -170,26 +191,55 @@ const SignatureValueKeys = [
 ] as const;
 
 /**
+ * the schema of a renderable's kind's programs, once a kind: by its type, merged or not (a kind is an object of each
+ * renderable's, and a merged kind's program source is made at each call)
+ */
+const kindSchemas = new Map<string, RenderableSchema | null>();
+const mergedKindSchemas = new Map<string, RenderableSchema | null>();
+function getSignatureSchema(renderable: GraphicsRenderable) {
+  const kind = getRenderableKind(renderable);
+  if (!kind) return undefined;
+  const schemas = kind.merged ? mergedKindSchemas : kindSchemas;
+  let schema = schemas.get(kind.type);
+  if (schema === undefined) schemas.set(kind.type, (schema = getRenderableProgramSource(kind)?.schema ?? null));
+  return schema ?? undefined;
+}
+
+/**
  * The cells `renderable`'s signature is made of (`getObjectSignature`: its defines and the values it reads), with their
  * versions: the same cells at the same versions the same signature (its linear textures by its defines)
  */
 function getSignatureInputs(renderable: GraphicsRenderable) {
-  const kind = getRenderableKind(renderable);
-  const source = kind && getRenderableProgramSource(kind);
-  if (!kind || !source) return undefined;
+  const schema = getSignatureSchema(renderable);
+  if (!schema) return undefined;
   const values = renderable.values as { [k: string]: ValueCell<unknown> | undefined };
   const cells: (ValueCell<unknown> | undefined)[] = [];
-  for (const k of getSignatureDefineKeys(source.schema)) cells.push(values[k]);
+  for (const k of getSignatureDefineKeys(schema)) cells.push(values[k]);
   for (const k of SignatureValueKeys) cells.push(values[k]);
   return { cells, versions: cells.map((c) => c?.ref.version ?? -1) };
 }
 
-function isSameInputs(a: ReturnType<typeof getSignatureInputs>, b: ReturnType<typeof getSignatureInputs>) {
-  if (!a || !b || a.cells.length !== b.cells.length) return false;
-  for (let i = 0, il = a.cells.length; i < il; ++i) {
-    if (a.cells[i] !== b.cells[i] || a.versions[i] !== b.versions[i]) return false;
+/**
+ * whether `renderable`'s signature inputs are still `inputs` (its cells and their versions as recorded), read in place:
+ * nothing made (a representation's objects all recorded again on each of its updates: a hover)
+ */
+function hasSameInputs(renderable: GraphicsRenderable, inputs: ReturnType<typeof getSignatureInputs>) {
+  const schema = inputs && getSignatureSchema(renderable);
+  if (!schema) return false;
+  const values = renderable.values as { [k: string]: ValueCell<unknown> | undefined };
+  const { cells, versions } = inputs;
+  let i = 0;
+  for (const k of getSignatureDefineKeys(schema)) {
+    const c = values[k];
+    if (i >= cells.length || cells[i] !== c || versions[i] !== (c?.ref.version ?? -1)) return false;
+    i += 1;
   }
-  return true;
+  for (const k of SignatureValueKeys) {
+    const c = values[k];
+    if (i >= cells.length || cells[i] !== c || versions[i] !== (c?.ref.version ?? -1)) return false;
+    i += 1;
+  }
+  return i === cells.length;
 }
 
 /**
@@ -324,11 +374,10 @@ export class PrecompileRecorder {
   /** whether `r`'s signature differs from when it was last recorded */
   private add(r: GraphicsRenderable) {
     this.recorded.add(r);
-    const inputs = getSignatureInputs(r);
     const last = this.keys.get(r);
-    // its signature as recorded (and still among them: not reset since)
-    if (last !== undefined && this.signatures.has(last) && isSameInputs(inputs, this.inputs.get(r))) return false;
-    this.inputs.set(r, inputs);
+    // its signature as recorded (and still among them: not reset since), its inputs compared in place
+    if (last !== undefined && this.signatures.has(last) && hasSameInputs(r, this.inputs.get(r))) return false;
+    this.inputs.set(r, getSignatureInputs(r));
     const signature = getObjectSignature(r);
     if (!signature) return false;
     const key = getSignatureKey(signature);

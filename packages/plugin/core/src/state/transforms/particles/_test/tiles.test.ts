@@ -5,6 +5,7 @@
  */
 
 import { Subject } from 'rxjs';
+import { isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GridPositions } from '@molstar/core/math/geometry/grid-positions';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
@@ -359,7 +360,7 @@ describe('particle tiles in the state', () => {
     const repr = await plugin
       .build()
       .to(view.ref)
-      .apply(ParticlesRepresentation3D, { type: { name: 'target', params: { renderMerged: false } } } as any)
+      .apply(ParticlesRepresentation3D, { type: { name: 'target', params: {} } } as any)
       .commit();
     const r = repr.data!.repr;
     const ro = r.renderObjects[0];
@@ -372,13 +373,18 @@ describe('particle tiles in the state', () => {
         .update(ParticleTilesView, (old) => ({ ...old, tiles: { name: 'ids', params: { ids } } }))
         .commit();
 
-    // tile 0 of target 1 added: target 2's part the same (tile 4), after target 1's particles in the list now
+    // tile 0 of target 1 added: target 2's part the same (tile 4), after target 1's particles in the list now; the two
+    // targets' objects merged, target 2's its values as they were (a record of the merged object)
     await setIds('0, 4');
-    expect(r.renderObjects).toHaveLength(2);
-    expect(r.renderObjects).toContain(ro);
+    expect(r.renderObjects).toHaveLength(1);
+    const merged = r.renderObjects[0];
+    if (!isMergedRenderObject(merged)) throw new Error('expected the targets merged');
+    const k = merged.merged.records.indexOf(ro.values as never);
+    expect(k).toBeGreaterThanOrEqual(0);
     expect(version()).toBe(before);
     const list = view.cell!.obj!.data;
-    const loci = r.getLoci({ objectId: ro.id, instanceId: 0, groupId: 0 }) as Particle.Loci;
+    const instanceId = merged.merged.segments.instanceBases[k];
+    const loci = r.getLoci({ objectId: merged.id, instanceId, groupId: 0 }) as Particle.Loci;
     expect(Particle.isLoci(loci) && loci.particles).toBe(list);
     const first = OrderedSet.getAt(loci.indices, 0);
     expect(ParticleValues.get(list.targets, first)).toBe(2);

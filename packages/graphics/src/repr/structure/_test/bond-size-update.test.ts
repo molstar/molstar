@@ -24,6 +24,7 @@ import { SizeTheme } from '@molstar/graphics/theme/size';
 import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { BallAndStickRepresentationProvider } from '../representation/ball-and-stick.js';
+import { getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 
 const registries = (() => {
   const colorThemeRegistry = ColorTheme.createRegistry();
@@ -59,10 +60,10 @@ function themeOf(structure: Structure, size: number) {
   );
 }
 
-/** The cylinder impostors' start points, over every bond visual */
+/** The cylinder impostors' start points, over every bond visual (a merged object's members one by one) */
 function cylinderStarts(repr: { renderObjects: readonly any[] }) {
   const starts: number[] = [];
-  for (const ro of repr.renderObjects) {
+  for (const ro of repr.renderObjects.flatMap((o) => (isMergedRenderObject(o) ? [...getMergedMembers(o)] : [o]))) {
     if (ro.type !== 'cylinders') continue;
     const { start } = cylinderVertices(ro.values);
     const n = ro.values.drawCount.ref.value;

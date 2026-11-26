@@ -14,6 +14,7 @@ import * as Shape from '@molstar/graphics/geo/shape/shape';
 import { ShapeRepresentation } from '@molstar/graphics/repr/shape/representation';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 128;
@@ -42,12 +43,7 @@ describe.skipIf(!WebGPU.module)('points on WebGPU', () => {
   // a `ring` point (a ring, its width a fraction of the radius) is drawn and picked on its ring only: not in its hole,
   // not outside it (the fragment's discard in every variant), so a wider pick-only ring is a hit band
   it('picks a ring point on its ring, not in its hole nor outside', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     try {
       await plugin.init();
       const canvas = plugin.canvas3d!;
@@ -117,12 +113,7 @@ describe.skipIf(!WebGPU.module)('points on WebGPU', () => {
   // a point's depth offset (CSS pixels toward the camera, negative away) in depth only: of two points at one place, the
   // one moved toward the camera picked, moved away the other; where it is on screen kept
   it('picks a point moved in depth by its offset over, or under, another at its place', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     try {
       await plugin.init();
       const canvas = plugin.canvas3d!;

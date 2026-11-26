@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createWebGPUContext, requestWebGPUDevice } from '@molstar/graphics/gl/contexts/webgpu';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 // A destroyed WebGPU context leaves nothing of itself on its device: Dawn's Node.js bindings keep the device by a
@@ -16,12 +17,7 @@ import { WebGPU } from './webgpu-module.js';
 describe.skipIf(!WebGPU.module)('a destroyed WebGPU context', () => {
   it('removes its error listener from its device', async () => {
     // the module's globals (usage flags) set up as for the plugin
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
     try {
       const gpu = WebGPU.module!.create([]);
       const device = (await requestWebGPUDevice('default', gpu))!;

@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { idFactory } from '@molstar/core/util/id-factory';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { shallowMerge2 } from '@molstar/core/util/object';
 import {
@@ -39,22 +40,35 @@ import { Emissive } from '@molstar/graphics/theme/emissive';
 import { Wiggle } from '@molstar/graphics/theme/wiggle';
 import { HashMap } from '@molstar/core/util/map';
 import { hash2 } from '@molstar/core/data/util';
-import { type GpuCullingValue, type RenderMergedValue, resolveRenderMerged } from '@molstar/graphics/geo/geometry/base';
-import { canCullOnGpu, isMergeableType } from '@molstar/graphics/gl/renderable/merged';
-import { mergeRenderObjectsByType, pickMergedLoci, type MergedEntry } from '../merged.js';
+import type { GpuCullingValue } from '@molstar/graphics/geo/geometry/base';
+import { canMergeValues, isMergeableType, type MergeableValues } from '@molstar/graphics/gl/renderable/merged';
 import { type SignatureContext, withMergedSignatures } from '../signatures.js';
-import { choosesByProps, createVisual, getFactorySignatures, type VisualFactory } from '../visual-factory.js';
+import {
+  choosesByProps,
+  createVisual,
+  getFactorySignatures,
+  getKindFactory,
+  getVisualKind,
+  type VisualFactory,
+} from '../visual-factory.js';
 import type { UnitsVisual as UnitsBuilderVisual, UnitsVisualGeometryBuilder } from './units-visual.js';
 import { UnitsMergedVisual } from './units-merged-visual.js';
 
 function createVisualsMap<P extends StructureParams>() {
-  return new HashMap<Unit.SymmetryGroup, { group: Unit.SymmetryGroup; visual: UnitsVisual<P> }>(
+  // `kind`: the visual's kind (`getVisualKind`)
+  return new HashMap<Unit.SymmetryGroup, { group: Unit.SymmetryGroup; visual: UnitsVisual<P>; kind: string }>(
     (group) => hash2(group.hashCode, group.transformHash),
     Unit.SymmetryGroup.areInvariantElementsEqual,
   );
 }
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> {}
+
+/**
+ * The keys of merged visuals in their representation's geometry state (`Representation.GeometryState`, paired with a
+ * version): a range of their own above the render objects' ids, within what `cantorPairing` pairs exactly
+ */
+const nextMergedVisualKey = idFactory(0x2000000, 0x3ffffff);
 
 export function UnitsRepresentation<P extends StructureParams>(
   label: string,
@@ -72,11 +86,8 @@ export function UnitsRepresentation<P extends StructureParams>(
   const _state = StructureRepresentationStateBuilder.create();
   let visuals = createVisualsMap<P>();
 
-  let mergedByType = new Map<string, MergedEntry<UnitsVisual<P>>>();
-  /** visuals whose render object is a member of a merged one: their layers are not smoothed (perf-audit 07 P1, N2) */
-  const mergedVisuals = new Set<UnitsVisual<P>>();
-  /** whether the layers of a visual were last set with smoothing, to set them again when its merging changes */
-  const layersSmoothed = new WeakMap<UnitsVisual<P>, boolean>();
+  /** the per-group visuals whose layers were set (`setLayers`): a new one's after it is made (`updateRenderObjectList`) */
+  const layersSet = new WeakSet<UnitsVisual<P>>();
   /** visuals by the id of their render object, to resolve a pick without asking every visual */
   const visualsByObjectId = new Map<number, UnitsVisual<P>>();
   /**
@@ -87,97 +98,168 @@ export function UnitsRepresentation<P extends StructureParams>(
   let visualCount = 0;
 
   /**
-   * The visual over all groups where they merge (`UnitsMergedVisual`): no per-group visuals then. Not where it was
-   * found not to merge (`unmergeableAt`: per-group visuals until the props or structure change)
+   * The visuals over the groups of a kind where they merge (`UnitsMergedVisual`; a kind the factory's choice of visual
+   * for a group, `getVisualKind`: one for a factory that chooses by the props alone), per-group visuals for the others
+   * (a kind of a type that does not merge, e.g. GPU surfaces' texture meshes, or one found not to). A kind found not to
+   * merge (`unmergeableAt`) is tried again only where its per-group visuals' own values merge after an update
+   * (`mergesAgain`), not by a geometry made to find out, and not at the props, theme and structure it failed at
    */
-  let mergedVisual: UnitsMergedVisual<P> | undefined;
-  let unmergeableAt: { props: PD.Values<P>; structure: Structure } | undefined;
+  const mergedByKind = new Map<string, UnitsMergedVisual<P>>();
+  const mergedVisualKeys = new WeakMap<UnitsMergedVisual<P>, number>();
+  const getMergedVisualKey = (mv: UnitsMergedVisual<P>) => {
+    let key = mergedVisualKeys.get(mv);
+    if (key === undefined) mergedVisualKeys.set(mv, (key = nextMergedVisualKey()));
+    return key;
+  };
+  /** the merged visuals made by an update and not published yet (`createOrUpdateMerged`) */
+  const building = new Set<UnitsMergedVisual<P>>();
+  const unmergeableAt = new Map<string, { props: PD.Values<P>; theme: Theme; structure: Structure }>();
+  const failedAt = (kind: string, structure: Structure) => {
+    const at = unmergeableAt.get(kind);
+    return !!at && at.props === _props && at.theme === _theme && at.structure === structure;
+  };
+  /**
+   * each kind's groups of the last update, the same array while they are the same groups (a merged visual's update of
+   * the same groups takes its fast paths)
+   */
+  let groupsByKind = new Map<string, ReadonlyArray<Unit.SymmetryGroup>>();
 
-  function hasVisuals() {
+  /** the groups of `groups` by their kind (`getVisualKind`), each kind's the last update's array where the same */
+  function getGroupsByKind(structure: Structure, groups: ReadonlyArray<Unit.SymmetryGroup>) {
+    const byKind = new Map<string, Unit.SymmetryGroup[]>();
+    if (choosesByProps(visualCtor) && groups.length > 0) {
+      // one kind for all: the groups themselves
+      byKind.set(getVisualKind(visualCtor, { group: groups[0], structure }, _props, graphics), groups as any);
+    } else {
+      for (const group of groups) {
+        const kind = getVisualKind(visualCtor, { group, structure }, _props, graphics);
+        let list = byKind.get(kind);
+        if (!list) byKind.set(kind, (list = []));
+        list.push(group);
+      }
+    }
+    const out = new Map<string, ReadonlyArray<Unit.SymmetryGroup>>();
+    byKind.forEach((list, kind) => {
+      const before = groupsByKind.get(kind);
+      const same = !!before && before.length === list.length && before.every((g, i) => g === list[i]);
+      out.set(kind, same ? before! : list);
+    });
+    groupsByKind = out;
+    return out;
+  }
+
+  function hasVisualsOfKind(kind: string) {
     let has = false;
-    visuals.forEach(() => {
-      has = true;
+    visuals.forEach((entry) => {
+      if (entry.kind === kind) has = true;
     });
     return has;
   }
 
-  function destroyVisuals() {
-    visuals.forEach(({ visual }) => visual.destroy());
-    visuals = createVisualsMap<P>();
-    visualsByUnitId = undefined;
-    mergedByType.clear();
-    mergedVisuals.clear();
-    visualsByObjectId.clear();
-  }
-
   /**
-   * The builder of a merged visual over `groups`: where `renderMerged` merges them (two or more) and the factory makes
-   * one visual for all (`choosesByProps`) of a type that merges
+   * The builder of a merged visual over `groups` of `kind` (one too): where the kind's visual is of a builder of a type
+   * that merges
    */
   function getMergedBuilder(
+    kind: string,
     structure: Structure,
     groups: ReadonlyArray<Unit.SymmetryGroup>,
   ): UnitsVisualGeometryBuilder<P, any> | undefined {
-    if (groups.length < 2 || !choosesByProps(visualCtor)) return;
-    const renderMerged = (_props as { renderMerged?: RenderMergedValue }).renderMerged ?? false;
-    if (!resolveRenderMerged(renderMerged, groups.length)) return;
-    if (unmergeableAt && unmergeableAt.props === _props && unmergeableAt.structure === structure) return;
-    const probe = createVisual(
-      visualCtor,
-      -1,
-      { group: groups[0], structure },
-      _props,
-      graphics,
-    ) as UnitsBuilderVisual<P>;
+    if (groups.length === 0) return;
+    // found not to merge: the per-group visuals decide after their update (`mergesAgain`)
+    if (unmergeableAt.has(kind) && (hasVisualsOfKind(kind) || failedAt(kind, structure))) return;
+    const probe = getKindFactory(visualCtor, kind)(-1) as UnitsBuilderVisual<P>;
     const builder = probe.builder as UnitsVisualGeometryBuilder<P, any> | undefined;
     if (!builder || !isMergeableType(builder.geometryUtils.createEmpty().kind)) return;
     return builder;
   }
 
   /**
-   * The merged visual updated to `structure` and its `groups`; false where they do not merge (the per-group visuals
-   * instead)
+   * The builder of a merged visual over `groups` of `kind` where its per-group visuals, made since a merged one did not
+   * merge, now do by their own values (`canMergeValues` of each, as the merged visual checks its parts): undefined
+   * where they do not, or where the merged one failed at these props and structure
+   */
+  function mergesAgain(kind: string, structure: Structure, groups: ReadonlyArray<Unit.SymmetryGroup>) {
+    if (!unmergeableAt.has(kind) || failedAt(kind, structure) || groups.length === 0) return;
+    let builder: UnitsVisualGeometryBuilder<P, any> | undefined;
+    let type = '';
+    let merges = true;
+    visuals.forEach(({ visual, kind: k }) => {
+      if (!merges || k !== kind) return;
+      const b = (visual as UnitsBuilderVisual<P>).builder as UnitsVisualGeometryBuilder<P, any> | undefined;
+      if (!b) {
+        merges = false;
+        return;
+      }
+      if (!builder) {
+        builder = b;
+        type = b.geometryUtils.createEmpty().kind;
+      } else if (b.createGeometry !== builder.createGeometry || b.geometryUtils !== builder.geometryUtils) {
+        merges = false;
+        return;
+      }
+      // a group without an object (nothing drawn) none to check; the layers and a mesh's smoothed colors not: smoothed
+      // while not merged (`setLayers`, as grids), smoothed again by the merged visual (per vertex)
+      const ro = visual.renderObject;
+      const values = ro?.values as unknown as MergeableValues | undefined;
+      if (values && !canMergeValues(type, [values], false, type === 'mesh')) merges = false;
+    });
+    return merges ? builder : undefined;
+  }
+
+  /**
+   * The merged visual of `kind` updated to `structure` and its `groups`; false where they do not merge (the per-group
+   * visuals instead)
    */
   async function createOrUpdateMerged(
     runtime: RuntimeContext,
+    kind: string,
     builder: UnitsVisualGeometryBuilder<P, any>,
     structure: Structure,
     groups: ReadonlyArray<Unit.SymmetryGroup>,
   ) {
+    let mergedVisual = mergedByKind.get(kind);
     if (
       mergedVisual &&
       (mergedVisual.builder.createGeometry !== builder.createGeometry ||
         mergedVisual.builder.geometryUtils !== builder.geometryUtils)
     ) {
       mergedVisual.destroy();
+      mergedByKind.delete(kind);
       mergedVisual = undefined;
     }
     const changed = !!mergedVisual && !!_structure && !Structure.areUnitIdsAndIndicesEqual(structure, _structure);
-    let mv = mergedVisual;
-    if (!mv) {
-      // the builder's props those of the representation's visuals (`P`), typed by its geometry's
-      mv = UnitsMergedVisual(builder as UnitsVisualGeometryBuilder<any, any>, materialId) as UnitsMergedVisual<P>;
+    // a new merged visual published (`mergedByKind`: picked and marked) once its first update merged, the per-group
+    // visuals drawn and asked till then; one that throws destroyed
+    const created = !mergedVisual;
+    // the builder's props those of the representation's visuals (`P`), typed by its geometry's
+    const mv =
+      mergedVisual ??
+      (UnitsMergedVisual(builder as UnitsVisualGeometryBuilder<any, any>, materialId) as UnitsMergedVisual<P>);
+    if (created) {
       mv.setState(_state, _state);
-      mergedVisual = mv;
+      // reached by `setState` while it builds (kept for the build's end: `UnitsMergedVisual.setState`)
+      building.add(mv);
     }
-    await mv.createOrUpdate(getVisualContext(runtime), _theme, _props, structure, groups);
+    try {
+      await mv.createOrUpdate(getVisualContext(runtime), _theme, _props, structure, groups);
+    } catch (e) {
+      if (created) mv.destroy();
+      throw e;
+    } finally {
+      building.delete(mv);
+    }
     if (!mv.mergeable) {
       // the per-group visuals kept (updated, not made again): the merged one ends at a part found not to merge
       mv.destroy();
-      mergedVisual = undefined;
-      unmergeableAt = { props: _props, structure };
+      mergedByKind.delete(kind);
+      unmergeableAt.set(kind, { props: _props, theme: _theme, structure });
       return false;
     }
-    if (hasVisuals()) destroyVisuals();
+    mergedByKind.set(kind, mv);
+    unmergeableAt.delete(kind);
     // remove highlight, as the per-group visuals do on a new structure
     if (changed) mv.mark(EveryLoci, MarkerAction.RemoveHighlight);
-    renderObjects.length = 0;
-    for (const ro of mv.renderObjects) {
-      renderObjects.push(ro);
-      geometryState.add(ro.id, mv.geometryVersion);
-      if (_state.previewTransform) Visual.setPreviewTransform(ro, _state.previewTransform);
-    }
-    geometryState.snapshot();
     return true;
   }
 
@@ -247,136 +329,124 @@ export function UnitsRepresentation<P extends StructureParams>(
       const target = structure ?? _structure;
       const groups =
         structure && structure !== _structure ? StructureSymmetry.computeChildAwareTransformGroups(structure) : _groups;
-      const mergedBuilder = getMergedBuilder(target, groups);
-      if (mergedBuilder && (await createOrUpdateMerged(runtime, mergedBuilder, target, groups))) {
-        _groups = groups;
-        _structure = target;
-        updated.next(version++);
-        return;
+      const byKind = getGroupsByKind(target, groups);
+
+      // the kinds that merge: their merged visuals
+      const merged = new Set<string>();
+      for (const [kind, kindGroups] of byKind) {
+        const builder = getMergedBuilder(kind, target, kindGroups);
+        if (builder && (await createOrUpdateMerged(runtime, kind, builder, target, kindGroups))) merged.add(kind);
       }
-      if (mergedVisual) {
-        mergedVisual.destroy();
-        mergedVisual = undefined;
+      for (const [kind, mv] of [...mergedByKind]) {
+        if (merged.has(kind)) continue;
+        mv.destroy();
+        mergedByKind.delete(kind);
       }
 
-      if (!hasVisuals()) {
-        // First call with a structure, or after the merged visual: create visuals for each group.
-        _groups = groups;
-        structure = target;
-        for (let i = 0; i < _groups.length; i++) {
-          const group = _groups[i];
-          const created = createOrUpdateVisual(runtime, undefined, { group, structure });
-          const visual = isPromiseLike(created) ? await created : created;
-          visuals.set(group, { visual, group });
-          visualsByUnitId = undefined;
-          if (runtime.shouldUpdate)
-            await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
-        }
-      } else if (
-        structure &&
-        (!Structure.areUnitIdsAndIndicesEqual(structure, _structure) || structure.child !== _structure.child)
-      ) {
-        // console.log(label, 'structures not equivalent');
-        // Tries to re-use existing visuals for the groups of the new structure.
-        // Creates additional visuals if needed, destroys left-over visuals.
-        _groups = StructureSymmetry.computeChildAwareTransformGroups(structure);
-        // const newGroups: Unit.SymmetryGroup[] = []
-        const oldVisuals = visuals;
-        visuals = createVisualsMap<P>();
-        visualsByUnitId = undefined;
-        for (let i = 0; i < _groups.length; i++) {
-          const group = _groups[i];
-          const visualGroup = oldVisuals.get(group);
-          const updated = createOrUpdateVisual(runtime, visualGroup?.visual, { group, structure });
-          const visual = isPromiseLike(updated) ? await updated : updated;
-          visuals.set(group, { visual, group });
-          visualsByUnitId = undefined;
-          if (visualGroup) {
-            oldVisuals.delete(group);
-
-            // Remove highlight, through `mark`: its status and average follow (they stood for the layer before)
-            // TODO: remove selection too??
-            visual.mark(EveryLoci, MarkerAction.RemoveHighlight);
+      // the groups of the other kinds: a visual each, of the previous one of the group where there is one
+      const newStructure = !!structure && !!_structure && structure !== _structure;
+      const equivalent =
+        newStructure &&
+        Structure.areUnitIdsAndIndicesEqual(structure!, _structure) &&
+        structure!.child === _structure.child;
+      const oldVisuals = visuals;
+      visuals = createVisualsMap<P>();
+      visualsByUnitId = undefined;
+      let done = 0;
+      const total = groups.length;
+      let completed = false;
+      try {
+        for (const [kind, kindGroups] of byKind) {
+          if (merged.has(kind)) continue;
+          for (const group of kindGroups) {
+            const entry = oldVisuals.get(group);
+            // the same structure: by the props and theme alone (its group as it is); another: its group again
+            const updated = createOrUpdateVisual(
+              runtime,
+              entry?.visual,
+              { group, structure: target },
+              !entry || newStructure,
+            );
+            const visual = isPromiseLike(updated) ? await updated : updated;
+            visuals.set(group, { visual, group, kind });
+            if (entry) {
+              oldVisuals.delete(group);
+              // Remove highlight, through `mark`: its status and average follow (they stood for the layer before)
+              if (newStructure && !equivalent) visual.mark(EveryLoci, MarkerAction.RemoveHighlight);
+            }
+            if (runtime.shouldUpdate) {
+              await runtime.update({ message: 'Creating or updating UnitsVisual', current: ++done, max: total });
+            }
           }
-          if (runtime.shouldUpdate)
-            await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
         }
-        oldVisuals.forEach(({ visual }) => {
-          // console.log(label, 'removed unused visual');
-          visual.destroy();
-        });
-      } else if (structure && structure !== _structure && Structure.areUnitIdsAndIndicesEqual(structure, _structure)) {
-        // console.log(label, 'structures equivalent but not identical');
-        // Expects that for structures with the same hashCode,
-        // the unitSymmetryGroups are the same as well.
-        // Re-uses existing visuals for the groups of the new structure.
-        _groups = StructureSymmetry.computeChildAwareTransformGroups(structure);
-        // console.log('new', _groups)
-        // console.log('old', _structure.unitSymmetryGroups)
-        for (let i = 0; i < _groups.length; i++) {
-          const group = _groups[i];
-          const visualGroup = visuals.get(group);
-          if (visualGroup) {
-            const updated = createOrUpdateVisual(runtime, visualGroup.visual, { group, structure });
-            visualGroup.visual = isPromiseLike(updated) ? await updated : updated;
-            visualGroup.group = group;
-          } else {
-            throw new Error(`expected to find visual for hashCode ${group.hashCode}`);
-          }
-          if (runtime.shouldUpdate)
-            await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
-        }
-      } else {
-        // console.log(label, 'no new structure');
-        // No new structure given, just update all visuals with new props.
-        const visualsList: { group: Unit.SymmetryGroup; visual: UnitsVisual<P> }[] = []; // TODO avoid allocation
-        visuals.forEach((vg) => visualsList.push(vg));
-        for (let i = 0, il = visualsList.length; i < il; ++i) {
-          const entry = visualsList[i];
-          const structureGroup = { group: entry.group, structure: _structure };
-          const updated = createOrUpdateVisual(runtime, entry.visual, structureGroup, false);
-          entry.visual = isPromiseLike(updated) ? await updated : updated;
-          if (runtime.shouldUpdate)
-            await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: il });
+        completed = true;
+      } finally {
+        // ended early (aborted, a visual that threw): the visuals not updated yet kept as they were, reached by
+        // `setState`, `mark` and `destroy`, their objects listed
+        if (!completed) {
+          oldVisuals.forEach((entry) => {
+            if (!visuals.get(entry.group)) visuals.set(entry.group, entry);
+          });
+          visualsByUnitId = undefined;
+          collectRenderObjects();
         }
       }
-      // update list of renderObjects
-      renderObjects.length = 0;
-      const entries: { visual: UnitsVisual<P>; renderObject: GraphicsRenderObject }[] = [];
-      visuals.forEach(({ visual }) => {
-        if (visual.renderObject) {
-          entries.push({ visual, renderObject: visual.renderObject });
-          geometryState.add(visual.renderObject.id, visual.geometryVersion);
+      oldVisuals.forEach(({ visual }) => visual.destroy());
+
+      // a kind's per-group visuals' values merging again (by a theme or props that now do): its merged visual instead
+      for (const [kind, kindGroups] of byKind) {
+        if (merged.has(kind)) continue;
+        const againBuilder = mergesAgain(kind, target, kindGroups);
+        if (againBuilder && (await createOrUpdateMerged(runtime, kind, againBuilder, target, kindGroups))) {
+          merged.add(kind);
+          // deleted after the walk: a delete splices the bucket the walk is in (`HashMap.forEach`)
+          const gone: Unit.SymmetryGroup[] = [];
+          visuals.forEach((entry) => {
+            if (entry.kind !== kind) return;
+            entry.visual.destroy();
+            gone.push(entry.group);
+          });
+          for (const group of gone) visuals.delete(group);
+          visualsByUnitId = undefined;
         }
-      });
-      updateRenderObjectList(entries);
-      geometryState.snapshot();
-      // set new structure
-      if (structure) _structure = structure;
-      // increment version
+      }
+
+      collectRenderObjects();
+      _groups = groups;
+      _structure = target;
       updated.next(version++);
     });
     return serialize(task);
   }
 
-  function updateRenderObjectList(entries: { visual: UnitsVisual<P>; renderObject: GraphicsRenderObject }[]) {
-    // from BaseGeometry.Params, part of every units visual's props
-    const renderMerged = (_props as { renderMerged?: RenderMergedValue }).renderMerged ?? false;
-    const gpuCulling = (_props as { gpuCulling?: GpuCullingValue }).gpuCulling ?? false;
-    mergedByType = mergeRenderObjectsByType(
-      entries,
-      renderMerged,
-      mergedByType,
-      renderObjects,
-      gpuCulling,
-      canCullOnGpu(graphics),
-      graphics,
-      _state.previewTransform,
-    );
-    mergedVisuals.clear();
-    mergedByType.forEach(({ visuals }) => {
-      for (const v of visuals) mergedVisuals.add(v);
+  /** The render objects drawn: the per-group visuals', then the merged visuals' */
+  function collectRenderObjects() {
+    const entries: { visual: UnitsVisual<P>; renderObject: GraphicsRenderObject }[] = [];
+    visuals.forEach(({ visual }) => {
+      if (visual.renderObject) {
+        entries.push({ visual, renderObject: visual.renderObject });
+        geometryState.add(visual.renderObject.id, visual.geometryVersion);
+      }
     });
+    updateRenderObjectList(entries);
+    for (const mv of mergedByKind.values()) {
+      // by the visual, not its objects: a layer regrouping its segments (`setState`) makes other objects of the same
+      // geometry, which the layers' nodes need not apply again for (`geometryVersion`)
+      geometryState.add(getMergedVisualKey(mv), mv.geometryVersion);
+      for (const ro of mv.renderObjects) {
+        renderObjects.push(ro);
+        if (_state.previewTransform) Visual.setPreviewTransform(ro, _state.previewTransform);
+      }
+    }
+    geometryState.snapshot();
+  }
+
+  /**
+   * The render objects drawn: the per-group visuals' (of kinds that do not merge, drawn as they are), the merged
+   * visuals' added by the caller
+   */
+  function updateRenderObjectList(entries: { visual: UnitsVisual<P>; renderObject: GraphicsRenderObject }[]) {
+    renderObjects.length = 0;
     visualsByObjectId.clear();
     const { overpaint, transparency, emissive, substance } = _state;
     const hasLayers =
@@ -385,31 +455,24 @@ export function UnitsRepresentation<P extends StructureParams>(
       emissive.layers.length > 0 ||
       substance.layers.length > 0;
     for (const { visual, renderObject } of entries) {
+      renderObjects.push(renderObject);
+      if (_state.previewTransform) Visual.setPreviewTransform(renderObject, _state.previewTransform);
       visualsByObjectId.set(renderObject.id, visual);
-      // merged or unmerged now: the layers of new visuals, and those set under the previous merging
-      if (hasLayers && (!layersSmoothed.has(visual) || layersSmoothed.get(visual) !== !mergedVisuals.has(visual))) {
-        setLayers(visual, _state);
-      }
+      // the layers of new visuals (not set as they are made: `setVisualState`)
+      if (hasLayers && !layersSet.has(visual)) setLayers(visual, _state);
     }
   }
 
-  function getMergedLoci(pickingId: PickingId): Loci | undefined {
-    return pickMergedLoci(mergedByType, pickingId, (visual, index, localInstanceId, object) =>
-      visual.getLoci({ ...pickingId, objectId: object.members[index].id, instanceId: localInstanceId }),
-    );
-  }
-
   function getLoci(pickingId: PickingId) {
-    if (mergedVisual) return mergedVisual.getLoci(pickingId);
-    const mergedLoci = getMergedLoci(pickingId);
-    if (mergedLoci !== undefined) return mergedLoci;
-
+    for (const mv of mergedByKind.values()) {
+      if (mv.renderObjects.some((o) => o.id === pickingId.objectId)) return mv.getLoci(pickingId);
+    }
     const visual = visualsByObjectId.get(pickingId.objectId);
     return visual ? visual.getLoci(pickingId) : EmptyLoci;
   }
 
   function eachLocation(cb: LocationCallback) {
-    mergedVisual?.eachLocation(cb);
+    for (const mv of mergedByKind.values()) mv.eachLocation(cb);
     visuals.forEach(({ visual }) => {
       visual.eachLocation(cb);
     });
@@ -435,8 +498,8 @@ export function UnitsRepresentation<P extends StructureParams>(
     }
     if (Loci.isEmpty(loci)) return false;
 
-    if (mergedVisual) return mergedVisual.mark(loci, action);
     let changed = false;
+    for (const mv of mergedByKind.values()) changed = mv.mark(loci, action) || changed;
     const marked = getMarkedVisuals(loci);
     if (marked) {
       for (const visual of marked) changed = visual.mark(loci, action) || changed;
@@ -476,16 +539,15 @@ export function UnitsRepresentation<P extends StructureParams>(
     }
   }
 
-  /** the layers that can be smoothed: not on members of a merged object, which keeps one layer type for all */
+  /** the layers of a per-group visual, smoothed where its geometry is (its own object: one layer type its own) */
   function setLayers(visual: UnitsVisual<P>, state: Partial<StructureRepresentationState>) {
     const { overpaint, transparency, emissive, substance } = state;
     if (!overpaint && !transparency && !emissive && !substance) return;
-    const smooth = !mergedVisuals.has(visual);
-    if (overpaint !== undefined) visual.setOverpaint(overpaint, graphics, smooth);
-    if (transparency !== undefined) visual.setTransparency(transparency, graphics, smooth);
-    if (emissive !== undefined) visual.setEmissive(emissive, graphics, smooth);
-    if (substance !== undefined) visual.setSubstance(substance, graphics, smooth);
-    layersSmoothed.set(visual, smooth);
+    if (overpaint !== undefined) visual.setOverpaint(overpaint, graphics, true);
+    if (transparency !== undefined) visual.setTransparency(transparency, graphics, true);
+    if (emissive !== undefined) visual.setEmissive(emissive, graphics, true);
+    if (substance !== undefined) visual.setSubstance(substance, graphics, true);
+    layersSet.add(visual);
   }
 
   /** `isNew`: a visual just made, at identity, with `state` the representation's current `_state` */
@@ -576,8 +638,17 @@ export function UnitsRepresentation<P extends StructureParams>(
     if (markerActions !== undefined) newState.markerActions = markerActions;
 
     visuals.forEach(({ visual, group }) => setVisualState(visual, group, newState));
-    mergedVisual?.setState(newState, _state);
-    // on what is drawn: a merged object moves as one, its members' are not read (`mergeRenderObjectsByType`)
+    // a new merged visual building (not published yet): the state kept for its build's end
+    for (const mv of building) mv.setState(newState, _state);
+    // a merged visual's segments moved by their layers (smoothed ones): its objects another list, the drawn ones again
+    let relisted = false;
+    for (const mv of mergedByKind.values()) {
+      const before = mv.renderObjects;
+      mv.setState(newState, _state);
+      if (mv.renderObjects !== before) relisted = true;
+    }
+    if (relisted) collectRenderObjects();
+    // on what is drawn: a merged object moves as one, its records' are not read
     const preview = newState.previewTransform;
     if (preview) for (const ro of renderObjects) Visual.setPreviewTransform(ro, preview);
 
@@ -589,12 +660,12 @@ export function UnitsRepresentation<P extends StructureParams>(
   }
 
   function destroy() {
-    mergedVisual?.destroy();
-    mergedVisual = undefined;
+    for (const mv of mergedByKind.values()) mv.destroy();
+    mergedByKind.clear();
+    unmergeableAt.clear();
+    groupsByKind.clear();
     visuals.forEach(({ visual }) => visual.destroy());
     visuals.clear();
-    mergedByType.clear();
-    mergedVisuals.clear();
     visualsByObjectId.clear();
     visualsByUnitId = undefined;
   }
@@ -602,8 +673,8 @@ export function UnitsRepresentation<P extends StructureParams>(
   return {
     label,
     get groupCount() {
-      if (mergedVisual) return mergedVisual.groupCount;
       let groupCount = 0;
+      for (const mv of mergedByKind.values()) groupCount += mv.groupCount;
       visuals.forEach(({ visual }) => {
         if (visual.renderObject) groupCount += visual.groupCount;
       });
@@ -639,12 +710,11 @@ export function UnitsRepresentation<P extends StructureParams>(
       graphics = value;
     },
     getSignatures: (props: PD.Values<P>, ctx: SignatureContext) => {
-      // render objects of the same type are merged by `renderMerged` (groups of one stay unmerged unless culled on the
-      // GPU); 'auto' merges above `AutoRenderMergedThreshold` units, taken as unmerged: such objects compile while they
-      // build
-      const p = props as { renderMerged?: RenderMergedValue; gpuCulling?: GpuCullingValue };
+      // every kind that merges a merged visual (one group too): its objects' merged signatures, plain those of the types
+      // that do not merge (GPU surfaces' texture meshes); culled on the GPU as their counts decide
+      const p = props as { gpuCulling?: GpuCullingValue };
       if (!(ctx.data instanceof Structure))
-        return withMergedSignatures(getFactorySignatures(visualCtor, props, ctx), p);
+        return withMergedSignatures(getFactorySignatures(visualCtor, props, ctx), p, undefined, true, ctx.graphics);
       // with the structure: the visuals its groups select, merged as their counts decide
       const structure = ctx.data;
       const groups = StructureSymmetry.computeChildAwareTransformGroups(structure);
@@ -657,7 +727,7 @@ export function UnitsRepresentation<P extends StructureParams>(
         levels: getLodPixelLevelCount(lodPixelSize),
         graphics: ctx.graphics,
       };
-      return withMergedSignatures(getFactorySignatures(visualCtor, props, ctx, data), p, counts);
+      return withMergedSignatures(getFactorySignatures(visualCtor, props, ctx, data), p, counts, true);
     },
     destroy,
   };

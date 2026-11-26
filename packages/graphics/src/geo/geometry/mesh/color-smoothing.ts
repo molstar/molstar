@@ -11,7 +11,16 @@ import { setOverpaintType } from '../overpaint-data.js';
 import { setSubstanceType } from '../substance-data.js';
 import { setTransparencyType } from '../transparency-data.js';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
-import { createDataArray, type DataArray, type TextureImage } from '@molstar/graphics/gl/renderable/util';
+import {
+  createDataArray,
+  type DataArray,
+  type GpuDataWriter,
+  getDataTextureImage,
+  getSharedZeros,
+  isSharedZeros,
+  type TextureImage,
+} from '@molstar/graphics/gl/renderable/util';
+import { computeLayerSampling, isComputeLayerSamplingSupported } from '@molstar/graphics/gl/compute/layer-sampling';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { Box3D, type Sphere3D } from '@molstar/core/math/geometry';
@@ -19,7 +28,18 @@ import { lerp } from '@molstar/core/math/interpolate';
 import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { getVolumeTexture2dLayout } from '@molstar/graphics/geo/util';
 import { ValueCell } from '@molstar/core/util';
-import { getInstanceMatrices } from '../transform-data.js';
+import { getInstanceMatrices, getInstanceMatricesById } from '../transform-data.js';
+import { type GpuMeshVertices, getGpuMeshVertices } from './gpu-vertices.js';
+import {
+  computeMeshColorSmoothing,
+  isComputeMeshColorSmoothingSupported,
+} from '@molstar/graphics/gl/compute/color-smoothing';
+import { createScratch } from '@molstar/graphics/gl/scratch';
+
+/** The colors of the GPU splat (`computeMeshColorSmoothing`) by format, a texture each per context */
+const ScratchTextures = createScratch<Texture>('mesh/color-smoothing colors');
+/** The grids of the GPU splat: rgba for every layer */
+const RgbaGrids = new WeakSet<Texture>();
 
 interface ColorSmoothingInput {
   vertexCount: number;
@@ -34,11 +54,22 @@ interface ColorSmoothingInput {
   boundingSphere: Sphere3D;
   invariantBoundingSphere: Sphere3D;
   itemSize: 4 | 1;
+  /**
+   * the mesh's vertices on the GPU (`getGpuMeshVertices`): with a context of compute kernels for meshes (WebGPU), the
+   * splat on the GPU (`computeMeshColorSmoothing`) into the same grid, the CPU's otherwise
+   */
+  gpuVertices?: GpuMeshVertices;
 }
 
 export type ColorSmoothingOptions = {
   resolution: number;
   stride: number;
+  /**
+   * The grid sized to the splat's region (the reached instances' cells and one more each side), not to every instance:
+   * for a grid sampled per vertex on the GPU alone (`layer-sample-vertices`, which reads 0 outside a grid); the
+   * fragment shaders read a grid without a bounds check (`texture3dFrom2dLinear`), so theirs spans every instance
+   */
+  regionGrid?: boolean;
 };
 
 /**
@@ -158,6 +189,23 @@ function getInstanceCells(
     }
   }
   return cells;
+}
+
+/**
+ * The part of a grid of `gridDim` cells that holds `region` (`getSplatInstances`) and a cell beyond each side, within
+ * the grid: its first cell (`offset`) and its cells (`dim`). The cells outside it are 0, and a trilinear read outside it
+ * reads only such cells, so 0, as a read outside a grid (the sampling's bounds check). No region (nothing reached): 2
+ * cells per axis, all 0
+ */
+function getRegionGrid(region: Float64Array | undefined, gridDim: Vec3) {
+  const offset = Vec3();
+  const dim = Vec3.create(2, 2, 2);
+  if (!region) return { offset, dim };
+  for (let k = 0; k < 3; ++k) {
+    offset[k] = Math.max(0, region[k] - 1);
+    dim[k] = Math.max(2, Math.min(gridDim[k], region[3 + k] + 1) - offset[k]);
+  }
+  return { offset, dim };
 }
 
 /** Whether a vertex of a group in `groupBuffer` reads past the colors of its instance */
@@ -412,6 +460,24 @@ function splatVertex(ctx: SplatContext, i: number, instanceIndex: number, j: num
   }
 }
 
+/**
+ * `transforms` (a row per instance, in `instances`' order: row `i` instance `instances[i]`'s) by instance: `transforms`
+ * itself where they are in that order (no instance grid, or one cell)
+ */
+function getTransformsByInstance(transforms: Float32Array, instances: Uint32Array, count: number) {
+  let identity = true;
+  for (let i = 0; i < count; ++i) {
+    if (instances[i] !== i) {
+      identity = false;
+      break;
+    }
+  }
+  if (identity) return transforms;
+  const out = new Float32Array(count * 16);
+  for (let i = 0; i < count; ++i) out.set(transforms.subarray(i * 16, i * 16 + 16), instances[i] * 16);
+  return out;
+}
+
 export function calcMeshColorSmoothing(
   input: ColorSmoothingInput,
   options: ColorSmoothingOptions,
@@ -420,12 +486,17 @@ export function calcMeshColorSmoothing(
 ) {
   // a texture of another context (e.g. before a backend switch) is not reused
   if (texture && graphics && !graphics.resources.ownsTexture(texture)) texture = undefined;
-  const { colorType, vertexCount, groupCount, positionBuffer, instanceBuffer, transformBuffer, groupBuffer, itemSize } =
-    input;
+  const { colorType, vertexCount, groupCount, positionBuffer, instanceBuffer, groupBuffer, itemSize } = input;
   const { stride } = options;
 
   const isInstanceType = colorType.endsWith('Instance');
   const instanceCount = isInstanceType ? input.instanceCount : 1;
+  // the transforms by instance (matrix `i` instance `i`'s), not in their rows' order (the instance grid's cells): the
+  // colors, the reached flags and the per-vertex output are by instance, as the shaders and the exports read them
+  // (`aInstance`); the splat's sums are of no order
+  const transformBuffer = isInstanceType
+    ? getTransformsByInstance(input.transformBuffer, instanceBuffer, instanceCount)
+    : input.transformBuffer;
   const sphereBox = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
   const vertexBox = vertexCount > 0 ? Box3D.fromPositionArray(Box3D(), positionBuffer, vertexCount) : undefined;
   const box = getVertexBox(input, vertexBox, instanceCount, isInstanceType, sphereBox);
@@ -435,23 +506,16 @@ export function calcMeshColorSmoothing(
     const { maxTextureSize } = graphics.resources.limits;
     while (getTextureSide(getGrid(sphereBox, box, resolution).gridDim) > maxTextureSize) resolution *= 1.1;
   }
-  // the grid spans every instance, also where the layer is zero: the shaders read it without a bounds check
-  // (`texture3dFrom2dLinear` in WebGL and WebGPU), so a point beyond a smaller grid would read another slice
-  const { min, gridDim } = getGrid(sphereBox, box, resolution);
+  // the grid spans every instance, also where the layer is zero: the fragment shaders read it without a bounds check
+  // (`texture3dFrom2dLinear` in WebGL and WebGPU), so a point beyond a smaller grid would read another slice; sampled
+  // per vertex on the GPU alone (`regionGrid`), it is cut to the splat's region below
+  let { min, gridDim } = getGrid(sphereBox, box, resolution);
   const scaleFactor = 1 / resolution;
-
-  const { width, height } = getVolumeTexture2dLayout(gridDim);
-
-  const grid = new Uint8Array(width * height * itemSize);
-  const textureImage: TextureImage<Uint8Array> = { array: grid, width, height, filter: 'linear' };
 
   const colors = input.colorData.array;
 
-  const zOff = getSliceOffsets(gridDim, width);
-
-  // - use reordered index for access from GPU
-  // - use serial index for access from CPU
-  const instanceRow = (i: number) => (graphics && isInstanceType ? instanceBuffer[i] : i);
+  // the transforms by instance: a row is its instance (`getTransformsByInstance`)
+  const instanceRow = (i: number) => i;
   const allReached = hasGroupOutOfRange(groupBuffer, vertexCount, groupCount);
   const isRowReached = getRowReachedTest(colors, groupCount, itemSize);
   const instances = vertexBox
@@ -464,14 +528,109 @@ export function calcMeshColorSmoothing(
         gridDim,
         min,
         scaleFactor,
-        !graphics,
+        // the instances read: the CPU's sampling per vertex, and with a context the GPU's (`reached`: the others
+        // written as zeros without sampling)
+        true,
       )
     : undefined;
 
+  // the grid sized to the region: the same cells, from `offset` on; the region on it
+  let region = instances?.region;
+  if (options.regionGrid && vertexBox) {
+    const { offset, dim } = getRegionGrid(region, gridDim);
+    min = Vec3.scaleAndAdd(Vec3(), min, offset, resolution);
+    gridDim = dim;
+    if (region) {
+      const r = region;
+      region = new Float64Array([0, 1, 2, 3, 4, 5].map((k) => r[k] - offset[k % 3]));
+    }
+  }
+
+  const { width, height } = getVolumeTexture2dLayout(gridDim);
+
+  const grid = new Uint8Array(width * height * itemSize);
+  const textureImage: TextureImage<Uint8Array> = { array: grid, width, height, filter: 'linear' };
+
+  const zOff = getSliceOffsets(gridDim, width);
+
+  // the splat on the GPU: the same grid, instances and region, the sums of the kernels (`computeMeshColorSmoothing`)
+  const gpuVertices = input.gpuVertices;
+  if (
+    graphics &&
+    gpuVertices &&
+    gpuVertices.compute === graphics.compute &&
+    isComputeMeshColorSmoothingSupported(graphics)
+  ) {
+    // an rgba texture also for single-channel layers: `r8unorm` is no storage format in core WebGPU (the readers read
+    // red); a single-channel one of the CPU's (`r`) not reused
+    if (texture && itemSize === 1 && !RgbaGrids.has(texture)) texture = undefined;
+    if (!texture) {
+      texture = graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+      RgbaGrids.add(texture);
+    }
+    const colorTexture = ScratchTextures.getOrCreate(
+      graphics,
+      () => graphics.resources.texture('image-uint8', itemSize === 4 ? 'rgba' : 'r', 'ubyte', 'nearest'),
+      itemSize === 4 ? 'rgba' : 'r',
+    );
+    colorTexture.load(getDataTextureImage(input.colorData, itemSize));
+    let splatCount = 0;
+    const splat = instances?.splat;
+    for (let i = 0; i < instanceCount; ++i) if (!splat || splat[i]) splatCount += 1;
+    const transforms = new Float32Array(Math.max(1, splatCount) * 16);
+    const rows = new Uint32Array(Math.max(1, splatCount));
+    for (let i = 0, k = 0; i < instanceCount; ++i) {
+      if (splat && !splat[i]) continue;
+      if (isInstanceType) transforms.set(transformBuffer.subarray(i * 16, i * 16 + 16), k * 16);
+      else Mat4.toArray(Mat4.id, transforms, k * 16);
+      rows[k] = instanceRow(i);
+      k += 1;
+    }
+    const empty = [0, 0, 0, 0, 0, 0];
+    computeMeshColorSmoothing(
+      graphics.compute,
+      {
+        vertexCount,
+        stride,
+        sampleCount: Math.ceil(vertexCount / stride),
+        instanceCount: splatCount,
+        groupCount,
+        transformBuffer: transforms,
+        instanceBuffer: rows,
+        colorData: colorTexture,
+        colorType,
+        positions: gpuVertices.positions,
+        groups: gpuVertices.groups,
+        vertexOffset: 0,
+      },
+      {
+        gridDim,
+        texCols: width / gridDim[0],
+        width,
+        height,
+        bboxMin: min,
+        bboxSize: Vec3.scale(Vec3(), gridDim, resolution),
+        resolution,
+        region: vertexBox && region ? region : empty,
+      },
+      texture,
+    );
+    return {
+      kind: 'volume' as const,
+      texture,
+      gridTexDim: Vec2.create(width, height),
+      gridDim,
+      gridTransform: Vec4.create(min[0], min[1], min[2], scaleFactor),
+      type: isInstanceType ? ('volumeInstance' as const) : ('volume' as const),
+      splatCount,
+      reached: instances?.read,
+    };
+  }
+
   /** the instances splatted (perf-audit 13/P1) */
   let splatCount = 0;
-  if (instances?.region) {
-    const { region, splat } = instances;
+  if (instances && region) {
+    const { splat } = instances;
     // the accumulators span the region only, x fastest
     const [rx0, ry0, rz0] = region;
     const rx = region[3] - rx0;
@@ -549,7 +708,17 @@ export function calcMeshColorSmoothing(
     }
     texture.load(textureImage);
 
-    return { kind: 'volume' as const, texture, gridTexDim, gridDim, gridTransform, type, splatCount };
+    // the instances reached (`read`, of instance types), for samplers of the grid per vertex on the GPU
+    return {
+      kind: 'volume' as const,
+      texture,
+      gridTexDim,
+      gridDim,
+      gridTransform,
+      type,
+      splatCount,
+      reached: instances?.read,
+    };
   } else {
     const interpolated = getTrilinearlyInterpolated({
       vertexCount,
@@ -637,49 +806,69 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Data
 
   const [xn, yn, zn] = gridDim;
   const width = gridTexDim[0];
-  const min = Vec3.fromArray(Vec3(), gridTransform, 0);
+  const minX = gridTransform[0];
+  const minY = gridTransform[1];
+  const minZ = gridTransform[2];
   const scaleFactor = gridTransform[3];
 
   const zOff = getSliceOffsets(gridDim, width);
-  function getIndex(x: number, y: number, z: number) {
-    // vertices outside the grid (not expected) keep their former, layout-derived index
-    const zo =
-      z >= 0 && z < zn ? zOff[z] : Math.floor(((z * xn) % width) / xn) * xn + Math.floor((z * xn) / width) * yn * width;
-    return colorStride * (zo + y * width + x);
+  /** a slice's offset in the 2d layout: vertices outside the grid (not expected) keep their former, layout-derived one */
+  function sliceOffset(z: number) {
+    return z >= 0 && z < zn
+      ? zOff[z]
+      : Math.floor(((z * xn) % width) / xn) * xn + Math.floor((z * xn) / width) * yn * width;
   }
 
-  const v = Vec3();
-  const v0 = Vec3();
-  const v1 = Vec3();
-  const vd = Vec3();
-
+  // scalars, not `Vec3`s, in this loop over every vertex of every instance (array destructuring and calls per vertex:
+  // a smoothed layer set on all 420 units of 60 copies of 7qpd 3.67 to 2.75 s a frame, WebGPU, its splatting the rest); the
+  // same double arithmetic in the same order as `Vec3.transformMat4Offset`, `sub` and `scale`, so the same bytes
   const { instances } = input;
   for (let i = 0; i < instanceCount; ++i) {
     if (instances && !instances[i]) continue;
+    const t = i * 16;
     for (let j = 0; j < vertexCount; ++j) {
-      Vec3.fromArray(v, positionBuffer, j * vertexStride);
-      if (isInstanceType) Vec3.transformMat4Offset(v, v, transformBuffer, 0, 0, i * 16);
-      Vec3.sub(v, v, min);
-      Vec3.scale(v, v, scaleFactor);
+      const p = j * vertexStride;
+      let x = positionBuffer[p];
+      let y = positionBuffer[p + 1];
+      let z = positionBuffer[p + 2];
+      if (isInstanceType) {
+        const m = transformBuffer;
+        const w = 1 / (m[3 + t] * x + m[7 + t] * y + m[11 + t] * z + m[15 + t] || 1.0);
+        const tx = (m[0 + t] * x + m[4 + t] * y + m[8 + t] * z + m[12 + t]) * w;
+        const ty = (m[1 + t] * x + m[5 + t] * y + m[9 + t] * z + m[13 + t]) * w;
+        const tz = (m[2 + t] * x + m[6 + t] * y + m[10 + t] * z + m[14 + t]) * w;
+        x = tx;
+        y = ty;
+        z = tz;
+      }
+      x = (x - minX) * scaleFactor;
+      y = (y - minY) * scaleFactor;
+      z = (z - minZ) * scaleFactor;
 
-      Vec3.floor(v0, v);
-      Vec3.ceil(v1, v);
+      const x0 = Math.floor(x);
+      const y0 = Math.floor(y);
+      const z0 = Math.floor(z);
+      const x1 = Math.ceil(x);
+      const y1 = Math.ceil(y);
+      const z1 = Math.ceil(z);
 
       // the cell is 1 wide, or 0 on a grid plane, where the weight is 0: not 0/0 (perf-audit-2 08/B3)
-      Vec3.sub(vd, v, v0);
+      const xd = x - x0;
+      const yd = y - y0;
+      const zd = z - z0;
 
-      const [x0, y0, z0] = v0;
-      const [x1, y1, z1] = v1;
-      const [xd, yd, zd] = vd;
-
-      const i000 = getIndex(x0, y0, z0) + itemOffset;
-      const i100 = getIndex(x1, y0, z0) + itemOffset;
-      const i001 = getIndex(x0, y0, z1) + itemOffset;
-      const i101 = getIndex(x1, y0, z1) + itemOffset;
-      const i010 = getIndex(x0, y1, z0) + itemOffset;
-      const i110 = getIndex(x1, y1, z0) + itemOffset;
-      const i011 = getIndex(x0, y1, z1) + itemOffset;
-      const i111 = getIndex(x1, y1, z1) + itemOffset;
+      const zo0 = sliceOffset(z0);
+      const zo1 = sliceOffset(z1);
+      const r00 = y0 * width;
+      const r10 = y1 * width;
+      const i000 = colorStride * (zo0 + r00 + x0) + itemOffset;
+      const i100 = colorStride * (zo0 + r00 + x1) + itemOffset;
+      const i001 = colorStride * (zo1 + r00 + x0) + itemOffset;
+      const i101 = colorStride * (zo1 + r00 + x1) + itemOffset;
+      const i010 = colorStride * (zo0 + r10 + x0) + itemOffset;
+      const i110 = colorStride * (zo0 + r10 + x1) + itemOffset;
+      const i011 = colorStride * (zo1 + r10 + x0) + itemOffset;
+      const i111 = colorStride * (zo1 + r10 + x1) + itemOffset;
 
       const o = (i * vertexCount + j) * outputStride;
 
@@ -711,18 +900,122 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Data
 
 //
 
+/**
+ * A smoothed layer or color as `vertexInstance` data written on the GPU (`DataArray.gpu`): its grid (`smoothing`,
+ * splatted on the CPU and uploaded) sampled per vertex and instance by `computeLayerSampling` into the storage its render
+ * item draws it from; its array zeros (`getSharedZeros`). The positions those of the mesh on the GPU
+ * (`getGpuMeshVertices`, once a version of them), resolved at each write; the transforms and reached flags the layer's.
+ * Not `perInstance`: `vertex` data (colors by group, the instances alike), its grid in the mesh's own space sampled once
+ * a vertex (one identity transform)
+ */
+function createGpuLayerData(
+  values: MeshValues,
+  smoothing: { texture: Texture; gridDim: Vec3; gridTexDim: Vec2; gridTransform: Vec4; reached?: Uint8Array },
+  itemSize: 1 | 4,
+  graphics: GraphicsContext,
+  /** the layer's data it was sampled from: kept for its next set (`DataArray.spare`) */
+  source: DataArray<Uint8Array>,
+  perInstance = true,
+): DataArray<Uint8Array> {
+  const compute = graphics.compute!;
+  const vertexCount = values.uVertexCount.ref.value;
+  const instanceCount = perInstance ? values.uInstanceCount.ref.value : 1;
+  const count = vertexCount * instanceCount;
+  // by instance, as the reached flags (`calcMeshColorSmoothing`) and the data read by `aInstance`
+  const matrices = perInstance
+    ? getInstanceMatricesById(values).subarray(0, instanceCount * 16)
+    : (Mat4.toArray(Mat4.identity(), new Float32Array(16), 0) as Float32Array);
+  const transforms = compute.createBuffer(Math.max(64, matrices.byteLength), 'layer sampling transforms');
+  transforms.write(matrices);
+  const flags = new Uint32Array(Math.max(1, instanceCount));
+  for (let i = 0; i < instanceCount; ++i) flags[i] = !smoothing.reached || smoothing.reached[i] ? 1 : 0;
+  const reached = compute.createBuffer(flags.byteLength, 'layer sampling reached');
+  reached.write(flags);
+  // its mesh's cells, kept as they are now: `values` may be another's later (the values a merged segment was made with
+  // are its part's shared values when it founds the part, which hold the part's first segment's cells, `bindShared`)
+  const mesh = { aPosition: values.aPosition, aGroup: values.aGroup, uVertexCount: values.uVertexCount } as MeshValues;
+  const vertices = () => getGpuMeshVertices(mesh, compute).positions;
+  const input = {
+    vertexCount,
+    instanceCount,
+    positions: vertices(),
+    vertexOffset: 0,
+    transforms,
+    instanceOffset: 0,
+    reached,
+    grid: smoothing.texture,
+    gridDim: smoothing.gridDim,
+    gridTexDim: smoothing.gridTexDim,
+    gridTransform: smoothing.gridTransform,
+    itemSize,
+  };
+  const byteLength = count * itemSize;
+  // disposed (its segment dropped, e.g. while an export reads its members one by one): it writes nothing and reads as
+  // its zeros, its grid and buffers gone
+  let disposed = false;
+  const writer: GpuDataWriter = {
+    compute,
+    elementBytes: itemSize,
+    write: (buffer, byteOffset) => {
+      if (disposed) return;
+      input.positions = vertices();
+      computeLayerSampling(compute, input, buffer, byteOffset / itemSize);
+    },
+    read: async () => {
+      if (disposed) return new Uint8Array(byteLength);
+      // written into a buffer of its own: where the render item holds it may have moved since
+      const out = compute.createBuffer(Math.max(4, Math.ceil(byteLength / 4) * 4), 'layer sampling read');
+      try {
+        input.positions = vertices();
+        computeLayerSampling(compute, input, out, 0);
+        return new Uint8Array(await out.readAsync(), 0, byteLength).slice();
+      } finally {
+        out.destroy();
+      }
+    },
+    dispose: () => {
+      if (disposed) return;
+      disposed = true;
+      transforms.destroy();
+      reached.destroy();
+      smoothing.texture.destroy();
+    },
+  };
+  const spare = source.spare ?? (isSharedZeros(source.array) ? undefined : source.array);
+  return { array: getSharedZeros(Uint8Array, byteLength), count, gpu: writer, ...(spare ? { spare } : {}) };
+}
+
+/**
+ * The mesh's vertices on the GPU where `graphics` splats meshes there (WebGPU compute): the grid splatted by the kernels
+ * (`computeMeshColorSmoothing`), the CPU's splat otherwise
+ */
+function gpuVerticesOf(values: MeshValues, graphics: GraphicsContext | undefined) {
+  if (!graphics || !isComputeMeshColorSmoothingSupported(graphics)) return undefined;
+  return getGpuMeshVertices(values, graphics.compute);
+}
+
 function isSupportedColorType(x: string): x is 'group' | 'groupInstance' {
   return x === 'group' || x === 'groupInstance';
 }
 
+/**
+ * The colors of `values` smoothed: into a grid with `graphics` (sampled by the fragments), per vertex without (the CPU's
+ * interpolation); `perVertexOnGpu` (a merged surface's: a grid per object does not merge), per vertex sampled on the GPU
+ * where it computes (the layers' path: `vertex` or `vertexInstance` data written there, `DataArray.gpu`), else on the
+ * CPU
+ */
 export function applyMeshColorSmoothing(
   values: MeshValues,
   options: ColorSmoothingOptions,
   graphics?: GraphicsContext,
   colorTexture?: Texture,
+  perVertexOnGpu?: boolean,
 ) {
   if (!isSupportedColorType(values.colorType.ref.value)) return;
 
+  const gpu = !!perVertexOnGpu && !!graphics && isComputeLayerSamplingSupported(graphics);
+  // per vertex on the CPU where asked for without the GPU's sampling (no context given it)
+  const context = gpu || !perVertexOnGpu ? graphics : undefined;
   const smoothingData = calcMeshColorSmoothing(
     {
       vertexCount: values.uVertexCount.ref.value,
@@ -737,12 +1030,23 @@ export function applyMeshColorSmoothing(
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 4,
+      gpuVertices: gpuVerticesOf(values, context),
     },
-    options,
-    graphics,
-    colorTexture,
+    gpu ? { ...options, regionGrid: true } : options,
+    context,
+    gpu ? undefined : colorTexture,
   );
 
+  if (gpu && smoothingData.kind === 'volume') {
+    // colors by group the instances alike: data per vertex alone; by instance per vertex and instance
+    const perInstance = smoothingData.type === 'volumeInstance';
+    setColorType(values, perInstance ? 'vertexInstance' : 'vertex');
+    ValueCell.update(
+      values.tColor,
+      createGpuLayerData(values, smoothingData, 4, graphics!, values.tColor.ref.value, perInstance),
+    );
+    return;
+  }
   if (smoothingData.kind === 'volume') {
     setColorType(values, smoothingData.type);
     ValueCell.update(values.tColorGrid, smoothingData.texture);
@@ -764,9 +1068,12 @@ export function applyMeshOverpaintSmoothing(
   options: ColorSmoothingOptions,
   graphics?: GraphicsContext,
   colorTexture?: Texture,
+  perVertexOnGpu?: boolean,
 ) {
   if (!isSupportedOverpaintType(values.overpaintType.ref.value)) return;
 
+  // per vertex: sampled on the GPU where it computes (its grid uploaded), else on the CPU (no context, no grid)
+  const gpu = !!perVertexOnGpu && !!graphics && isComputeLayerSamplingSupported(graphics);
   const smoothingData = calcMeshColorSmoothing(
     {
       vertexCount: values.uVertexCount.ref.value,
@@ -781,11 +1088,20 @@ export function applyMeshOverpaintSmoothing(
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 4,
+      gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
-    options,
-    graphics,
-    colorTexture,
+    gpu ? { ...options, regionGrid: true } : options,
+    gpu || !perVertexOnGpu ? graphics : undefined,
+    gpu ? undefined : colorTexture,
   );
+  if (gpu && smoothingData.kind === 'volume') {
+    setOverpaintType(values, 'vertexInstance');
+    ValueCell.update(
+      values.tOverpaint,
+      createGpuLayerData(values, smoothingData, 4, graphics!, values.tOverpaint.ref.value),
+    );
+    return;
+  }
   if (smoothingData.kind === 'volume') {
     setOverpaintType(values, smoothingData.type);
     ValueCell.update(values.tOverpaintGrid, smoothingData.texture);
@@ -807,9 +1123,12 @@ export function applyMeshTransparencySmoothing(
   options: ColorSmoothingOptions,
   graphics?: GraphicsContext,
   colorTexture?: Texture,
+  perVertexOnGpu?: boolean,
 ) {
   if (!isSupportedTransparencyType(values.transparencyType.ref.value)) return;
 
+  // per vertex: sampled on the GPU where it computes (its grid uploaded), else on the CPU (no context, no grid)
+  const gpu = !!perVertexOnGpu && !!graphics && isComputeLayerSamplingSupported(graphics);
   const smoothingData = calcMeshColorSmoothing(
     {
       vertexCount: values.uVertexCount.ref.value,
@@ -824,11 +1143,20 @@ export function applyMeshTransparencySmoothing(
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 1,
+      gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
-    options,
-    graphics,
-    colorTexture,
+    gpu ? { ...options, regionGrid: true } : options,
+    gpu || !perVertexOnGpu ? graphics : undefined,
+    gpu ? undefined : colorTexture,
   );
+  if (gpu && smoothingData.kind === 'volume') {
+    setTransparencyType(values, 'vertexInstance');
+    ValueCell.update(
+      values.tTransparency,
+      createGpuLayerData(values, smoothingData, 1, graphics!, values.tTransparency.ref.value),
+    );
+    return;
+  }
   if (smoothingData.kind === 'volume') {
     setTransparencyType(values, smoothingData.type);
     ValueCell.update(values.tTransparencyGrid, smoothingData.texture);
@@ -850,9 +1178,12 @@ export function applyMeshEmissiveSmoothing(
   options: ColorSmoothingOptions,
   graphics?: GraphicsContext,
   colorTexture?: Texture,
+  perVertexOnGpu?: boolean,
 ) {
   if (!isSupportedEmissiveType(values.emissiveType.ref.value)) return;
 
+  // per vertex: sampled on the GPU where it computes (its grid uploaded), else on the CPU (no context, no grid)
+  const gpu = !!perVertexOnGpu && !!graphics && isComputeLayerSamplingSupported(graphics);
   const smoothingData = calcMeshColorSmoothing(
     {
       vertexCount: values.uVertexCount.ref.value,
@@ -867,11 +1198,20 @@ export function applyMeshEmissiveSmoothing(
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 1,
+      gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
-    options,
-    graphics,
-    colorTexture,
+    gpu ? { ...options, regionGrid: true } : options,
+    gpu || !perVertexOnGpu ? graphics : undefined,
+    gpu ? undefined : colorTexture,
   );
+  if (gpu && smoothingData.kind === 'volume') {
+    setEmissiveType(values, 'vertexInstance');
+    ValueCell.update(
+      values.tEmissive,
+      createGpuLayerData(values, smoothingData, 1, graphics!, values.tEmissive.ref.value),
+    );
+    return;
+  }
   if (smoothingData.kind === 'volume') {
     setEmissiveType(values, smoothingData.type);
     ValueCell.update(values.tEmissiveGrid, smoothingData.texture);
@@ -893,9 +1233,12 @@ export function applyMeshSubstanceSmoothing(
   options: ColorSmoothingOptions,
   graphics?: GraphicsContext,
   colorTexture?: Texture,
+  perVertexOnGpu?: boolean,
 ) {
   if (!isSupportedSubstanceType(values.substanceType.ref.value)) return;
 
+  // per vertex: sampled on the GPU where it computes (its grid uploaded), else on the CPU (no context, no grid)
+  const gpu = !!perVertexOnGpu && !!graphics && isComputeLayerSamplingSupported(graphics);
   const smoothingData = calcMeshColorSmoothing(
     {
       vertexCount: values.uVertexCount.ref.value,
@@ -910,11 +1253,20 @@ export function applyMeshSubstanceSmoothing(
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 4,
+      gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
-    options,
-    graphics,
-    colorTexture,
+    gpu ? { ...options, regionGrid: true } : options,
+    gpu || !perVertexOnGpu ? graphics : undefined,
+    gpu ? undefined : colorTexture,
   );
+  if (gpu && smoothingData.kind === 'volume') {
+    setSubstanceType(values, 'vertexInstance');
+    ValueCell.update(
+      values.tSubstance,
+      createGpuLayerData(values, smoothingData, 4, graphics!, values.tSubstance.ref.value),
+    );
+    return;
+  }
   if (smoothingData.kind === 'volume') {
     setSubstanceType(values, smoothingData.type);
     ValueCell.update(values.tSubstanceGrid, smoothingData.texture);

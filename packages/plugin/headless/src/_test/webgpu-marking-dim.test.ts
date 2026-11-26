@@ -10,6 +10,7 @@ import { MarkerAction } from '@molstar/core/util/marker-action';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /** two chains of a grid of atoms, side by side: an object each, chain A on the left */
@@ -24,16 +25,31 @@ const TwoChainsPdb = `${Array.from({ length: 48 }, (_, i) => {
 
 const Size = 64;
 
+/**
+ * `pdb`'s atoms of each chain as a structure of its own, with a representation each: an object per chain (a
+ * representation's units merge into one)
+ */
+async function addPerChain(
+  plugin: HeadlessPluginContext,
+  pdb: string,
+  representation: { type: string; typeParams?: { [k: string]: unknown } },
+) {
+  const lines = pdb.split('\n').filter((l) => l.startsWith('ATOM'));
+  for (const chain of [...new Set(lines.map((l) => l[21]))]) {
+    const text = `${lines.filter((l) => l[21] === chain).join('\n')}\nEND\n`;
+    const data = await plugin.builders.data.rawData({ data: text, label: `chain ${chain}` });
+    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+    const model = await plugin.builders.structure.createModel(trajectory);
+    const structure = await plugin.builders.structure.createStructure(model);
+    await plugin.builders.structure.representation.addRepresentation(structure, representation as never);
+  }
+}
+
 describe.skipIf(!WebGPU.module)('dimming by the marking pass on WebGPU', () => {
   // dimming set after the canvas was created reached the marking pass (the frames' props kept the renderer's as created),
   // and transparent unmarked objects are dimmed (the marking depth taken from the scene's opaque depth lacked them)
   it('dims the unmarked transparent chain, the dimming set on the created canvas', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
     if (typeof ImageData === 'undefined') {
       vi.stubGlobal(
@@ -49,12 +65,8 @@ describe.skipIf(!WebGPU.module)('dimming by the marking pass on WebGPU', () => {
     }
     try {
       await plugin.init();
-      const data = await plugin.builders.data.rawData({ data: TwoChainsPdb, label: 'test' });
-      const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
-      const model = await plugin.builders.structure.createModel(trajectory);
-      const structure = await plugin.builders.structure.createStructure(model);
       // as the default preset's water: transparent, less than the marking's threshold for hiding
-      await plugin.builders.structure.representation.addRepresentation(structure, {
+      await addPerChain(plugin, TwoChainsPdb, {
         type: 'spacefill',
         typeParams: { alpha: 0.6 },
       });

@@ -25,13 +25,7 @@ import {
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { getQualityProps } from './util.js';
-import {
-  type GpuCullingValue,
-  type RenderMergedValue,
-  resolveGpuCulling,
-  resolveRenderMerged,
-  type VisualQuality,
-} from '@molstar/graphics/geo/geometry/base';
+import { type GpuCullingValue, resolveGpuCulling, type VisualQuality } from '@molstar/graphics/geo/geometry/base';
 
 type DefineValue = string | number | boolean;
 
@@ -210,16 +204,17 @@ export function getGeometrySignatures<G extends Geometry>(
 }
 
 /**
- * `signatures` and their merged variants where `props` merge the objects: `renderMerged` on, or `gpuCulling` on (an
- * object alone merged to be culled on the GPU, `gpuCulled`); not with a palette (`canMergeValues`). 'auto' (either) is
- * taken as unmerged and culled on the CPU: by the objects' counts, large objects that compile while they build
+ * `signatures` and their merged variants where the objects merge: two or more (by `counts`), an object alone culled on
+ * the GPU (`gpuCulling` on, or 'auto' by `counts`: taken as culled on the CPU without them, large objects compiling
+ * while they build), or all of them (`all`: a units representation's, a merged visual of every kind that merges; its
+ * plain signatures those of the types that do not merge alone)
  */
 export function withMergedSignatures(
   signatures: readonly ObjectSignature[],
-  props: { readonly renderMerged?: unknown; readonly gpuCulling?: unknown },
+  props: { readonly gpuCulling?: unknown },
   /**
    * the objects' counts where the data is known (`mergeRenderObjectsByType`: per type, the objects and their
-   * instances): 'auto' resolved, unmerged only where they don't merge
+   * instances): 'auto' resolved
    */
   counts?: {
     readonly objects: number;
@@ -230,11 +225,18 @@ export function withMergedSignatures(
     readonly spheres?: number;
     readonly graphics?: GraphicsContext;
   },
+  all = false,
+  /** the context where `counts` are not known (`all`: whether its spheres are culled for the sphere raster) */
+  graphics?: GraphicsContext,
 ): ObjectSignature[] {
+  let gpu = props.gpuCulling === true;
+  // spheres merged anyway, 'auto': culled for the raster at any count where the device has it (`resolveMergedCulling`)
+  const forRaster = (merged: boolean, g: GraphicsContext | undefined) =>
+    merged && props.gpuCulling === 'auto' && canCullOnGpu(g) && !!g?.capabilities.atomicMinMax64;
+  let gpuSpheres = gpu || forRaster(all, graphics);
+  let merge = all || gpu;
   if (counts) {
     const { objects, instances, levels, spheres, graphics } = counts;
-    const renderMerged = (props.renderMerged ?? 'auto') as RenderMergedValue;
-    if (renderMerged === false) return [...signatures];
     const resolve = (rasterSpheres: number) =>
       canCullOnGpu(graphics) &&
       resolveGpuCulling(
@@ -243,34 +245,40 @@ export function withMergedSignatures(
         objects * Math.max(1, levels),
         rasterSpheres,
       );
-    const gpu = resolve(0);
-    const gpuSpheres = graphics?.capabilities.atomicMinMax64 ? resolve(spheres ?? 0) : gpu;
-    const merge = gpu || gpuSpheres || (objects >= 2 && resolveRenderMerged(renderMerged, objects));
-    if (!merge) return [...signatures];
-    // both: the objects' values may not merge (`canMergeRenderObjects`, known once built), leaving them unmerged
-    const out = [...signatures];
-    for (const s of signatures) {
-      const merged = getMergedSignature(s, s.type === 'spheres' ? gpuSpheres : gpu);
-      if (merged) out.push(merged);
-    }
-    return out;
+    gpu = resolve(0);
+    gpuSpheres = graphics?.capabilities.atomicMinMax64
+      ? resolve(spheres ?? 0) || ((spheres ?? 0) > 0 && forRaster(all || objects >= 2, graphics))
+      : gpu;
+    merge = all || gpu || gpuSpheres || objects >= 2;
   }
-  const gpuCulled = props.gpuCulling === true;
-  if (props.renderMerged !== true && !gpuCulled) return [...signatures];
-  const out = [...signatures];
+  if (!merge) return [...signatures];
+  // both where not all: the objects' values may not merge (`canMergeRenderObjects`, known once built)
+  const out: ObjectSignature[] = [];
+  // the spheres' count where they are culled for the raster alone: its `auto` takes them by it
+  const rasterSpheres = !gpu && gpuSpheres ? counts?.spheres : undefined;
   for (const s of signatures) {
-    const merged = getMergedSignature(s, gpuCulled);
+    let merged = getMergedSignature(s, s.type === 'spheres' ? gpuSpheres : gpu);
+    if (merged && s.type === 'spheres' && rasterSpheres !== undefined) merged = { ...merged, rasterSpheres };
+    if (!all || !merged) out.push(s);
     if (merged) out.push(merged);
   }
   return out;
 }
 
+const MergedMeshLayerTypes = ['dOverpaintType', 'dTransparencyType', 'dEmissiveType', 'dSubstanceType'] as const;
+
 /** The signature of `s`'s objects merged, where their type merges and their values allow it (`canMergeValues`) */
 function getMergedSignature(s: ObjectSignature, gpuCulled: boolean): ObjectSignature | undefined {
-  if (!isMergeableType(s.type) || s.defines.dUsePalette) return;
+  if (!isMergeableType(s.type)) return;
   const source = getRenderableProgramSource({ type: s.type, merged: true });
   if (!source) return;
-  const defines = { ...s.defines, dSegmented: true };
+  const defines: { [k: string]: DefineValue } = { ...s.defines, dSegmented: true };
+  // a merged mesh's smoothed colors and layers are per vertex (sampled into its storage, `calcMeshColorSmoothing`
+  // without a grid object), never grids: the drawn variant, not the per-group visuals'
+  if (s.type === 'mesh') {
+    if (defines.dColorType === 'grid') defines.dColorType = 'texture';
+    for (const k of MergedMeshLayerTypes) if (defines[k] === 'volumeInstance') defines[k] = 'vertexInstance';
+  }
   const linearTextures = getSchemaLinearTextures(source.schema, defines);
   return { ...s, merged: true, defines, linearTextures, gpuCulled };
 }

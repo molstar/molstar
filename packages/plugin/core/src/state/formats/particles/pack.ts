@@ -63,8 +63,7 @@ type ParticleListFromPackStream = typeof ParticleListFromPackStream;
  * The nested list of a pack read by range (`openParticleListFromPackStream`): its top list and its templates' runs,
  * tile directories and coarse levels read, their particles read by page as the GPU's cull wants them (WebGPU's
  * nested draw: what reads all of a template's particles refuses it, read whole then). Read whole where the GPU's cull
- * is not there (`read: 'whole'`, or none at apply); the backend changed, by range or whole again as it can be drawn
- * (`syncPackStreams`)
+ * is not there at apply; the backend changed, read again as it can be drawn (`syncPackStreams`: `reread` advanced)
  */
 const ParticleListFromPackStream = PluginStateTransform.BuiltIn({
   name: 'particle-list-from-pack-stream',
@@ -81,14 +80,9 @@ const ParticleListFromPackStream = PluginStateTransform.BuiltIn({
       file: PD.File({ accept: '.mspk' }),
     }),
     label: PD.Optional(PD.Text('')),
-    read: PD.Select<'range' | 'whole'>(
-      'range',
-      [
-        ['range', 'By range'],
-        ['whole', 'Whole'],
-      ],
-      { isHidden: true, description: "Read whole: the backend's (no GPU cull to draw it by range)." },
-    ),
+    // advanced to read it again for another backend (`syncPackStreams`); how it is read the backend's at apply, not
+    // saved: a session saved on WebGL is read by range on WebGPU
+    reread: PD.Numeric(0, {}, { isHidden: true, description: 'Read again for another backend.' }),
   },
 })({
   apply({ params, cache }, plugin: PluginContext) {
@@ -102,7 +96,7 @@ const ParticleListFromPackStream = PluginStateTransform.BuiltIn({
       );
       // no GPU cull to draw it by range (a session restored on WebGL, a canvas without one): read whole, as a pack
       // opened without range reads is
-      if (params.read === 'whole' || !canCullOnGpu(plugin.canvas3d?.graphics)) {
+      if (!canCullOnGpu(plugin.canvas3d?.graphics)) {
         plugin.log.warn('Particle pack: read whole, its templates not drawn by range without WebGPU');
         const list = createParticleListFromPack(readParticlePack(await read.read(0, read.byteLength)));
         const label = params.label || list.label || 'Particles';
@@ -127,14 +121,12 @@ function hasUnreadTemplates(list: ParticleList) {
 }
 
 /**
- * How a pack read by range (`ParticleListFromPackStream`) is read again after a backend change: whole where its
- * templates are not read and the GPU's cull is gone, by range again where it was read whole for that and the cull is
- * back; undefined: as it is
+ * Whether a pack read by range (`ParticleListFromPackStream`) is read again after a backend change, by what its list
+ * is (not by a saved param): its templates not read and the GPU's cull gone (read whole then), or read whole and the
+ * cull there (by range again)
  */
-export function getPackStreamRead(culls: boolean, read: 'range' | 'whole', unread: boolean) {
-  if (!culls && unread) return 'whole';
-  if (culls && read === 'whole') return 'range';
-  return undefined;
+export function needsPackStreamReread(culls: boolean, unread: boolean) {
+  return culls !== unread;
 }
 
 /** the plugins whose backend changes `syncPackStreams` follows */
@@ -155,11 +147,10 @@ function syncPackStreams(plugin: PluginContext) {
     let changed = false;
     for (const cell of state.cells.values()) {
       if (cell.transform.transformer !== ParticleListFromPackStream) continue;
-      const params = cell.transform.params as { readonly read?: 'range' | 'whole' };
+      const params = cell.transform.params as { readonly reread?: number };
       const list = cell.obj?.data as ParticleList | undefined;
-      const read = getPackStreamRead(culls, params.read ?? 'range', !!list && hasUnreadTemplates(list));
-      if (!read) continue;
-      update.to(cell.transform.ref).update({ ...params, read });
+      if (!list || !needsPackStreamReread(culls, hasUnreadTemplates(list))) continue;
+      update.to(cell.transform.ref).update({ ...params, reread: (params.reread ?? 0) + 1 });
       changed = true;
     }
     if (!changed) return;

@@ -9,6 +9,7 @@ import { now } from '@molstar/core/util/now';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 // Temporal multi-sampling settles to the image of all its samples in one frame (mode `on`: the same offsets and
@@ -28,12 +29,8 @@ const Size = 48;
 afterEach(() => vi.unstubAllGlobals());
 
 async function create(mode: 'on' | 'temporal' | 'off', sampleLevel = 2) {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: Size, height: Size },
-    { backend: 'webgpu' },
-  );
+  // a context of its own: two modes' plugins compared, alive together (`own`)
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }, { own: true });
   await plugin.init();
   const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
   const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
@@ -84,7 +81,7 @@ describe.skipIf(!WebGPU.module)('temporal multi-sampling on WebGPU', () => {
     [2, 4, 1, 6, 0.01],
     [5, 32, 8, 32, 0.04],
   ]) {
-    it(`settles to the image of all samples at once, level ${level}`, async () => {
+    it(`settles to the image of all samples at once, level ${level}`, { tags: ['medium'] }, async () => {
       const all = await create('on', level);
       const temporal = await create('temporal', level);
       try {
@@ -134,7 +131,7 @@ describe.skipIf(!WebGPU.module)('temporal multi-sampling on WebGPU', () => {
 
   // a moving frame (each forced one restarts the samples) presents the draw pass's color target, hold and compose
   // written only when the next sample follows: its image the unjittered scene's, as without multi-sampling
-  it('draws a moving frame as without multi-sampling', async () => {
+  it('draws a moving frame as without multi-sampling', { tags: ['medium'] }, async () => {
     const off = await create('off');
     const temporal = await create('temporal');
     try {

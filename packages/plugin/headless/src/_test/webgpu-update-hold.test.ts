@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { now } from '@molstar/core/util/now';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `${Array.from({ length: 16 }, (_, i) => {
@@ -23,12 +24,7 @@ const Pdb = `${Array.from({ length: 16 }, (_, i) => {
 // representation (its draws skipped while the pipelines compile)
 describe.skipIf(!WebGPU.module)('frames after a representation update on WebGPU', () => {
   it('wait for the pipelines the update needs instead of skipping its draws', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 32, height: 32 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 32, height: 32 });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });

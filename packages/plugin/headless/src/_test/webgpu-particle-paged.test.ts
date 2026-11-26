@@ -37,6 +37,7 @@ import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { ParticleTileSetFromList, ParticleTilesView } from '@molstar/plugin/state/transforms/particles/tiles';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 // A slot view of particle tiles as a page store's object (`paged.ts`): its instances culled
@@ -126,16 +127,17 @@ const ListOf = PluginStateTransform.BuiltIn({
   apply: ({ params }) => new SO.Particle.List(params.list, { label: 'lattice' }),
 });
 
+// Medium: six scenarios of a page store and the flat view it matches, each a new device compiling the culling kernels,
+// a second or more each
+
 describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store on WebGPU', () => {
-  it("draws the flat view's frames, tiles let go and added again; picks a particle by its store index", async () => {
+  it("draws the flat view's frame by a page store's object: eight particles in four tiles, a small canvas", async () => {
+    const size = 32;
     const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
+    const plugin = await createWebGPUPlugin(
       { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
+      { width: size, height: size },
     );
-    // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
     if (typeof ImageData === 'undefined') {
       vi.stubGlobal(
         'ImageData',
@@ -156,28 +158,47 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
         cameraFog: { name: 'off', params: {} },
         multiSample: { mode: 'off' } as never,
         postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
+        // fewer pipelines to compile: no sphere raster, marking pass or pyramid
+        renderer: { ...canvas.props.renderer, sphereRaster: 'off' },
+        marking: { enabled: false } as never,
+        hiZ: { ...canvas.props.hiZ, enabled: false, gpu: false },
       });
       const graphics = canvas.graphics as WebGPUContext;
-      const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+      // the lattice's first eight particles (z 0, y 0 and 30), target 1's, rotated: four tiles of two
+      const base = createList();
+      const small: ParticleList = {
+        ...base,
+        count: 8,
+        coordinates: base.coordinates.slice(0, 8 * 3),
+        rotations: (base.rotations as Float32Array).slice(0, 8 * 4),
+        targets: (base.targets as Int32Array).slice(0, 8),
+      };
+      const list = await plugin.build().toRoot().apply(ListOf, { list: small }).commit();
       const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
-
       let time = now();
-      /** the canvas' frame once its work settled (the culling's kernels compiled: frames before draw none) */
+      /** the canvas' frame once its work settled (the culling's kernels compiled: frames before draw none): two alike */
       const frame = async () => {
+        const { pending } = graphics.resources;
+        let image: number[] = [];
         for (let i = 0; i < 12; ++i) {
+          const tracked = pending.trackedCount;
           canvas.commit(true);
-          canvas.camera.setState(canvas.camera.getFocus(Vec3.create(45, 45, 45), 70), 0);
+          canvas.camera.setState(canvas.camera.getFocus(Vec3.create(45, 15, 0), 50), 0);
           canvas.requestDraw();
           canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
-          await graphics.resources.pending.whenReady();
+          await pending.whenReady();
+          const next = Array.from((await graphics.readDrawingBuffer()).data);
+          const same = pending.trackedCount === tracked && next.every((v, k) => v === image[k]);
+          image = next;
+          if (same) break;
         }
-        return Array.from((await graphics.readDrawingBuffer()).data);
+        return image;
       };
-      const view = async (ids: string, slots: boolean) => {
+      const view = async (slots: boolean) => {
         const v = await plugin
           .build()
           .to(tiles.ref)
-          .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids } }, frame: 0, slots })
+          .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-3' } }, frame: 0, slots })
           .commit();
         const repr = await plugin
           .build()
@@ -189,13 +210,7 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
           .commit();
         return { view: v, repr };
       };
-      const flatFrame = async (ids: string) => {
-        const { view: v } = await view(ids, false);
-        const image = await frame();
-        await plugin.build().delete(v.ref).commit();
-        return image;
-      };
-      /** pixels differing (none on Dawn): a composed pose's quaternion snorm16, a pixel off at an edge on others */
+      /** pixels differing: a composed pose's quaternion snorm16, a pixel off at an edge */
       const differing = (a: number[], b: number[]) => {
         let n = 0;
         for (let i = 0; i < a.length; i += 4) {
@@ -203,297 +218,609 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
         }
         return n;
       };
+      const flat = await view(false);
+      const flatImage = await frame();
+      await plugin.build().delete(flat.view.ref).commit();
+      expect(new Set(flatImage).size).toBeGreaterThan(3);
 
-      const allFlat = await flatFrame('0-7');
-      const someFlat = await flatFrame('0, 2, 5');
-      expect(new Set(allFlat).size).toBeGreaterThan(3);
-      expect(differing(someFlat, allFlat)).toBeGreaterThan(20);
-
-      const { view: v, repr } = await view('0-7', true);
-      const r = repr.data!.repr;
+      const paged = await view(true);
+      const r = paged.repr.data!.repr;
       expect(r.renderObjects).toHaveLength(1);
-      const object = r.renderObjects[0] as MergedGraphicsRenderObject;
-      expect(object.merged.source?.paged).toBeDefined();
-      const allPaged = await frame();
-      expect(differing(allPaged, allFlat)).toBeLessThanOrEqual(8);
+      expect((r.renderObjects[0] as MergedGraphicsRenderObject).merged.source?.paged).toBeDefined();
+      expect(differing(await frame(), flatImage)).toBeLessThanOrEqual(8);
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
 
-      const setIds = async (ids: string) => {
-        await plugin
-          .build()
-          .to(v.ref)
-          .update(ParticleTilesView, (old) => ({ ...old, tiles: { name: 'ids', params: { ids } } }))
-          .commit();
-        return frame();
-      };
-      // tiles let go: their pages free; the object kept
-      expect(differing(await setIds('0, 2, 5'), someFlat)).toBeLessThanOrEqual(8);
-      expect(r.renderObjects[0]).toBe(object);
-      // added again
-      expect(differing(await setIds('0-7'), allFlat)).toBeLessThanOrEqual(8);
-      expect(r.renderObjects[0]).toBe(object);
-
-      // a pick: an instance's store index its particle's slot
-      const slots = v.cell!.obj!.data;
-      const loci = r.getLoci({ objectId: object.id, instanceId: 0, groupId: 0 }) as Particle.Loci;
-      expect(Particle.isLoci(loci)).toBe(true);
-      expect(loci.particles).toBe(slots);
-      const slot = OrderedSet.getAt(loci.indices, 0);
-      expect(ParticleSlots.findPage(slots, slot)).toBeGreaterThanOrEqual(0);
-      // a store index past the pages' particles none
-      expect(Particle.isLoci(r.getLoci({ objectId: object.id, instanceId: 1 << 30, groupId: 0 }))).toBe(false);
-
-      // a pick through the canvas: an instance drawn, its particle
-      let picked: Particle.Loci | undefined;
-      for (let y = 2; y < Size && !picked; y += 4) {
-        for (let x = 2; x < Size && !picked; x += 4) {
-          let hit = canvas.identify(Vec2.create(x, y));
-          for (let i = 0; i < 50 && hit === 'pending'; ++i) {
-            await new Promise((r) => setTimeout(r, 10));
-            hit = canvas.identify(Vec2.create(x, y));
-          }
-          if (!hit || hit === 'pending' || hit.id.objectId !== object.id) continue;
-          const l = r.getLoci(hit.id);
-          if (Particle.isLoci(l)) picked = l;
-        }
+  it(
+    "draws the flat view's frames, tiles let go and added again; picks a particle by its store index",
+    { tags: ['medium'] },
+    async () => {
+      const spec = DefaultPluginSpec();
+      const plugin = await createWebGPUPlugin(
+        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
+        { width: Size, height: Size },
+      );
+      // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
+      if (typeof ImageData === 'undefined') {
+        vi.stubGlobal(
+          'ImageData',
+          class {
+            constructor(
+              readonly data: Uint8ClampedArray,
+              readonly width: number,
+              readonly height: number,
+            ) {}
+          },
+        );
       }
-      expect(picked).toBeDefined();
-      expect(ParticleSlots.findPage(slots, OrderedSet.getAt(picked!.indices, 0))).toBeGreaterThanOrEqual(0);
+      try {
+        await plugin.init();
+        const canvas = plugin.canvas3d!;
+        canvas.setProps({
+          camera: { mode: 'orthographic' } as never,
+          cameraFog: { name: 'off', params: {} },
+          multiSample: { mode: 'off' } as never,
+          postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
+        });
+        const graphics = canvas.graphics as WebGPUContext;
+        const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+        const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
 
-      // marked by store index: the object's markers (a highlight not drawn in a headless frame, the tile store's alike)
-      const markers = object.values as unknown as { markerAverage: { ref: { value: number } } };
-      expect(r.mark(picked!, MarkerAction.Highlight)).toBe(true);
-      expect(markers.markerAverage.ref.value).toBeGreaterThan(0);
-      // its tile let go and added again (other pages, or the same reused): its markers clear
-      const tileOf = (slot: number) =>
-        tiles.data!.set.tiles.values().find((t) => slot >= t.base && slot < t.base + t.count)!.id;
-      const tile = tileOf(OrderedSet.getAt(picked!.indices, 0));
-      const others = [0, 1, 2, 3, 4, 5, 6, 7].filter((id) => id !== tile).join(',');
-      await setIds(others);
-      await setIds('0-7');
-      expect(markers.markerAverage.ref.value).toBe(0);
-      expect(differing(await frame(), allFlat)).toBeLessThanOrEqual(8);
+        let time = now();
+        /** the canvas' frame once its work settled (the culling's kernels compiled: frames before draw none) */
+        const frame = async () => {
+          for (let i = 0; i < 12; ++i) {
+            canvas.commit(true);
+            canvas.camera.setState(canvas.camera.getFocus(Vec3.create(45, 45, 45), 70), 0);
+            canvas.requestDraw();
+            canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
+            await graphics.resources.pending.whenReady();
+          }
+          return Array.from((await graphics.readDrawingBuffer()).data);
+        };
+        const view = async (ids: string, slots: boolean) => {
+          const v = await plugin
+            .build()
+            .to(tiles.ref)
+            .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids } }, frame: 0, slots })
+            .commit();
+          const repr = await plugin
+            .build()
+            .to(v.ref)
+            .apply(ParticlesRepresentation3D, {
+              type: { name: 'target', params: { lodPixelSize: 0 } },
+              colorTheme: { name: 'particle-index', params: {} },
+            } as never)
+            .commit();
+          return { view: v, repr };
+        };
+        const flatFrame = async (ids: string) => {
+          const { view: v } = await view(ids, false);
+          const image = await frame();
+          await plugin.build().delete(v.ref).commit();
+          return image;
+        };
+        /** pixels differing (none on Dawn): a composed pose's quaternion snorm16, a pixel off at an edge on others */
+        const differing = (a: number[], b: number[]) => {
+          let n = 0;
+          for (let i = 0; i < a.length; i += 4) {
+            if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 6) n += 1;
+          }
+          return n;
+        };
 
-      expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
-  }, 120_000);
+        const allFlat = await flatFrame('0-7');
+        const someFlat = await flatFrame('0, 2, 5');
+        expect(new Set(allFlat).size).toBeGreaterThan(3);
+        expect(differing(someFlat, allFlat)).toBeGreaterThan(20);
 
-  it("culls by occlusion in two phases as the flat view's culler: the frames of a jump to a view along the lattice's rows the same", async () => {
-    const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
-      // large enough for the pyramid to resolve a small sphere behind a large one
-      { width: OcclusionSize, height: OcclusionSize },
-      { backend: 'webgpu' },
-    );
-    if (typeof ImageData === 'undefined') {
-      vi.stubGlobal(
-        'ImageData',
-        class {
-          constructor(
-            readonly data: Uint8ClampedArray,
-            readonly width: number,
-            readonly height: number,
-          ) {}
-        },
-      );
-    }
-    try {
-      await plugin.init();
-      const canvas = plugin.canvas3d!;
-      canvas.setProps({
-        camera: { mode: 'perspective' } as never,
-        cameraFog: { name: 'off', params: {} },
-        multiSample: { mode: 'off' } as never,
-        postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
-        // the GPU's pyramid, two phases (the second the frame's depth so far)
-        hiZ: { ...canvas.props.hiZ, enabled: false, gpu: true, twoPhase: true },
-      });
-      canvas.handleResize();
-      const graphics = canvas.graphics as WebGPUContext;
-      const list = await plugin.build().toRoot().apply(ListOf, { list: createOccluderList() }).commit();
-      const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
-      let time = now();
-      const tick = async () => {
-        canvas.commit(true);
-        canvas.requestDraw();
-        canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
-        await graphics.resources.pending.whenReady();
-        return Array.from((await graphics.readDrawingBuffer()).data);
-      };
-      /** a view along z settled, then a jump to one along x: its first frame (the second phase's), and settled */
-      const jump = async (slots: boolean) => {
-        const v = await plugin
-          .build()
-          .to(tiles.ref)
-          .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots })
-          .commit();
-        await plugin
-          .build()
-          .to(v.ref)
-          .apply(ParticlesRepresentation3D, {
-            type: { name: 'target', params: { lodPixelSize: 0 } },
-            colorTheme: { name: 'particle-index', params: {} },
-          } as never)
-          .commit();
-        // along z: each column's back particles hidden by its front one (the pyramid's)
-        const look = (position: Vec3) =>
-          canvas.camera.setState(
-            { target: Vec3.create(45, 45, 45), position, up: Vec3.create(0, 1, 0), radius: 80 },
-            0,
-          );
-        look(Vec3.create(45, 45, 400));
-        for (let i = 0; i < 12; ++i) await tick();
-        // along x: those in sight, culled by the first phase (the last pyramid's), found by the second
-        look(Vec3.create(400, 45, 45));
-        const first = await tick();
-        for (let i = 0; i < 6; ++i) await tick();
-        const settled = await tick();
-        await plugin.build().delete(v.ref).commit();
-        return { first, settled };
-      };
-      const differing = (a: number[], b: number[]) => {
-        let n = 0;
-        for (let i = 0; i < a.length; i += 4) {
-          if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 6) n += 1;
+        const { view: v, repr } = await view('0-7', true);
+        const r = repr.data!.repr;
+        expect(r.renderObjects).toHaveLength(1);
+        const object = r.renderObjects[0] as MergedGraphicsRenderObject;
+        expect(object.merged.source?.paged).toBeDefined();
+        const allPaged = await frame();
+        expect(differing(allPaged, allFlat)).toBeLessThanOrEqual(8);
+
+        const setIds = async (ids: string) => {
+          await plugin
+            .build()
+            .to(v.ref)
+            .update(ParticleTilesView, (old) => ({ ...old, tiles: { name: 'ids', params: { ids } } }))
+            .commit();
+          return frame();
+        };
+        // tiles let go: their pages free; the object kept
+        expect(differing(await setIds('0, 2, 5'), someFlat)).toBeLessThanOrEqual(8);
+        expect(r.renderObjects[0]).toBe(object);
+        // added again
+        expect(differing(await setIds('0-7'), allFlat)).toBeLessThanOrEqual(8);
+        expect(r.renderObjects[0]).toBe(object);
+
+        // a pick: an instance's store index its particle's slot
+        const slots = v.cell!.obj!.data;
+        const loci = r.getLoci({ objectId: object.id, instanceId: 0, groupId: 0 }) as Particle.Loci;
+        expect(Particle.isLoci(loci)).toBe(true);
+        expect(loci.particles).toBe(slots);
+        const slot = OrderedSet.getAt(loci.indices, 0);
+        expect(ParticleSlots.findPage(slots, slot)).toBeGreaterThanOrEqual(0);
+        // a store index past the pages' particles none
+        expect(Particle.isLoci(r.getLoci({ objectId: object.id, instanceId: 1 << 30, groupId: 0 }))).toBe(false);
+
+        // a pick through the canvas: an instance drawn, its particle
+        let picked: Particle.Loci | undefined;
+        for (let y = 2; y < Size && !picked; y += 4) {
+          for (let x = 2; x < Size && !picked; x += 4) {
+            let hit = canvas.identify(Vec2.create(x, y));
+            for (let i = 0; i < 50 && hit === 'pending'; ++i) {
+              await new Promise((r) => setTimeout(r, 10));
+              hit = canvas.identify(Vec2.create(x, y));
+            }
+            if (!hit || hit === 'pending' || hit.id.objectId !== object.id) continue;
+            const l = r.getLoci(hit.id);
+            if (Particle.isLoci(l)) picked = l;
+          }
         }
-        return n;
-      };
-      const flat = await jump(false);
-      const paged = await jump(true);
-      expect(new Set(flat.settled).size).toBeGreaterThan(3);
-      expect(differing(paged.first, flat.first)).toBeLessThanOrEqual(8);
-      expect(differing(paged.settled, flat.settled)).toBeLessThanOrEqual(8);
-      expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
-  }, 120_000);
+        expect(picked).toBeDefined();
+        expect(ParticleSlots.findPage(slots, OrderedSet.getAt(picked!.indices, 0))).toBeGreaterThanOrEqual(0);
 
-  it("clips as the flat view's culler, drawing the ghost of what the clip objects remove: by pixel and by instance", async () => {
-    const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
-    if (typeof ImageData === 'undefined') {
-      vi.stubGlobal(
-        'ImageData',
-        class {
-          constructor(
-            readonly data: Uint8ClampedArray,
-            readonly width: number,
-            readonly height: number,
-          ) {}
-        },
+        // marked by store index: the object's markers (a highlight not drawn in a headless frame, the tile store's alike)
+        const markers = object.values as unknown as { markerAverage: { ref: { value: number } } };
+        expect(r.mark(picked!, MarkerAction.Highlight)).toBe(true);
+        expect(markers.markerAverage.ref.value).toBeGreaterThan(0);
+        // its tile let go and added again (other pages, or the same reused): its markers clear
+        const tileOf = (slot: number) =>
+          tiles.data!.set.tiles.values().find((t) => slot >= t.base && slot < t.base + t.count)!.id;
+        const tile = tileOf(OrderedSet.getAt(picked!.indices, 0));
+        const others = [0, 1, 2, 3, 4, 5, 6, 7].filter((id) => id !== tile).join(',');
+        await setIds(others);
+        await setIds('0-7');
+        expect(markers.markerAverage.ref.value).toBe(0);
+        expect(differing(await frame(), allFlat)).toBeLessThanOrEqual(8);
+
+        expect(graphics.takeErrors?.() ?? []).toEqual([]);
+      } finally {
+        plugin.dispose();
+      }
+    },
+    120_000,
+  );
+
+  it(
+    "culls by occlusion in two phases as the flat view's culler: the frames of a jump to a view along the lattice's rows the same",
+    { tags: ['medium'] },
+    async () => {
+      const spec = DefaultPluginSpec();
+      const plugin = await createWebGPUPlugin(
+        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] }, // large enough for the pyramid to resolve a small sphere behind a large one
+        { width: OcclusionSize, height: OcclusionSize },
       );
-    }
-    try {
-      await plugin.init();
-      const canvas = plugin.canvas3d!;
-      canvas.setProps({
-        camera: { mode: 'orthographic' } as never,
-        cameraFog: { name: 'off', params: {} },
-        multiSample: { mode: 'off' } as never,
-        postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
-      });
-      const graphics = canvas.graphics as WebGPUContext;
-      const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
-      const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
-      let time = now();
-      const frame = async () => {
-        for (let i = 0; i < 12; ++i) {
+      if (typeof ImageData === 'undefined') {
+        vi.stubGlobal(
+          'ImageData',
+          class {
+            constructor(
+              readonly data: Uint8ClampedArray,
+              readonly width: number,
+              readonly height: number,
+            ) {}
+          },
+        );
+      }
+      try {
+        await plugin.init();
+        const canvas = plugin.canvas3d!;
+        canvas.setProps({
+          camera: { mode: 'perspective' } as never,
+          cameraFog: { name: 'off', params: {} },
+          multiSample: { mode: 'off' } as never,
+          postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
+          // the GPU's pyramid, two phases (the second the frame's depth so far)
+          hiZ: { ...canvas.props.hiZ, enabled: false, gpu: true, twoPhase: true },
+        });
+        canvas.handleResize();
+        const graphics = canvas.graphics as WebGPUContext;
+        const list = await plugin.build().toRoot().apply(ListOf, { list: createOccluderList() }).commit();
+        const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
+        let time = now();
+        const tick = async () => {
           canvas.commit(true);
-          canvas.camera.setState(canvas.camera.getFocus(Vec3.create(45, 45, 45), 70), 0);
           canvas.requestDraw();
           canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
           await graphics.resources.pending.whenReady();
-        }
-        return Array.from((await graphics.readDrawingBuffer()).data);
-      };
-      /** a plane through the lattice's middle, tilted: a particle cut by it, others whole on either side */
-      const clip = (variant: 'pixel' | 'instance') => ({
-        variant,
-        objects: [
-          {
-            type: 'plane' as const,
-            invert: false,
-            position: Vec3.create(44, 45, 45),
-            rotation: { axis: Vec3.create(0, 1, 0.3), angle: 70 },
-            scale: Vec3.create(1, 1, 1),
-            transform: Mat4.identity(),
-          },
-        ],
-      });
-      const image = async (slots: boolean, variant: 'pixel' | 'instance') => {
-        const v = await plugin
-          .build()
-          .to(tiles.ref)
-          .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots })
-          .commit();
-        await plugin
-          .build()
-          .to(v.ref)
-          .apply(ParticlesRepresentation3D, {
-            type: { name: 'target', params: { lodPixelSize: 0, clip: clip(variant) } },
-            colorTheme: { name: 'particle-index', params: {} },
-          } as never)
-          .commit();
-        const ghosted = await frame();
-        canvas.setProps({ clipGhost: { name: 'off', params: {} } });
-        const plain = await frame();
-        canvas.setProps({ clipGhost: { name: 'on', params: { ...PD.getDefaultValues(ClipGhostParams), alpha: 0.5 } } });
-        await plugin.build().delete(v.ref).commit();
-        return { ghosted, plain };
-      };
-      const differing = (a: number[], b: number[]) => {
-        let n = 0;
-        for (let i = 0; i < a.length; i += 4) {
-          if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 6) n += 1;
-        }
-        return n;
-      };
-      canvas.setProps({ clipGhost: { name: 'on', params: { ...PD.getDefaultValues(ClipGhostParams), alpha: 0.5 } } });
-      const whole = await (async () => {
-        const v = await plugin
-          .build()
-          .to(tiles.ref)
-          .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots: false })
-          .commit();
-        await plugin
-          .build()
-          .to(v.ref)
-          .apply(ParticlesRepresentation3D, {
-            type: { name: 'target', params: { lodPixelSize: 0 } },
-            colorTheme: { name: 'particle-index', params: {} },
-          } as never)
-          .commit();
-        const f = await frame();
-        await plugin.build().delete(v.ref).commit();
-        return f;
-      })();
-      for (const variant of ['pixel', 'instance'] as const) {
-        const flat = await image(false, variant);
-        const paged = await image(true, variant);
-        // something clipped, and its ghost drawn
-        expect(differing(flat.plain, whole)).toBeGreaterThan(20);
-        expect(differing(flat.ghosted, flat.plain)).toBeGreaterThan(20);
-        expect(differing(paged.plain, flat.plain)).toBeLessThanOrEqual(8);
-        expect(differing(paged.ghosted, flat.ghosted)).toBeLessThanOrEqual(8);
+          return Array.from((await graphics.readDrawingBuffer()).data);
+        };
+        /** a view along z settled, then a jump to one along x: its first frame (the second phase's), and settled */
+        const jump = async (slots: boolean) => {
+          const v = await plugin
+            .build()
+            .to(tiles.ref)
+            .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots })
+            .commit();
+          await plugin
+            .build()
+            .to(v.ref)
+            .apply(ParticlesRepresentation3D, {
+              type: { name: 'target', params: { lodPixelSize: 0 } },
+              colorTheme: { name: 'particle-index', params: {} },
+            } as never)
+            .commit();
+          // along z: each column's back particles hidden by its front one (the pyramid's)
+          const look = (position: Vec3) =>
+            canvas.camera.setState(
+              { target: Vec3.create(45, 45, 45), position, up: Vec3.create(0, 1, 0), radius: 80 },
+              0,
+            );
+          look(Vec3.create(45, 45, 400));
+          for (let i = 0; i < 12; ++i) await tick();
+          // along x: those in sight, culled by the first phase (the last pyramid's), found by the second
+          look(Vec3.create(400, 45, 45));
+          const first = await tick();
+          for (let i = 0; i < 6; ++i) await tick();
+          const settled = await tick();
+          await plugin.build().delete(v.ref).commit();
+          return { first, settled };
+        };
+        const differing = (a: number[], b: number[]) => {
+          let n = 0;
+          for (let i = 0; i < a.length; i += 4) {
+            if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 6) n += 1;
+          }
+          return n;
+        };
+        const flat = await jump(false);
+        const paged = await jump(true);
+        expect(new Set(flat.settled).size).toBeGreaterThan(3);
+        expect(differing(paged.first, flat.first)).toBeLessThanOrEqual(8);
+        expect(differing(paged.settled, flat.settled)).toBeLessThanOrEqual(8);
+        expect(graphics.takeErrors?.() ?? []).toEqual([]);
+      } finally {
+        plugin.dispose();
       }
+    },
+    120_000,
+  );
 
-      // a cut moved as a clipping gizmo's drag moves it (a clip-only update of the representation, not the state's):
-      // the store's object kept, no page written again, the image of the moved cut's representation
-      const moved = (() => {
-        const c = clip('pixel');
-        return { ...c, objects: [{ ...c.objects[0], position: Vec3.create(30, 45, 45) }] };
-      })();
-      canvas.setProps({ clipGhost: { name: 'off', params: {} } });
-      const paged = async (c: ReturnType<typeof clip>) => {
+  it(
+    "clips as the flat view's culler, drawing the ghost of what the clip objects remove: by pixel and by instance",
+    { tags: ['medium'] },
+    async () => {
+      const spec = DefaultPluginSpec();
+      const plugin = await createWebGPUPlugin(
+        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
+        { width: Size, height: Size },
+      );
+      if (typeof ImageData === 'undefined') {
+        vi.stubGlobal(
+          'ImageData',
+          class {
+            constructor(
+              readonly data: Uint8ClampedArray,
+              readonly width: number,
+              readonly height: number,
+            ) {}
+          },
+        );
+      }
+      try {
+        await plugin.init();
+        const canvas = plugin.canvas3d!;
+        canvas.setProps({
+          camera: { mode: 'orthographic' } as never,
+          cameraFog: { name: 'off', params: {} },
+          multiSample: { mode: 'off' } as never,
+          postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
+        });
+        const graphics = canvas.graphics as WebGPUContext;
+        const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+        const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
+        let time = now();
+        const frame = async () => {
+          for (let i = 0; i < 12; ++i) {
+            canvas.commit(true);
+            canvas.camera.setState(canvas.camera.getFocus(Vec3.create(45, 45, 45), 70), 0);
+            canvas.requestDraw();
+            canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
+            await graphics.resources.pending.whenReady();
+          }
+          return Array.from((await graphics.readDrawingBuffer()).data);
+        };
+        /** a plane through the lattice's middle, tilted: a particle cut by it, others whole on either side */
+        const clip = (variant: 'pixel' | 'instance') => ({
+          variant,
+          objects: [
+            {
+              type: 'plane' as const,
+              invert: false,
+              position: Vec3.create(44, 45, 45),
+              rotation: { axis: Vec3.create(0, 1, 0.3), angle: 70 },
+              scale: Vec3.create(1, 1, 1),
+              transform: Mat4.identity(),
+            },
+          ],
+        });
+        const image = async (slots: boolean, variant: 'pixel' | 'instance') => {
+          const v = await plugin
+            .build()
+            .to(tiles.ref)
+            .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots })
+            .commit();
+          await plugin
+            .build()
+            .to(v.ref)
+            .apply(ParticlesRepresentation3D, {
+              type: { name: 'target', params: { lodPixelSize: 0, clip: clip(variant) } },
+              colorTheme: { name: 'particle-index', params: {} },
+            } as never)
+            .commit();
+          const ghosted = await frame();
+          canvas.setProps({ clipGhost: { name: 'off', params: {} } });
+          const plain = await frame();
+          canvas.setProps({
+            clipGhost: { name: 'on', params: { ...PD.getDefaultValues(ClipGhostParams), alpha: 0.5 } },
+          });
+          await plugin.build().delete(v.ref).commit();
+          return { ghosted, plain };
+        };
+        const differing = (a: number[], b: number[]) => {
+          let n = 0;
+          for (let i = 0; i < a.length; i += 4) {
+            if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 6) n += 1;
+          }
+          return n;
+        };
+        canvas.setProps({ clipGhost: { name: 'on', params: { ...PD.getDefaultValues(ClipGhostParams), alpha: 0.5 } } });
+        const whole = await (async () => {
+          const v = await plugin
+            .build()
+            .to(tiles.ref)
+            .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots: false })
+            .commit();
+          await plugin
+            .build()
+            .to(v.ref)
+            .apply(ParticlesRepresentation3D, {
+              type: { name: 'target', params: { lodPixelSize: 0 } },
+              colorTheme: { name: 'particle-index', params: {} },
+            } as never)
+            .commit();
+          const f = await frame();
+          await plugin.build().delete(v.ref).commit();
+          return f;
+        })();
+        for (const variant of ['pixel', 'instance'] as const) {
+          const flat = await image(false, variant);
+          const paged = await image(true, variant);
+          // something clipped, and its ghost drawn
+          expect(differing(flat.plain, whole)).toBeGreaterThan(20);
+          expect(differing(flat.ghosted, flat.plain)).toBeGreaterThan(20);
+          expect(differing(paged.plain, flat.plain)).toBeLessThanOrEqual(8);
+          expect(differing(paged.ghosted, flat.ghosted)).toBeLessThanOrEqual(8);
+        }
+
+        // a cut moved as a clipping gizmo's drag moves it (a clip-only update of the representation, not the state's):
+        // the store's object kept, no page written again, the image of the moved cut's representation
+        const moved = (() => {
+          const c = clip('pixel');
+          return { ...c, objects: [{ ...c.objects[0], position: Vec3.create(30, 45, 45) }] };
+        })();
+        canvas.setProps({ clipGhost: { name: 'off', params: {} } });
+        const paged = async (c: ReturnType<typeof clip>) => {
+          const v = await plugin
+            .build()
+            .to(tiles.ref)
+            .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots: true })
+            .commit();
+          const repr = await plugin
+            .build()
+            .to(v.ref)
+            .apply(ParticlesRepresentation3D, {
+              type: { name: 'target', params: { lodPixelSize: 0, clip: c } },
+              colorTheme: { name: 'particle-index', params: {} },
+            } as never)
+            .commit();
+          return { v, repr: repr.data!.repr };
+        };
+        const reference = await (async () => {
+          const { v } = await paged(moved);
+          const f = await frame();
+          await plugin.build().delete(v.ref).commit();
+          return f;
+        })();
+        const dragged = await paged(clip('pixel'));
+        const before = await frame();
+        expect(differing(before, reference)).toBeGreaterThan(20);
+        const object = dragged.repr.renderObjects[0];
+        const written = vi.spyOn(ParticlePageStore.prototype, 'add');
+        await dragged.repr.createOrUpdate({ ...dragged.repr.props, clip: moved }).run();
+        expect(written).not.toHaveBeenCalled();
+        written.mockRestore();
+        expect(dragged.repr.renderObjects[0]).toBe(object);
+        expect(differing(await frame(), reference)).toBeLessThanOrEqual(8);
+        await plugin.build().delete(dragged.v.ref).commit();
+        expect(graphics.takeErrors?.() ?? []).toEqual([]);
+      } finally {
+        plugin.dispose();
+      }
+    },
+    120_000,
+  );
+
+  it(
+    "splits for the sphere raster as the flat view's culler: its regions' instances drawn by the raster, the same image",
+    { tags: ['medium'] },
+    async () => {
+      const spec = DefaultPluginSpec();
+      const plugin = await createWebGPUPlugin(
+        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
+        { width: Size, height: Size },
+      );
+      try {
+        await plugin.init();
+        const graphics = plugin.canvas3d!.graphics as WebGPUContext;
+        if (!graphics.capabilities.atomicMinMax64) return;
+        const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+        const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
+        /** a view's objects: the flat view's (an object a target) or the page store's */
+        const objectOf = async (slots: boolean) => {
+          const v = await plugin
+            .build()
+            .to(tiles.ref)
+            .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots })
+            .commit();
+          const repr = await plugin
+            .build()
+            .to(v.ref)
+            .apply(ParticlesRepresentation3D, {
+              // culled on the GPU: the flat view's targets merged (two or more), split by the raster per instance
+              type: { name: 'target', params: { lodPixelSize: 0, gpuCulling: true } },
+              colorTheme: { name: 'particle-index', params: {} },
+            } as never)
+            .commit();
+          return repr.data!.repr.renderObjects as MergedGraphicsRenderObject[];
+        };
+        const flatObjects = await objectOf(false);
+        const pagedObjects = await objectOf(true);
+        expect(pagedObjects).toHaveLength(1);
+        expect(pagedObjects[0].merged.source?.paged).toBeDefined();
+        expect(flatObjects.some((o) => o.merged?.source?.paged)).toBe(false);
+
+        const camera = new Camera();
+        Viewport.set(camera.viewport, 0, 0, Size, Size);
+        camera.setState({ ...camera.getFocus(Vec3.create(45, 45, 45), 70), radiusMax: 200 }, 0);
+        camera.update();
+        const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
+        /** the objects' frame by a renderer of `props` in a scene of their own; their raster's inputs and resolves */
+        const render = async (objects: MergedGraphicsRenderObject[], props: Partial<RendererProps>) => {
+          const scene = Scene.create(graphics);
+          for (const o of objects) scene.add(o);
+          scene.commit();
+          type Input = ReturnType<NonNullable<(typeof scene.renderables)[0]['getRasterInput']>>;
+          const inputs = new Map<number, Input>();
+          const restores: (() => void)[] = [];
+          let resolved = 0;
+          for (const [k, renderable] of scene.renderables.entries()) {
+            const getRasterInput = renderable.getRasterInput;
+            if (getRasterInput) {
+              renderable.getRasterInput = (...args) => {
+                const input = getRasterInput(...args) ?? inputs.get(k);
+                inputs.set(k, input);
+                return input;
+              };
+            }
+            const item = renderable.renderItem;
+            const renderFullscreen = item.renderFullscreen!;
+            item.renderFullscreen = (...args) => {
+              const drawn = renderFullscreen(...args);
+              if (drawn) resolved += 1;
+              return drawn;
+            };
+            restores.push(() => {
+              renderable.getRasterInput = getRasterInput;
+              item.renderFullscreen = renderFullscreen;
+            });
+          }
+          // drawn directly (no draw lists: a replayed recording counts no draw)
+          const renderer = Renderer.create(graphics, { ...props, drawLists: false });
+          await graphics.resources.preparePipelines(
+            renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
+          );
+          const frame = async () => {
+            resolved = 0;
+            renderer.setViewport(0, 0, Size, Size);
+            renderer.update(camera, scene, createFrame());
+            renderer.prepareCull(scene);
+            renderer.prepareSphereRaster(scene, camera);
+            graphics.beginRenderPass(target);
+            renderer.clear(true);
+            renderer.renderOpaque(scene, camera);
+            graphics.flush();
+            return Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+          };
+          let pixels: number[] = [];
+          for (let i = 0; i < 30; ++i) {
+            pixels = await frame();
+            await graphics.resources.pending.whenReady();
+            if (props.sphereRaster === 'off' ? i > 3 : resolved > 0 && i > 3) break;
+          }
+          // the indirect records the last frame encoded, the camera moved a little (a view still keeps the records its
+          // read-back counted: the predicted ones alone while it moves; counted in timing mode)
+          const { calls } = graphics.stats;
+          const { position } = camera.state;
+          camera.setState({ position: Vec3.create(position[0] + 0.01, position[1], position[2]) }, 0);
+          camera.update();
+          setTimingMode(true);
+          const encoded = calls.drawInstancedBase;
+          try {
+            pixels = await frame();
+          } finally {
+            setTimingMode(false);
+          }
+          const records = calls.drawInstancedBase - encoded;
+          // the raster's regions' instances, by its records
+          let rastered = 0;
+          for (const input of inputs.values()) {
+            if (!input) continue;
+            const records = new Uint32Array(await input.records.readAsync());
+            for (let r = input.recordBase; r < 2 * input.recordBase; ++r)
+              rastered += records[r * input.recordWords + 1];
+          }
+          for (const restore of restores) restore();
+          renderer.dispose();
+          scene.clear();
+          return { pixels, resolved, rastered, records };
+        };
+        const differing = (a: number[], b: number[]) => {
+          let n = 0;
+          for (let i = 0; i < a.length; i += 4) {
+            if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 24) n += 1;
+          }
+          return n;
+        };
+        // every sphere small enough for the raster
+        const on: Partial<RendererProps> = { sphereRaster: 'on', sphereRasterRadius: 64 };
+        const flat = await render(flatObjects, on);
+        const paged = await render(pagedObjects, on);
+        // a later scene's culler of the same store too (its first sync every page: the changes taken by the first)
+        const impostors = await render(pagedObjects, { sphereRaster: 'off' });
+        expect(new Set(impostors.pixels).size).toBeGreaterThan(4);
+        expect(flat.resolved).toBeGreaterThan(0);
+        expect(paged.resolved).toBeGreaterThan(0);
+        // every particle in view the raster's (the flat view's objects split by the raster per instance)
+        expect(paged.rastered).toBe(Count);
+        // a member the raster takes all of (its largest sphere within its radius at the member's nearest): its impostor
+        // record not predicted, fewer encoded than the impostors alone draw (a member reaching near the camera kept)
+        expect(impostors.records).toBe(2);
+        expect(paged.records).toBe(1);
+        expect(differing(paged.pixels, flat.pixels)).toBeLessThanOrEqual(8);
+        // the raster's image the impostors', but where its arithmetic and the fragment stage's decide an edge differently
+        expect(differing(paged.pixels, impostors.pixels)).toBeLessThanOrEqual(Size * Size * 0.02);
+        target.destroy();
+        expect(graphics.takeErrors?.() ?? []).toEqual([]);
+      } finally {
+        plugin.dispose();
+      }
+    },
+    120_000,
+  );
+
+  it(
+    'culls on the GPU for views of their own: a frame and camera of its own, a second camera of a frame',
+    { tags: ['medium'] },
+    async () => {
+      const spec = DefaultPluginSpec();
+      const plugin = await createWebGPUPlugin(
+        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
+        { width: Size, height: Size },
+      );
+      try {
+        await plugin.init();
+        const graphics = plugin.canvas3d!.graphics as WebGPUContext;
+        const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
+        const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
         const v = await plugin
           .build()
           .to(tiles.ref)
@@ -503,424 +830,228 @@ describe.skipIf(!WebGPU.module)('a slot view of particle tiles as a page store o
           .build()
           .to(v.ref)
           .apply(ParticlesRepresentation3D, {
-            type: { name: 'target', params: { lodPixelSize: 0, clip: c } },
-            colorTheme: { name: 'particle-index', params: {} },
-          } as never)
-          .commit();
-        return { v, repr: repr.data!.repr };
-      };
-      const reference = await (async () => {
-        const { v } = await paged(moved);
-        const f = await frame();
-        await plugin.build().delete(v.ref).commit();
-        return f;
-      })();
-      const dragged = await paged(clip('pixel'));
-      const before = await frame();
-      expect(differing(before, reference)).toBeGreaterThan(20);
-      const object = dragged.repr.renderObjects[0];
-      const written = vi.spyOn(ParticlePageStore.prototype, 'add');
-      await dragged.repr.createOrUpdate({ ...dragged.repr.props, clip: moved }).run();
-      expect(written).not.toHaveBeenCalled();
-      written.mockRestore();
-      expect(dragged.repr.renderObjects[0]).toBe(object);
-      expect(differing(await frame(), reference)).toBeLessThanOrEqual(8);
-      await plugin.build().delete(dragged.v.ref).commit();
-      expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
-  }, 120_000);
-
-  it("splits for the sphere raster as the flat view's culler: its regions' instances drawn by the raster, the same image", async () => {
-    const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
-    try {
-      await plugin.init();
-      const graphics = plugin.canvas3d!.graphics as WebGPUContext;
-      if (!graphics.capabilities.atomicMinMax64) return;
-      const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
-      const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
-      /** a view's objects: the flat view's (an object a target) or the page store's */
-      const objectOf = async (slots: boolean) => {
-        const v = await plugin
-          .build()
-          .to(tiles.ref)
-          .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots })
-          .commit();
-        const repr = await plugin
-          .build()
-          .to(v.ref)
-          .apply(ParticlesRepresentation3D, {
             type: { name: 'target', params: { lodPixelSize: 0 } },
             colorTheme: { name: 'particle-index', params: {} },
           } as never)
           .commit();
-        return repr.data!.repr.renderObjects as MergedGraphicsRenderObject[];
-      };
-      const flatObjects = await objectOf(false);
-      const pagedObjects = await objectOf(true);
-      expect(pagedObjects).toHaveLength(1);
-      expect(pagedObjects[0].merged.source?.paged).toBeDefined();
-      expect(flatObjects.some((o) => o.merged?.source?.paged)).toBe(false);
-
-      const camera = new Camera();
-      Viewport.set(camera.viewport, 0, 0, Size, Size);
-      camera.setState({ ...camera.getFocus(Vec3.create(45, 45, 45), 70), radiusMax: 200 }, 0);
-      camera.update();
-      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
-      /** the objects' frame by a renderer of `props` in a scene of their own; their raster's inputs and resolves */
-      const render = async (objects: MergedGraphicsRenderObject[], props: Partial<RendererProps>) => {
+        const object = repr.data!.repr.renderObjects[0] as MergedGraphicsRenderObject;
+        expect(object.merged.source?.paged).toBeDefined();
         const scene = Scene.create(graphics);
-        for (const o of objects) scene.add(o);
+        scene.add(object);
         scene.commit();
-        type Input = ReturnType<NonNullable<(typeof scene.renderables)[0]['getRasterInput']>>;
-        const inputs = new Map<number, Input>();
-        const restores: (() => void)[] = [];
-        let resolved = 0;
-        for (const [k, renderable] of scene.renderables.entries()) {
-          const getRasterInput = renderable.getRasterInput;
-          if (getRasterInput) {
-            renderable.getRasterInput = (...args) => {
-              const input = getRasterInput(...args) ?? inputs.get(k);
-              inputs.set(k, input);
-              return input;
-            };
-          }
-          const item = renderable.renderItem;
-          const renderFullscreen = item.renderFullscreen!;
-          item.renderFullscreen = (...args) => {
-            const drawn = renderFullscreen(...args);
-            if (drawn) resolved += 1;
-            return drawn;
-          };
-          restores.push(() => {
-            renderable.getRasterInput = getRasterInput;
-            item.renderFullscreen = renderFullscreen;
-          });
-        }
-        // drawn directly (no draw lists: a replayed recording counts no draw)
-        const renderer = Renderer.create(graphics, { ...props, drawLists: false });
+
+        const cameraAt = (target: Vec3, radius: number, position: Vec3) => {
+          const camera = new Camera();
+          Viewport.set(camera.viewport, 0, 0, Size, Size);
+          camera.setState(
+            { ...camera.getFocus(target, radius), position, up: Vec3.create(0, 1, 0), radiusMax: 200 },
+            0,
+          );
+          camera.update();
+          return camera;
+        };
+        // the main camera at a corner of the lattice (most particles out of its view), the other at all of it
+        const main = cameraAt(Vec3.create(0, 0, 0), 12, Vec3.create(0, 0, 40));
+        const other = cameraAt(Vec3.create(45, 45, 45), 70, Vec3.create(240, 80, 120));
+        const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
+        const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
         await graphics.resources.preparePipelines(
           renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
         );
-        const frame = async () => {
-          resolved = 0;
+        /** a frame's view of `camera`: culled by `prepare` (the frame's, a view of its own's, none) */
+        const draw = async (
+          camera: Camera,
+          frame: ReturnType<typeof createFrame>,
+          prepare: 'frame' | 'view' | 'none',
+        ) => {
           renderer.setViewport(0, 0, Size, Size);
-          renderer.update(camera, scene, createFrame());
-          renderer.prepareCull(scene);
-          renderer.prepareSphereRaster(scene, camera);
+          renderer.update(camera, scene, frame);
+          if (prepare === 'frame') renderer.prepareCull(scene);
+          else if (prepare === 'view') renderer.prepareCullView(scene);
           graphics.beginRenderPass(target);
           renderer.clear(true);
           renderer.renderOpaque(scene, camera);
           graphics.flush();
+          await graphics.resources.pending.whenReady();
           return Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
         };
-        let pixels: number[] = [];
-        for (let i = 0; i < 30; ++i) {
-          pixels = await frame();
-          await graphics.resources.pending.whenReady();
-          if (props.sphereRaster === 'off' ? i > 3 : resolved > 0 && i > 3) break;
+        // the culling's kernels compile in the background
+        let mainImage: number[] = [];
+        for (let i = 0; i < 20; ++i) {
+          mainImage = await draw(main, createFrame(), 'frame');
+          if (new Set(mainImage).size > 4 && i > 3) break;
         }
-        // the indirect records the last frame encoded, the camera moved a little (a view still keeps the records its
-        // read-back counted: the predicted ones alone while it moves; counted in timing mode)
-        const { calls } = graphics.stats;
-        const { position } = camera.state;
-        camera.setState({ position: Vec3.create(position[0] + 0.01, position[1], position[2]) }, 0);
-        camera.update();
-        setTimingMode(true);
-        const encoded = calls.drawInstancedBase;
-        try {
-          pixels = await frame();
-        } finally {
-          setTimingMode(false);
-        }
-        const records = calls.drawInstancedBase - encoded;
-        // the raster's regions' instances, by its records
-        let rastered = 0;
-        for (const input of inputs.values()) {
-          if (!input) continue;
-          const records = new Uint32Array(await input.records.readAsync());
-          for (let r = input.recordBase; r < 2 * input.recordBase; ++r) rastered += records[r * input.recordWords + 1];
-        }
-        for (const restore of restores) restore();
+        expect(new Set(mainImage).size).toBeGreaterThan(4);
+        const otherImage = await draw(other, createFrame(), 'frame');
+        expect(new Set(otherImage).size).toBeGreaterThan(4);
+        const background = await (async () => {
+          const s = Scene.create(graphics);
+          renderer.update(main, s, createFrame());
+          graphics.beginRenderPass(target);
+          renderer.clear(true);
+          graphics.flush();
+          return Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
+        })();
+        const differing = (a: number[], b: number[]) => {
+          let n = 0;
+          for (let i = 0; i < a.length; i += 4) {
+            if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 6) n += 1;
+          }
+          return n;
+        };
+        expect(differing(mainImage, otherImage)).toBeGreaterThan(20);
+
+        await draw(main, createFrame(), 'frame');
+        // a frame of its own and another camera: nothing without its culling (no CPU culling), its image with
+        expect(await draw(other, createFrame(), 'none')).toEqual(background);
+        expect(differing(await draw(other, createFrame(), 'view'), otherImage)).toBe(0);
+        // the main view's next frame culled again
+        expect(differing(await draw(main, createFrame(), 'frame'), mainImage)).toBe(0);
+        // the same camera's frame of its own (the thickness pass) after the frame's: drawn, the frame's passes after too
+        const frame = createFrame();
+        await draw(main, frame, 'frame');
+        expect(differing(await draw(main, createFrame(), 'view'), mainImage)).toBe(0);
+        expect(differing(await draw(main, frame, 'none'), mainImage)).toBe(0);
+        // a second camera of a frame (an XR eye): culled for it, the first's again by the next frame
+        const eyes = createFrame();
+        expect(differing(await draw(main, eyes, 'frame'), mainImage)).toBe(0);
+        expect(differing(await draw(other, eyes, 'frame'), otherImage)).toBe(0);
+        expect(differing(await draw(main, createFrame(), 'frame'), mainImage)).toBe(0);
+
+        // moved by its transient transform (a drag's preview) to where only the moved is in view: culled as drawn, the
+        // image of the lattice at rest seen from as far
+        const offset = Vec3.create(600, 0, 0);
+        const moved = cameraAt(Vec3.create(645, 45, 45), 70, Vec3.create(840, 80, 120));
+        const transform = (object.values as { uObjectTransform: ValueCell<Mat4> }).uObjectTransform;
+        ValueCell.update(transform, Mat4.fromTranslation(Mat4(), offset));
+        let movedImage = await draw(moved, createFrame(), 'frame');
+        movedImage = await draw(moved, createFrame(), 'frame');
+        expect(differing(movedImage, otherImage)).toBeLessThan(8);
+        ValueCell.update(transform, Mat4.identity());
+
         renderer.dispose();
         scene.clear();
-        return { pixels, resolved, rastered, records };
-      };
-      const differing = (a: number[], b: number[]) => {
-        let n = 0;
-        for (let i = 0; i < a.length; i += 4) {
-          if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 24) n += 1;
-        }
-        return n;
-      };
-      // every sphere small enough for the raster
-      const on: Partial<RendererProps> = { sphereRaster: 'on', sphereRasterRadius: 64 };
-      const flat = await render(flatObjects, on);
-      const paged = await render(pagedObjects, on);
-      // a later scene's culler of the same store too (its first sync every page: the changes taken by the first)
-      const impostors = await render(pagedObjects, { sphereRaster: 'off' });
-      expect(new Set(impostors.pixels).size).toBeGreaterThan(4);
-      expect(flat.resolved).toBeGreaterThan(0);
-      expect(paged.resolved).toBeGreaterThan(0);
-      // every particle in view the raster's (the flat view's objects split by the raster per instance)
-      expect(paged.rastered).toBe(Count);
-      // a member the raster takes all of (its largest sphere within its radius at the member's nearest): its impostor
-      // record not predicted, fewer encoded than the impostors alone draw (a member reaching near the camera kept)
-      expect(impostors.records).toBe(2);
-      expect(paged.records).toBe(1);
-      expect(differing(paged.pixels, flat.pixels)).toBeLessThanOrEqual(8);
-      // the raster's image the impostors', but where its arithmetic and the fragment stage's decide an edge differently
-      expect(differing(paged.pixels, impostors.pixels)).toBeLessThanOrEqual(Size * Size * 0.02);
-      target.destroy();
-      expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
-  }, 120_000);
-
-  it('culls on the GPU for views of their own: a frame and camera of its own, a second camera of a frame', async () => {
-    const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
-    try {
-      await plugin.init();
-      const graphics = plugin.canvas3d!.graphics as WebGPUContext;
-      const list = await plugin.build().toRoot().apply(ListOf, { list: createList() }).commit();
-      const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
-      const v = await plugin
-        .build()
-        .to(tiles.ref)
-        .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots: true })
-        .commit();
-      const repr = await plugin
-        .build()
-        .to(v.ref)
-        .apply(ParticlesRepresentation3D, {
-          type: { name: 'target', params: { lodPixelSize: 0 } },
-          colorTheme: { name: 'particle-index', params: {} },
-        } as never)
-        .commit();
-      const object = repr.data!.repr.renderObjects[0] as MergedGraphicsRenderObject;
-      expect(object.merged.source?.paged).toBeDefined();
-      const scene = Scene.create(graphics);
-      scene.add(object);
-      scene.commit();
-
-      const cameraAt = (target: Vec3, radius: number, position: Vec3) => {
-        const camera = new Camera();
-        Viewport.set(camera.viewport, 0, 0, Size, Size);
-        camera.setState({ ...camera.getFocus(target, radius), position, up: Vec3.create(0, 1, 0), radiusMax: 200 }, 0);
-        camera.update();
-        return camera;
-      };
-      // the main camera at a corner of the lattice (most particles out of its view), the other at all of it
-      const main = cameraAt(Vec3.create(0, 0, 0), 12, Vec3.create(0, 0, 40));
-      const other = cameraAt(Vec3.create(45, 45, 45), 70, Vec3.create(240, 80, 120));
-      const renderer = Renderer.create(graphics, { sphereRaster: 'off' });
-      const target = graphics.createRenderTarget(Size, Size, 'depth-stencil');
-      await graphics.resources.preparePipelines(
-        renderer.collect({ name: 'opaque' }, scene, graphics.describeTarget(target)),
-      );
-      /** a frame's view of `camera`: culled by `prepare` (the frame's, a view of its own's, none) */
-      const draw = async (
-        camera: Camera,
-        frame: ReturnType<typeof createFrame>,
-        prepare: 'frame' | 'view' | 'none',
-      ) => {
-        renderer.setViewport(0, 0, Size, Size);
-        renderer.update(camera, scene, frame);
-        if (prepare === 'frame') renderer.prepareCull(scene);
-        else if (prepare === 'view') renderer.prepareCullView(scene);
-        graphics.beginRenderPass(target);
-        renderer.clear(true);
-        renderer.renderOpaque(scene, camera);
-        graphics.flush();
-        await graphics.resources.pending.whenReady();
-        return Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
-      };
-      // the culling's kernels compile in the background
-      let mainImage: number[] = [];
-      for (let i = 0; i < 20; ++i) {
-        mainImage = await draw(main, createFrame(), 'frame');
-        if (new Set(mainImage).size > 4 && i > 3) break;
+        target.destroy();
+        expect(graphics.takeErrors?.() ?? []).toEqual([]);
+      } finally {
+        plugin.dispose();
       }
-      expect(new Set(mainImage).size).toBeGreaterThan(4);
-      const otherImage = await draw(other, createFrame(), 'frame');
-      expect(new Set(otherImage).size).toBeGreaterThan(4);
-      const background = await (async () => {
-        const s = Scene.create(graphics);
-        renderer.update(main, s, createFrame());
-        graphics.beginRenderPass(target);
-        renderer.clear(true);
-        graphics.flush();
-        return Array.from(await graphics.readRenderTarget(target, 0, 0, Size, Size));
-      })();
-      const differing = (a: number[], b: number[]) => {
-        let n = 0;
-        for (let i = 0; i < a.length; i += 4) {
-          if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 6) n += 1;
-        }
-        return n;
-      };
-      expect(differing(mainImage, otherImage)).toBeGreaterThan(20);
+    },
+    120_000,
+  );
 
-      await draw(main, createFrame(), 'frame');
-      // a frame of its own and another camera: nothing without its culling (no CPU culling), its image with
-      expect(await draw(other, createFrame(), 'none')).toEqual(background);
-      expect(differing(await draw(other, createFrame(), 'view'), otherImage)).toBe(0);
-      // the main view's next frame culled again
-      expect(differing(await draw(main, createFrame(), 'frame'), mainImage)).toBe(0);
-      // the same camera's frame of its own (the thickness pass) after the frame's: drawn, the frame's passes after too
-      const frame = createFrame();
-      await draw(main, frame, 'frame');
-      expect(differing(await draw(main, createFrame(), 'view'), mainImage)).toBe(0);
-      expect(differing(await draw(main, frame, 'none'), mainImage)).toBe(0);
-      // a second camera of a frame (an XR eye): culled for it, the first's again by the next frame
-      const eyes = createFrame();
-      expect(differing(await draw(main, eyes, 'frame'), mainImage)).toBe(0);
-      expect(differing(await draw(other, eyes, 'frame'), otherImage)).toBe(0);
-      expect(differing(await draw(main, createFrame(), 'frame'), mainImage)).toBe(0);
-
-      // moved by its transient transform (a drag's preview) to where only the moved is in view: culled as drawn, the
-      // image of the lattice at rest seen from as far
-      const offset = Vec3.create(600, 0, 0);
-      const moved = cameraAt(Vec3.create(645, 45, 45), 70, Vec3.create(840, 80, 120));
-      const transform = (object.values as { uObjectTransform: ValueCell<Mat4> }).uObjectTransform;
-      ValueCell.update(transform, Mat4.fromTranslation(Mat4(), offset));
-      let movedImage = await draw(moved, createFrame(), 'frame');
-      movedImage = await draw(moved, createFrame(), 'frame');
-      expect(differing(movedImage, otherImage)).toBeLessThan(8);
-      ValueCell.update(transform, Mat4.identity());
-
-      renderer.dispose();
-      scene.clear();
-      target.destroy();
-      expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
-  }, 120_000);
-
-  it("colors by member where the theme gives a target's color (by its entity): no color layer, the flat view's frames", async () => {
-    const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
-    if (typeof ImageData === 'undefined') {
-      vi.stubGlobal(
-        'ImageData',
-        class {
-          constructor(
-            readonly data: Uint8ClampedArray,
-            readonly width: number,
-            readonly height: number,
-          ) {}
-        },
+  it(
+    "colors by member where the theme gives a target's color (by its entity): no color layer, the flat view's frames",
+    { tags: ['medium'] },
+    async () => {
+      const spec = DefaultPluginSpec();
+      const plugin = await createWebGPUPlugin(
+        { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
+        { width: Size, height: Size },
       );
-    }
-    try {
-      await plugin.init();
-      const canvas = plugin.canvas3d!;
-      canvas.setProps({
-        camera: { mode: 'orthographic' } as never,
-        cameraFog: { name: 'off', params: {} },
-        multiSample: { mode: 'off' } as never,
-        postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
-      });
-      const graphics = canvas.graphics as WebGPUContext;
-      // the lattice's targets of an entity each (every particle of a target its entity: `ParticleTargetInfo.entity`)
-      const base = createList();
-      const entities = Int32Array.from({ length: Count }, (_, k) => ParticleValues.get(base.targets, k) - 1);
-      const withEntities: ParticleList = {
-        ...base,
-        entities,
-        entityInfo: new Map([
-          [0, { name: 'zero' }],
-          [1, { name: 'one' }],
-        ]),
-        targetInfo: new Map([
-          [1, { name: 'one', entity: 0 }],
-          [2, { name: 'two', entity: 1 }],
-        ]),
-      };
-      const list = await plugin.build().toRoot().apply(ListOf, { list: withEntities }).commit();
-      const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
-      let time = now();
-      const frame = async () => {
-        for (let i = 0; i < 12; ++i) {
-          canvas.commit(true);
-          canvas.camera.setState(canvas.camera.getFocus(Vec3.create(45, 45, 45), 70), 0);
-          canvas.requestDraw();
-          canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
-          await graphics.resources.pending.whenReady();
-        }
-        return Array.from((await graphics.readDrawingBuffer()).data);
-      };
-      const view = async (slots: boolean, colorTheme: string) => {
-        const v = await plugin
-          .build()
-          .to(tiles.ref)
-          .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots })
-          .commit();
-        const repr = await plugin
-          .build()
-          .to(v.ref)
-          .apply(ParticlesRepresentation3D, {
-            type: { name: 'target', params: { lodPixelSize: 0 } },
-            colorTheme: { name: colorTheme, params: {} },
-          } as never)
-          .commit();
-        return { view: v, repr };
-      };
-      const differing = (a: number[], b: number[]) => {
-        let n = 0;
-        for (let i = 0; i < a.length; i += 4) {
-          if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 6) n += 1;
-        }
-        return n;
-      };
-      const flat = await view(false, 'particle-entity');
-      const flatImage = await frame();
-      await plugin.build().delete(flat.view.ref).commit();
+      if (typeof ImageData === 'undefined') {
+        vi.stubGlobal(
+          'ImageData',
+          class {
+            constructor(
+              readonly data: Uint8ClampedArray,
+              readonly width: number,
+              readonly height: number,
+            ) {}
+          },
+        );
+      }
+      try {
+        await plugin.init();
+        const canvas = plugin.canvas3d!;
+        canvas.setProps({
+          camera: { mode: 'orthographic' } as never,
+          cameraFog: { name: 'off', params: {} },
+          multiSample: { mode: 'off' } as never,
+          postprocessing: { occlusion: { name: 'off', params: {} }, outline: { name: 'off', params: {} } },
+        });
+        const graphics = canvas.graphics as WebGPUContext;
+        // the lattice's targets of an entity each (every particle of a target its entity: `ParticleTargetInfo.entity`)
+        const base = createList();
+        const entities = Int32Array.from({ length: Count }, (_, k) => ParticleValues.get(base.targets, k) - 1);
+        const withEntities: ParticleList = {
+          ...base,
+          entities,
+          entityInfo: new Map([
+            [0, { name: 'zero' }],
+            [1, { name: 'one' }],
+          ]),
+          targetInfo: new Map([
+            [1, { name: 'one', entity: 0 }],
+            [2, { name: 'two', entity: 1 }],
+          ]),
+        };
+        const list = await plugin.build().toRoot().apply(ListOf, { list: withEntities }).commit();
+        const tiles = await plugin.build().to(list.ref).apply(ParticleTileSetFromList, { cells: 2 }).commit();
+        let time = now();
+        const frame = async () => {
+          for (let i = 0; i < 12; ++i) {
+            canvas.commit(true);
+            canvas.camera.setState(canvas.camera.getFocus(Vec3.create(45, 45, 45), 70), 0);
+            canvas.requestDraw();
+            canvas.tick((time += 100) as now.Timestamp, { isSynchronous: true });
+            await graphics.resources.pending.whenReady();
+          }
+          return Array.from((await graphics.readDrawingBuffer()).data);
+        };
+        const view = async (slots: boolean, colorTheme: string) => {
+          const v = await plugin
+            .build()
+            .to(tiles.ref)
+            .apply(ParticleTilesView, { tiles: { name: 'ids', params: { ids: '0-7' } }, frame: 0, slots })
+            .commit();
+          const repr = await plugin
+            .build()
+            .to(v.ref)
+            .apply(ParticlesRepresentation3D, {
+              type: { name: 'target', params: { lodPixelSize: 0 } },
+              colorTheme: { name: colorTheme, params: {} },
+            } as never)
+            .commit();
+          return { view: v, repr };
+        };
+        const differing = (a: number[], b: number[]) => {
+          let n = 0;
+          for (let i = 0; i < a.length; i += 4) {
+            if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 6) n += 1;
+          }
+          return n;
+        };
+        const flat = await view(false, 'particle-entity');
+        const flatImage = await frame();
+        await plugin.build().delete(flat.view.ref).commit();
 
-      const paged = await view(true, 'particle-entity');
-      const object = paged.repr.data!.repr.renderObjects[0] as MergedGraphicsRenderObject;
-      expect(object.merged.source?.paged).toBeDefined();
-      const colorType = (object.values as unknown as { colorType: { ref: { value: string } } }).colorType.ref.value;
-      // a member's color, not a particle's: no layer filled
-      expect(colorType).toBe('object');
-      const pagedImage = await frame();
-      expect(new Set(flatImage).size).toBeGreaterThan(3);
-      expect(differing(pagedImage, flatImage)).toBeLessThanOrEqual(8);
+        const paged = await view(true, 'particle-entity');
+        const object = paged.repr.data!.repr.renderObjects[0] as MergedGraphicsRenderObject;
+        expect(object.merged.source?.paged).toBeDefined();
+        const colorType = (object.values as unknown as { colorType: { ref: { value: string } } }).colorType.ref.value;
+        // a member's color, not a particle's: no layer filled
+        expect(colorType).toBe('object');
+        const pagedImage = await frame();
+        expect(new Set(flatImage).size).toBeGreaterThan(3);
+        expect(differing(pagedImage, flatImage)).toBeLessThanOrEqual(8);
 
-      // another theme a particle's color (by index): the object made again with a layer, the flat view's frames too
-      await plugin.build().delete(paged.view.ref).commit();
-      const flatIndex = await view(false, 'particle-index');
-      const flatIndexImage = await frame();
-      await plugin.build().delete(flatIndex.view.ref).commit();
-      const pagedIndex = await view(true, 'particle-index');
-      const indexObject = pagedIndex.repr.data!.repr.renderObjects[0] as MergedGraphicsRenderObject;
-      const indexType = (indexObject.values as unknown as { colorType: { ref: { value: string } } }).colorType.ref
-        .value;
-      expect(indexType).toBe('instance');
-      expect(differing(await frame(), flatIndexImage)).toBeLessThanOrEqual(8);
-      expect(graphics.takeErrors?.() ?? []).toEqual([]);
-    } finally {
-      plugin.dispose();
-    }
-  }, 120_000);
+        // another theme a particle's color (by index): the object made again with a layer, the flat view's frames too
+        await plugin.build().delete(paged.view.ref).commit();
+        const flatIndex = await view(false, 'particle-index');
+        const flatIndexImage = await frame();
+        await plugin.build().delete(flatIndex.view.ref).commit();
+        const pagedIndex = await view(true, 'particle-index');
+        const indexObject = pagedIndex.repr.data!.repr.renderObjects[0] as MergedGraphicsRenderObject;
+        const indexType = (indexObject.values as unknown as { colorType: { ref: { value: string } } }).colorType.ref
+          .value;
+        expect(indexType).toBe('instance');
+        expect(differing(await frame(), flatIndexImage)).toBeLessThanOrEqual(8);
+        expect(graphics.takeErrors?.() ?? []).toEqual([]);
+      } finally {
+        plugin.dispose();
+      }
+    },
+    120_000,
+  );
 });

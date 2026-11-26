@@ -170,6 +170,12 @@ vec3 gridModelPosition;
     #define groupInstanceIndex(inst, grp) (int(aSegment.y) + int(inst) * int(aSegment.x) + int(grp))
     #define groupIndex(grp) (int(aSegment.z) + int(grp))
     #define InvariantBoundingSphere aSegmentSphere
+    // the index of data per vertex and instance: the segment's offset and vertex count (high and low 16 bits each, its
+    // sixth segment element) of the merged instance and vertex
+    int segmentVertexInstanceIndex(vec4 s, int inst, int vid) {
+        return int(s.x) * 65536 + int(s.y) + inst * (int(s.z) * 65536 + int(s.w)) + vid;
+    }
+    #define vertexInstanceIndex(inst, vid) segmentVertexInstanceIndex(read_tSegment(int(aSegment.w) * ${SegmentTexels} + 5), int(inst), int(vid))
 #else
     #define groupInstanceIndex(inst, grp) (int(inst) * uGroupCount + int(grp))
     #define groupIndex(grp) int(grp)

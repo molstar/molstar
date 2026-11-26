@@ -11,7 +11,7 @@ import {
   createMergedRecordsRenderObject,
   canMergeRenderObjects,
 } from '../render-object.js';
-import { type MergeableValues, type MergeRecord, pickMergeRecord } from '../renderable/merged.js';
+import { canMergeValues, type MergeableValues, type MergeRecord, pickMergeRecord } from '../renderable/merged.js';
 import { Scene } from '../scene.js';
 import { SegmentedArray } from '../segmented-array.js';
 import { getGLContext, tryGetGLContext } from './gl.js';
@@ -74,6 +74,36 @@ function createMembers() {
 }
 
 describe('merged', () => {
+  it('bounds the members drawing something: an empty member not at its origin', () => {
+    const far = () => createSpheresRenderObject(new Float32Array([100, 0, 0, 101, 0, 0]), new Float32Array([0, 1]), 2);
+    const empty = createSpheresRenderObject(new Float32Array(0), new Float32Array(0), 0);
+    expect(empty.values.drawCount.ref.value).toBe(0);
+    const merged = createMergedRenderObject([far(), empty, far()]);
+    const sphere = merged.values.boundingSphere.ref.value;
+    expect(sphere.center[0]).toBeGreaterThan(99);
+    expect(sphere.radius).toBeLessThan(2);
+  });
+
+  it("merges members colored by a palette, the palette the shared values'", () => {
+    const [a, b] = createMembers();
+    for (const o of [a, b]) ValueCell.update((o.values as unknown as MergeableValues).dUsePalette!, true);
+    expect(canMergeValues('spheres', [a.values as unknown as MergeableValues, b.values as any])).toBe(true);
+    const merged = createMergedRenderObject([a, b]);
+    const mv = merged.values as unknown as MergeableValues;
+    expect(mv.dUsePalette!.ref.value).toBe(true);
+    expect(mv.tPalette).toBe((a.values as unknown as MergeableValues).tPalette);
+    expect(mv.uPaletteDomain).toBe((a.values as unknown as MergeableValues).uPaletteDomain);
+  });
+
+  it("checks the layers' types unless asked not to (layers the merged object sets again its own way)", () => {
+    const [a] = createMembers();
+    const v = a.values as unknown as MergeableValues;
+    ValueCell.update(v.dOverpaint, true);
+    ValueCell.update(v.overpaintType, 'volumeInstance');
+    expect(canMergeValues('spheres', [v])).toBe(false);
+    expect(canMergeValues('spheres', [v], false)).toBe(true);
+  });
+
   it('values', () => {
     const [a, b] = createMembers();
     expect(canMergeRenderObjects([a, b])).toBe(true);
@@ -204,7 +234,9 @@ describe('merged', () => {
     // a record its cells of what the merged object reads alone, not a member's values
     expect(Object.keys(records[0]).length).toBeLessThan(Object.keys(c.values).length / 3);
     const byRecords = createMergedRecordsRenderObject('spheres', c.values, records, c.state, -1);
-    expect(byRecords.members).toEqual([]);
+    // one form either way: the records and their shared values
+    expect(byRecords.shared).toBe(c.values);
+    expect(byMembers.shared).toBe(a.values);
     expect(byRecords.merged.records).toBe(records);
 
     const same = () => {

@@ -22,6 +22,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Particle } from '@molstar/model/model/particles/particle-list';
 import { RelionStarParticlesProvider } from '@molstar/plugin/state/formats/particles/star';
 import { ParticleListWithTargets } from '@molstar/plugin/state/transforms/particles/ops';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const readExample = (name: string) => readFileSync(new URL(`../../../../../data/examples/${name}`, import.meta.url));
@@ -88,13 +89,13 @@ async function createPack(plugin: Plugin) {
 const Size = 64;
 
 /**
- * The center pixel of the target drawn green (its particles' color) from `distance` Å (a field of view of 45°): an
- * oxygen's radius on screen about 20 px from 6 Å, 3 px from 40 Å (the second color from 4 px, whole from 12 px)
+ * The center pixel of the target drawn green (its particles' color) from each of `distances` Å (a field of view of
+ * 45°): an oxygen's radius on screen about 20 px from 6 Å, 3 px from 40 Å (the second color from 4 px, whole from 12 px)
  */
 async function renderCenter(
   modules: ExternalModules,
   backend: 'webgl' | 'webgpu',
-  distance: number,
+  distances: number[],
   raster?: 'off' | 'only',
 ) {
   const spec = DefaultPluginSpec();
@@ -129,21 +130,8 @@ async function renderCenter(
         colorTheme: { name: 'uniform', params: { value: 0x00ff00 } },
       } as never)
       .commit();
-    const image = () => plugin.getImageRaw({ width: Size, height: Size });
-    // pipelines and kernels compile in the background: frames drawn before they are ready may draw nothing; the
-    // camera set after the first (which focuses the scene)
-    for (let i = 0; i < 3; ++i) {
-      await image();
-      await plugin.canvas3d!.graphics.resources.pending.whenReady();
-      plugin.canvas3d!.camera.setState(
-        { target: Vec3(), position: Vec3.create(0, 0, distance), up: Vec3.create(0, 1, 0), fov: Math.PI / 4 },
-        0,
-      );
-    }
-    const { data: pixels } = await image();
-    expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
     const o = ((Size / 2) * Size + Size / 2) * 4;
-    return [pixels[o], pixels[o + 1], pixels[o + 2]];
+    return await renderAt(plugin, distances, Vec3(), (pixels) => [pixels[o], pixels[o + 1], pixels[o + 2]]);
   } finally {
     plugin.dispose();
   }
@@ -151,16 +139,14 @@ async function renderCenter(
 
 /**
  * The pixels redder than green of a structure target (1crn at the particles of a RELION list) drawn green from
- * `distance` Å of the first particle (where the structure's centroid is placed; a field of view of 45°): its atoms by
+ * each of `distances` Å of the first particle (where the structure's centroid is placed; a field of view of 45°): its atoms by
  * element near the camera (oxygens red), by the particles' color far from it
  */
-async function renderStructureTarget(distance: number, raster: 'off' | 'only') {
+async function renderStructureTarget(distances: number[], raster: 'off' | 'only') {
   const spec = DefaultPluginSpec();
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
+  const plugin = await createWebGPUPlugin(
     { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
     { width: Size, height: Size },
-    { backend: 'webgpu' },
   );
   try {
     await plugin.init();
@@ -193,28 +179,37 @@ async function renderStructureTarget(distance: number, raster: 'off' | 'only') {
       } as never)
       .commit();
     const center = Particle.position(Vec3(), Particle.Location(particles, 0));
-    const image = () => plugin.getImageRaw({ width: Size, height: Size });
-    for (let i = 0; i < 3; ++i) {
-      await image();
-      await plugin.canvas3d!.graphics.resources.pending.whenReady();
-      plugin.canvas3d!.camera.setState(
-        {
-          target: center,
-          position: Vec3.add(Vec3(), center, Vec3.create(0, 0, distance)),
-          up: Vec3.create(0, 1, 0),
-          fov: Math.PI / 4,
-        },
-        0,
-      );
-    }
-    const { data: pixels } = await image();
-    expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
-    let red = 0;
-    for (let i = 0; i < pixels.length; i += 4) if (pixels[i] > pixels[i + 1] + 40) red += 1;
-    return red;
+    return await renderAt(plugin, distances, center, (pixels) => {
+      let red = 0;
+      for (let i = 0; i < pixels.length; i += 4) if (pixels[i] > pixels[i + 1] + 40) red += 1;
+      return red;
+    });
   } finally {
     plugin.dispose();
   }
+}
+
+/**
+ * `read` of the images looking at `target` from each of `distances` Å along z: pipelines and kernels compile in the
+ * background (frames drawn before they are ready may draw nothing); the camera set after the first frame (which
+ * focuses the scene)
+ */
+async function renderAt<T>(plugin: Plugin, distances: number[], target: Vec3, read: (pixels: Uint8ClampedArray) => T) {
+  const image = () => plugin.getImageRaw({ width: Size, height: Size });
+  await image();
+  await plugin.canvas3d!.graphics.resources.pending.whenReady();
+  const results: T[] = [];
+  for (const distance of distances) {
+    const position = Vec3.add(Vec3(), target, Vec3.create(0, 0, distance));
+    plugin.canvas3d!.camera.setState({ target, position, up: Vec3.create(0, 1, 0), fov: Math.PI / 4 }, 0);
+    for (let i = 0; i < 2; ++i) {
+      await image();
+      await plugin.canvas3d!.graphics.resources.pending.whenReady();
+    }
+    results.push(read((await image()).data));
+  }
+  expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
+  return results;
 }
 
 /** near: the oxygens' red; far: the particles' green */
@@ -226,24 +221,27 @@ function expectNearAndFar(near: number[], far: number[]) {
 // the second color of a target's sites: by element near the camera, by the particle's theme
 // far from it
 describe.skipIf(!WebGPU.module)('particle site colors on WebGPU', () => {
-  it.each(['off', 'only'] as const)('blend in by size on screen (sphereRaster %s)', async (raster) => {
-    const modules = { webgpu: WebGPU.module! };
-    const near = await renderCenter(modules, 'webgpu', 6, raster);
-    if (!near) return;
-    const far = (await renderCenter(modules, 'webgpu', 40, raster))!;
-    expectNearAndFar(near, far);
-  });
+  for (const raster of ['off', 'only'] as const) {
+    // the sphere raster's case medium (a second each)
+    const lane = raster === 'only' ? { tags: ['medium'] } : {};
+    it(`blend in by size on screen (sphereRaster ${raster})`, lane, async () => {
+      const modules = { webgpu: WebGPU.module! };
+      const colors = await renderCenter(modules, 'webgpu', [6, 40], raster);
+      if (!colors) return;
+      expectNearAndFar(colors[0], colors[1]);
+    });
+  }
 });
 
 describe.skipIf(!WebGPU.module)('structure target colors on WebGPU', () => {
   it.each(['off', 'only'] as const)(
     'blend in by size on screen, a texel an element (sphereRaster %s)',
+    { tags: ['medium'] },
     async (raster) => {
-      const near = await renderStructureTarget(25, raster);
-      if (near === undefined) return;
-      const far = (await renderStructureTarget(400, raster))!;
-      expect(near).toBeGreaterThan(20);
-      expect(far).toBe(0);
+      const reds = await renderStructureTarget([25, 400], raster);
+      if (reds === undefined) return;
+      expect(reds[0]).toBeGreaterThan(20);
+      expect(reds[1]).toBe(0);
     },
   );
 });
@@ -251,10 +249,9 @@ describe.skipIf(!WebGPU.module)('structure target colors on WebGPU', () => {
 describe('particle site colors on WebGL', () => {
   (glModule ? it : it.skip)('blend in by size on screen, a site each', { tags: ['medium'] }, async (ctx) => {
     const modules = { gl: glModule! };
-    const near = await renderCenter(modules, 'webgl', 6);
+    const colors = await renderCenter(modules, 'webgl', [6, 40]);
     // headless-gl has no EXT_frag_depth: the spheres are meshes, which have no second color
-    if (!near) return ctx.skip();
-    const far = (await renderCenter(modules, 'webgl', 40))!;
-    expectNearAndFar(near, far);
+    if (!colors) return ctx.skip();
+    expectNearAndFar(colors[0], colors[1]);
   });
 });

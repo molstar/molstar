@@ -54,7 +54,8 @@ What is shared, by layer, and what stays a kind's:
    implementing it are model's and graphics'.
 3. **Wants** (a kind's, through one interface): each consumer says which units it wants and at what priority, at
    each update. A shared traversal by camera covers the common case: frustum, error under `D` pixels, a priority by
-   size on screen, hysteresis margins, prefetch along the camera's motion. A kind adds hooks (the tiles' occlusion by
+   size on screen, hysteresis margins, prefetch along the camera's motion ([streaming-prediction.md](streaming-prediction.md):
+   predicted views, a transition's end, the orbit's reach). A kind adds hooks (the tiles' occlusion by
    opacity blocks) or bypasses it (the residency's wants read back from the GPU cull: the GPU knows better). Why not
    one selector: what decides a want differs by kind; how it is served does not.
 4. **The scheduler and cache** (one a page): unit states (none, loading, ready, failed) a key and frame; one priority

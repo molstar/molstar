@@ -9,18 +9,15 @@ import { createCopyRenderable } from '@molstar/graphics/gl/compute/util';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 4;
 
 describe.skipIf(!WebGPU.module)('read-only depth passes on WebGPU', () => {
   it('bind the depth attachment as a texture, which a writable one can not', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
-    );
+    // a context of its own: its depth texture as its first frames leave it (`own`)
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 }, { own: true });
     try {
       await plugin.init();
       const graphics = plugin.canvas3d!.graphics as WebGPUContext;

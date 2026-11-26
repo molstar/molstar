@@ -20,8 +20,10 @@ import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { CartoonRepresentationProvider } from '../representation/cartoon.js';
 import { SpacefillRepresentationProvider } from '../representation/spacefill.js';
+import { UnitsRepresentation } from '../units-representation.js';
+import { ElementSphereImpostorVisual, ElementSphereParams } from '../visual/element-sphere.js';
 
-// counts the walks of the visuals' foreign-resource checks
+// counts the walks of the visuals' foreign-resource checks: a units visual's, a merged visual's (`hasForeignResources`)
 const checks = vi.hoisted(() => ({ count: 0 }));
 vi.mock('@molstar/graphics/gl/render-object', async (importOriginal) => {
   const original = await importOriginal<typeof import('@molstar/graphics/gl/render-object')>();
@@ -31,6 +33,7 @@ vi.mock('@molstar/graphics/gl/render-object', async (importOriginal) => {
       const check = original.createForeignResourcesCheck();
       return (o: any, graphics: any) => (checks.count++, check(o, graphics));
     },
+    hasForeignResources: (o: any, graphics: any) => (checks.count++, original.hasForeignResources(o, graphics)),
   };
 });
 
@@ -83,5 +86,39 @@ describe('foreign resources', () => {
     repr.setGraphics?.(other);
     await repr.createOrUpdate(params, structure).runInContext(RuntimeContext.Synchronous);
     expect(checks.count).toBeGreaterThan(0);
+  });
+
+  it('the first update after a build checks no per-group units visual (a kind that does not merge)', async () => {
+    const file = path.resolve(import.meta.dirname, '../../../../../../data/examples/1cbs_updated.cif');
+    const parsed = await CIF.parse(fs.readFileSync(file, 'utf8')).run();
+    if (parsed.isError) throw new Error(parsed.message);
+    const structure = Structure.ofModel(
+      (await trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result).run()).representative,
+    );
+    const theme = (name: string) =>
+      Theme.create(registries, { structure }, { colorTheme: { name }, sizeTheme: { name: 'uniform' } });
+    // a visual without its builder: drawn per group, as a GPU surface's texture mesh
+    const perGroup = (id: number) =>
+      new Proxy(ElementSphereImpostorVisual(id), { get: (t, k) => (k === 'builder' ? undefined : Reflect.get(t, k)) });
+    const repr = UnitsRepresentation(
+      'per group',
+      { graphics: graphicsStub, ...registries } as any,
+      () => ElementSphereParams,
+      perGroup as any,
+    );
+    const params = PD.getDefaultValues(ElementSphereParams);
+    repr.setTheme(theme('uniform'));
+    await repr.createOrUpdate(params, structure).runInContext(RuntimeContext.Synchronous);
+    expect(repr.renderObjects.length).toBeGreaterThan(1);
+
+    checks.count = 0;
+    repr.setTheme(theme('chain-id'));
+    await repr.createOrUpdate(params, structure).runInContext(RuntimeContext.Synchronous);
+    expect(checks.count).toBe(0);
+
+    repr.setGraphics?.({ ...graphicsStub });
+    await repr.createOrUpdate(params, structure).runInContext(RuntimeContext.Synchronous);
+    expect(checks.count).toBeGreaterThan(0);
+    repr.destroy();
   });
 });

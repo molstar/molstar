@@ -23,18 +23,23 @@ same with batching, 2.43 ms). Merging works on WebGL as well.
 - **Where**: units representations (`units-representation.ts`) and particles, per geometry kind
   (`mergeRenderObjectsByType`): meshes, spheres, cylinders, lines, points (`MergedTypes`); not text, images, texture
   meshes, direct volumes.
-- **When**: `renderMerged`: on, off, or `auto`, more than 30 units (`AutoRenderMergedThreshold`, 100 before step 1);
-  members must share a
+- **When**: always for units representations (`renderMerged`, with `auto` from 30 units, removed:
+  [merged-units-core.md](merged-units-core.md)); the particle targets two or more objects of a type, or one culled on
+  the GPU; members must share a
   merge key (`getMergeKey`: the defines, instance granularity, `uLod`, level distances) and supported data types
-  (`canMergeValues`: no palette; color and size per uniform, instance, group, group instance or vertex; the layers per
-  instance or group instance).
+  (`canMergeValues`: color and size per uniform, instance, group, group instance or vertex, color per vertex and
+  instance too; the layers per instance or group instance, overpaint, transparency, emissive and substance per vertex
+  and instance too).
 - **How** (`createMergedValues`): one render object whose vertex attributes, elements and theme layers are the
   members' arrays as parts (`SegmentedArray`: each at its vertex, element or texel base, indices biased by the vertex
   base at upload; a layer's image sized as a copy would be), instances concatenated with per-instance segment
   data (`aSegment`: group and data offsets; `aSegmentSphere`; `aSegmentLod`: the members' level scales; `aSegmentStride`,
   `aSegmentItem`: their level strides and first item, spheres' and points'; `aSegmentSites`: spheres' quantized
   centers' origin and scale); `segments`
-  holds per member its instance, vertex, draw and element ranges. Members keep their own render objects (not drawn).
+  holds per member its instance, vertex, draw and element ranges. Members are records over shared values
+  ([merged-from-units.md](merged-from-units.md)) for units representations and the particle pool; the per-group
+  objects' merging passes its members' values as their records (their render objects not drawn, not held by the
+  merged object; its entry keeps their ids for picking).
 - **Updates** (`sync`, on the merged renderable's `update`): every member's value versions compared, a changed
   member's geometry and layer parts advanced (the render item writes those parts only), level scales copied,
   aggregates and bounds recomputed; a change of the layout (any
@@ -94,9 +99,11 @@ culled on the GPU as a merged object of one member (`mergeRenderObjectsByType`).
   written per frame, the other words once per layout. Not a record per cell: indirect draws replay whether they draw or
   not, and without multi-draw indirect with a count (not in WebGPU) the GPU can't merge the visible cells' ranges as the
   CPU culling does (measured: 51k cells, 21 ms per frame against 1.2 ms).
-- **Fallback**: the indices end with all instances in their own order (the identity region); views not culled on the
-  GPU (another view of the frame, a scaled model, the kernels compiling) draw the CPU culling's lists shifted to it, with
-  the same programs and buffers.
+- **Fallback**: the indices end with all instances in their own order (the identity region). Only an object culled on
+  the GPU for the sphere raster alone (`rasterOnly`) draws the CPU culling's lists shifted to it in views not culled on
+  the GPU; the others draw nothing there (`'none'`: while the kernels compile, and in a view that did not call
+  `prepareCullView`, said once in debug mode). A CPU fallback for all is [merged-units-core.md](merged-units-core.md)
+  step 5.
 - **When**: before the passes (`Renderer.prepareCull`, called by the draw pass after its `update`; passes update the
   renderer with their render pass open, a compute pass would end it), once per frame for its first view.
 - **Draw lists**: the draw key of indirect lists is their buffers (the GPU writes the counts): recordings stay valid

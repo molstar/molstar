@@ -6,7 +6,7 @@
 
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
-import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, createDataArray, releaseGpuData } from '@molstar/graphics/gl/renderable/util';
 import { Color } from '@molstar/core/util/color';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { getLayerTypeDefine, type LayerType, NoLayerGrid } from './layer-type.js';
@@ -57,10 +57,12 @@ export function createOverpaint(count: number, type: OverpaintType, overpaintDat
     Uint8Array,
     // its array reused, not the empty one: shared by every object (one's layer another's)
     overpaintData && overpaintData.tOverpaint.ref.value !== emptyOverpaintTexture
-      ? overpaintData.tOverpaint.ref.value.array
+      ? (overpaintData.tOverpaint.ref.value.spare ?? overpaintData.tOverpaint.ref.value.array)
       : undefined,
   );
   if (overpaintData) {
+    // what wrote its elements on the GPU (`DataArray.gpu`) released
+    releaseGpuData(overpaintData.tOverpaint.ref.value);
     ValueCell.update(overpaintData.tOverpaint, overpaint);
     ValueCell.updateIfChanged(overpaintData.dOverpaint, count > 0);
     setOverpaintType(overpaintData, type);
@@ -84,6 +86,8 @@ export function createOverpaint(count: number, type: OverpaintType, overpaintDat
 const emptyOverpaintTexture = { array: new Uint8Array(4), count: 1 };
 export function createEmptyOverpaint(overpaintData?: OverpaintData): OverpaintData {
   if (overpaintData) {
+    // what wrote its elements on the GPU (`DataArray.gpu`) released
+    releaseGpuData(overpaintData.tOverpaint.ref.value);
     ValueCell.update(overpaintData.tOverpaint, emptyOverpaintTexture);
     return overpaintData;
   } else {

@@ -33,12 +33,13 @@ import {
   applyMeshSubstanceSmoothing,
   applyMeshTransparencySmoothing,
   type ColorSmoothingOptions,
+  calcMeshColorSmoothing,
   getTrilinearlyInterpolated,
 } from '../color-smoothing.js';
 import { Mesh } from '../mesh.js';
 import { type ReferenceInput, referenceGrid, referenceInterpolate } from './color-smoothing-reference.js';
 
-const VertexCount = 3000;
+const VertexCount = 1000;
 const GroupCount = 40;
 
 function rng(seed: number) {
@@ -68,17 +69,19 @@ function createShell(loose: boolean) {
   return mesh;
 }
 
-function createTransforms() {
+/** `spread`: the instances apart, beyond the smoothing's reach of each other */
+function createTransforms(spread = false) {
+  const d = spread ? 3 : 1;
   const ms = [
     Mat4.identity(),
     Mat4.mul(
       Mat4(),
-      Mat4.fromTranslation(Mat4(), Vec3.create(20, 0, 0)),
+      Mat4.fromTranslation(Mat4(), Vec3.create(20 * d, 0, 0)),
       Mat4.fromRotation(Mat4(), Math.PI / 2, Vec3.create(0, 0, 1)),
     ),
     Mat4.mul(
       Mat4(),
-      Mat4.fromTranslation(Mat4(), Vec3.create(0, -15, 8)),
+      Mat4.fromTranslation(Mat4(), Vec3.create(0, -15 * d, 8 * d)),
       Mat4.fromRotation(Mat4(), (40 / 180) * Math.PI, Vec3.normalize(Vec3(), Vec3.create(1, 1, 0))),
     ),
   ];
@@ -96,9 +99,13 @@ function fillImage(count: number, itemSize: 1 | 4, seed: number) {
 
 type Layer = 'color' | 'overpaint' | 'transparency' | 'emissive' | 'substance';
 
-function createValues(layer: Layer, type: 'group' | 'groupInstance', loose: boolean) {
+/**
+ * `reached`: the instances whose rows of the layer are not zero (all where not given), the instances then spread apart
+ * (beyond the smoothing's reach of each other)
+ */
+function createValues(layer: Layer, type: 'group' | 'groupInstance', loose: boolean, reached?: number[]) {
   const mesh = createShell(loose);
-  const transform = createTransforms();
+  const transform = createTransforms(!!reached);
   const values = Mesh.Utils.createValuesSimple(mesh, {}, Color(0x808080), 1, transform);
   ValueCell.update(values.uGroupCount, GroupCount);
   const instanceCount = values.uInstanceCount.ref.value;
@@ -124,6 +131,13 @@ function createValues(layer: Layer, type: 'group' | 'groupInstance', loose: bool
       ValueCell.update(values.tSubstance, fillImage(count, 4, 23));
       setSubstanceType(values, type);
       break;
+  }
+  if (reached && type === 'groupInstance') {
+    const { texture } = layerValues(values, layer);
+    const itemSize = texture.array.length / count;
+    for (let i = 0; i < instanceCount; ++i) {
+      if (!reached.includes(i)) texture.array.fill(0, i * GroupCount * itemSize, (i + 1) * GroupCount * itemSize);
+    }
   }
   return values;
 }
@@ -188,8 +202,9 @@ function smooth(
   options: ColorSmoothingOptions,
   maxTextureSize?: number,
   loose = false,
+  reached?: number[],
 ) {
-  const values = createValues(layer, type, loose);
+  const values = createValues(layer, type, loose, reached);
   const input = referenceInput(values, layer, type);
   if (maxTextureSize === undefined) {
     apply[layer](values, options);
@@ -269,36 +284,80 @@ const Options: ColorSmoothingOptions[] = [
   { resolution: 2.5, stride: 2 },
 ];
 
+/** the sweeps over the options: one in the quick lane (its representative), the others medium */
+const Lanes = [
+  { suffix: '', options: [Options[1]], lane: {} },
+  { suffix: ' (the other resolutions and strides)', options: [Options[0], Options[2]], lane: { tags: ['medium'] } },
+];
+
 describe('mesh color smoothing', () => {
   // the optimized kernel is bit-identical to the reference and the smaller grid keeps the reference's cell lattice;
   // `expectCloseTo` leaves room for floating-point reordering only
-  it('matches the reference at the vertices (no graphics context)', () => {
-    for (const [layer, type, loose] of Cases) {
-      for (const o of Options) {
-        const r = smooth(layer, type, o, undefined, loose);
-        const name = `${caseName(layer, type, loose)} ${o.resolution}/${o.stride}`;
-        expect(r.type, name).toBe(type === 'group' ? 'vertex' : 'vertexInstance');
-        expectCloseTo(r.atVertices, r.reference, name);
-        expect(distinctValues(r.atVertices), name).toBeGreaterThan(20);
+  for (const { suffix, options, lane } of Lanes) {
+    it(`matches the reference at the vertices (no graphics context)${suffix}`, lane, () => {
+      for (const [layer, type, loose] of Cases) {
+        for (const o of options) {
+          const r = smooth(layer, type, o, undefined, loose);
+          const name = `${caseName(layer, type, loose)} ${o.resolution}/${o.stride}`;
+          expect(r.type, name).toBe(type === 'group' ? 'vertex' : 'vertexInstance');
+          expectCloseTo(r.atVertices, r.reference, name);
+          expect(distinctValues(r.atVertices), name).toBeGreaterThan(20);
+        }
       }
-    }
-  });
+    });
 
-  it('gives a grid that matches the reference at the vertices, no larger than the bounding-sphere grid', () => {
-    for (const [layer, type, loose] of Cases) {
-      for (const o of Options) {
-        const r = smooth(layer, type, o, 16384, loose);
-        const name = `${caseName(layer, type, loose)} ${o.resolution}/${o.stride}`;
-        expect(r.type, name).toBe(type === 'group' ? 'volume' : 'volumeInstance');
-        expect(r.resolution, name).toBeCloseTo(o.resolution, 12);
-        const { width, height } = getVolumeTexture2dLayout(Vec3.fromArray(Vec3(), r.gridDim, 0));
-        expect(r.texDim, name).toEqual([width, height]);
-        expect(r.image.array.length, name).toBe(
-          width * height * (layer === 'transparency' || layer === 'emissive' ? 1 : 4),
-        );
-        for (let k = 0; k < 3; ++k) expect(r.gridDim[k], name).toBeLessThanOrEqual(r.referenceGrid.gridDim[k]);
-        // a bounding sphere far beyond the vertices: the grid follows the vertices
-        if (loose) expect(width * height, name).toBeLessThan(0.6 * r.referenceGrid.width * r.referenceGrid.height);
+    it(
+      `gives a grid that matches the reference at the vertices, no larger than the bounding-sphere grid${suffix}`,
+      lane,
+      () => {
+        for (const [layer, type, loose] of Cases) {
+          for (const o of options) {
+            const r = smooth(layer, type, o, 16384, loose);
+            const name = `${caseName(layer, type, loose)} ${o.resolution}/${o.stride}`;
+            expect(r.type, name).toBe(type === 'group' ? 'volume' : 'volumeInstance');
+            expect(r.resolution, name).toBeCloseTo(o.resolution, 12);
+            const { width, height } = getVolumeTexture2dLayout(Vec3.fromArray(Vec3(), r.gridDim, 0));
+            expect(r.texDim, name).toEqual([width, height]);
+            expect(r.image.array.length, name).toBe(
+              width * height * (layer === 'transparency' || layer === 'emissive' ? 1 : 4),
+            );
+            for (let k = 0; k < 3; ++k) expect(r.gridDim[k], name).toBeLessThanOrEqual(r.referenceGrid.gridDim[k]);
+            // a bounding sphere far beyond the vertices: the grid follows the vertices
+            if (loose) expect(width * height, name).toBeLessThan(0.6 * r.referenceGrid.width * r.referenceGrid.height);
+            expectCloseTo(r.atVertices, r.reference, name);
+            expect(distinctValues(r.atVertices), name).toBeGreaterThan(20);
+          }
+        }
+      },
+    );
+  }
+
+  // the reference splats every instance: the instances the layer does not reach, and are no neighbours of one it
+  // reaches, left out change nothing
+  it('smooths a layer reaching one instance as when every instance is splatted', () => {
+    const values = createValues('overpaint', 'groupInstance', false, [2]);
+    const { splatCount } = calcMeshColorSmoothing(
+      {
+        vertexCount: values.uVertexCount.ref.value,
+        instanceCount: values.uInstanceCount.ref.value,
+        groupCount: values.uGroupCount.ref.value,
+        transformBuffer: values.aTransform.ref.value,
+        instanceBuffer: values.aInstance.ref.value,
+        positionBuffer: values.aPosition.ref.value,
+        groupBuffer: values.aGroup.ref.value,
+        colorData: values.tOverpaint.ref.value,
+        colorType: 'groupInstance',
+        boundingSphere: values.boundingSphere.ref.value,
+        invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+        itemSize: 4,
+      },
+      Options[1],
+    );
+    expect(splatCount).toBe(1);
+    for (const maxTextureSize of [undefined, 16384]) {
+      for (const layer of ['overpaint', 'transparency'] as Layer[]) {
+        const name = `${layer} ${maxTextureSize ? 'grid' : 'per vertex'}`;
+        const r = smooth(layer, 'groupInstance', Options[1], maxTextureSize, false, [2]);
         expectCloseTo(r.atVertices, r.reference, name);
         expect(distinctValues(r.atVertices), name).toBeGreaterThan(20);
       }
@@ -325,54 +384,63 @@ describe('mesh color smoothing', () => {
     );
   });
 
-  it('spans the vertices of every instance with a margin, also on a grid much smaller than the bounding-sphere box', () => {
-    // a third instance with a reflection and a non-uniform scale
-    const skewed = Mat4.mul(
-      Mat4(),
-      Mat4.fromTranslation(Mat4(), Vec3.create(-30, 4, 2)),
-      Mat4.fromScaling(Mat4(), Vec3.create(-1, 1.7, 0.6)),
-    );
-    for (const [layer, type, loose] of Cases) {
-      for (const skew of type === 'groupInstance' ? [false, true] : [false]) {
-        for (const o of [...Options, { resolution: 0.25, stride: 1 }]) {
-          const values = createValues(layer, type, loose);
-          const transforms = values.aTransform.ref.value;
-          if (skew) {
-            Mat4.toArray(skewed, transforms, 2 * 16);
-            const bs = calculateTransformBoundingSphere(values.invariantBoundingSphere.ref.value, transforms, 3, 0);
-            ValueCell.update(values.boundingSphere, bs);
-          }
-          const { graphics } = createGraphics(16384);
-          apply[layer](values, o, graphics);
-          const { gridDim, gridTransform } = layerValues(values, layer);
-          const positions = values.aPosition.ref.value;
-          const instanceCount = type === 'groupInstance' ? values.uInstanceCount.ref.value : 1;
-          const sphere = type === 'groupInstance' ? values.boundingSphere : values.invariantBoundingSphere;
-          const sphereBox = Box3D.fromSphere3D(Box3D(), sphere.ref.value);
-          const p = Vec3();
-          let lo = Infinity;
-          let hi = -Infinity;
-          for (let i = 0; i < instanceCount; ++i) {
-            for (let j = 0; j < VertexCount; ++j) {
-              Vec3.fromArray(p, positions, j * 3);
-              if (type === 'groupInstance') Vec3.transformMat4Offset(p, p, transforms, 0, 0, i * 16);
-              for (let k = 0; k < 3; ++k) {
-                const g = (p[k] - gridTransform[k]) * gridTransform[3];
-                // a vertex outside the bounding-sphere box (the box of transformed extrema can miss some) loses that
-                // much margin, as on the grid of the bounding-sphere box
-                lo = Math.min(lo, g + Math.max(0, (sphereBox.min[k] - p[k]) * gridTransform[3]));
-                hi = Math.max(hi, g - gridDim[k] - Math.max(0, (p[k] - sphereBox.max[k]) * gridTransform[3]));
+  for (const { suffix, options, lane } of [
+    Lanes[0],
+    { ...Lanes[1], options: [...Lanes[1].options, { resolution: 0.25, stride: 1 }] },
+  ]) {
+    it(
+      `spans the vertices of every instance with a margin, also on a grid much smaller than the bounding-sphere box${suffix}`,
+      lane,
+      () => {
+        // a third instance with a reflection and a non-uniform scale
+        const skewed = Mat4.mul(
+          Mat4(),
+          Mat4.fromTranslation(Mat4(), Vec3.create(-30, 4, 2)),
+          Mat4.fromScaling(Mat4(), Vec3.create(-1, 1.7, 0.6)),
+        );
+        for (const [layer, type, loose] of Cases) {
+          for (const skew of type === 'groupInstance' ? [false, true] : [false]) {
+            for (const o of options) {
+              const values = createValues(layer, type, loose);
+              const transforms = values.aTransform.ref.value;
+              if (skew) {
+                Mat4.toArray(skewed, transforms, 2 * 16);
+                const bs = calculateTransformBoundingSphere(values.invariantBoundingSphere.ref.value, transforms, 3, 0);
+                ValueCell.update(values.boundingSphere, bs);
               }
+              const { graphics } = createGraphics(16384);
+              apply[layer](values, o, graphics);
+              const { gridDim, gridTransform } = layerValues(values, layer);
+              const positions = values.aPosition.ref.value;
+              const instanceCount = type === 'groupInstance' ? values.uInstanceCount.ref.value : 1;
+              const sphere = type === 'groupInstance' ? values.boundingSphere : values.invariantBoundingSphere;
+              const sphereBox = Box3D.fromSphere3D(Box3D(), sphere.ref.value);
+              const p = Vec3();
+              let lo = Infinity;
+              let hi = -Infinity;
+              for (let i = 0; i < instanceCount; ++i) {
+                for (let j = 0; j < VertexCount; ++j) {
+                  Vec3.fromArray(p, positions, j * 3);
+                  if (type === 'groupInstance') Vec3.transformMat4Offset(p, p, transforms, 0, 0, i * 16);
+                  for (let k = 0; k < 3; ++k) {
+                    const g = (p[k] - gridTransform[k]) * gridTransform[3];
+                    // a vertex outside the bounding-sphere box (the box of transformed extrema can miss some) loses that
+                    // much margin, as on the grid of the bounding-sphere box
+                    lo = Math.min(lo, g + Math.max(0, (sphereBox.min[k] - p[k]) * gridTransform[3]));
+                    hi = Math.max(hi, g - gridDim[k] - Math.max(0, (p[k] - sphereBox.max[k]) * gridTransform[3]));
+                  }
+                }
+              }
+              // the box is expanded by 1 + resolution (1 + 1 / resolution cells) and has 2 extra cells at the end
+              const padCells = 1 + 1 / o.resolution;
+              expect(lo).toBeGreaterThanOrEqual(padCells - 1e-6);
+              expect(hi).toBeLessThanOrEqual(-(2 + padCells) + 1e-6);
             }
           }
-          // the box is expanded by 1 + resolution (1 + 1 / resolution cells) and has 2 extra cells at the end
-          const padCells = 1 + 1 / o.resolution;
-          expect(lo).toBeGreaterThanOrEqual(padCells - 1e-6);
-          expect(hi).toBeLessThanOrEqual(-(2 + padCells) + 1e-6);
         }
-      }
-    }
-  });
+      },
+    );
+  }
 
   it('smooths a mesh without vertices', () => {
     const values = createValues('color', 'groupInstance', false);

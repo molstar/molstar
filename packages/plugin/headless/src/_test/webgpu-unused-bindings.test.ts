@@ -9,6 +9,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Canvas3DParams, type Canvas3DPrecompileProps } from '@molstar/graphics/canvas3d/canvas3d';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `${Array.from({ length: 40 }, (_, i) => {
@@ -54,7 +55,8 @@ function getPropsVariants(): Canvas3DPrecompileProps[] {
 // its source (`WgslProgram.source`), so that unused targets are neither bound nor allocated; WebGPU is the judge:
 // without a binding the shader doesn't use, the pipeline still validates
 describe.skipIf(!WebGPU.module)('WebGPU bindings', () => {
-  it('bind only what the shaders use', async () => {
+  // medium: a sweep, the pipelines of every pass variant, each binding left out validated
+  it('bind only what the shaders use', { tags: ['medium'] }, async () => {
     const g = WebGPU.module!.globals as any;
     const codes = new WeakMap<GPUShaderModule, string>();
     const groupLayouts = new WeakMap<GPUBindGroupLayout, Layout>();
@@ -103,12 +105,8 @@ describe.skipIf(!WebGPU.module)('WebGPU bindings', () => {
       return original.createRenderPipelineAsync.call(this, d);
     };
 
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 64, height: 64 },
-      { backend: 'webgpu' },
-    );
+    // a context of its own (`own`): the shader modules it makes seen (a shared one's made before)
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 }, { own: true });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });

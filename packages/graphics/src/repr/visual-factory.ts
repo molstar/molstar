@@ -26,6 +26,29 @@ export interface SelectingVisualFactory<D, P extends PD.Params> {
   readonly signatureVisuals: (props: PD.Values<P>, graphics?: GraphicsContext, data?: readonly D[]) => Visual<D, P>[];
   /** whether it chooses by the props and context alone (`chooseVisual`): one visual of its choice for any data */
   readonly byProps?: boolean;
+  /** the kind of visual it makes of `data` (of `variants`): a representation's groups by kind (one visual a kind) */
+  readonly select: (data: D, props: PD.Values<P>, graphics?: GraphicsContext) => string;
+  readonly variants: { readonly [k: string]: (materialId: number) => Visual<D, P> };
+}
+
+/**
+ * The kind of visual `factory` makes of `data` ('' of one that does not choose) and the factory of visuals of that kind
+ */
+export function getVisualKind<D, P extends PD.Params>(
+  factory: VisualFactory<D, P>,
+  data: D,
+  props: PD.Values<P>,
+  graphics?: GraphicsContext,
+): string {
+  return 'signatureVisuals' in factory ? factory.select(data, props, graphics) : '';
+}
+
+/** The factory of visuals of `kind` of `factory` (`getVisualKind`) */
+export function getKindFactory<D, P extends PD.Params>(
+  factory: VisualFactory<D, P>,
+  kind: string,
+): (materialId: number) => Visual<D, P> {
+  return 'signatureVisuals' in factory ? factory.variants[kind] : factory;
 }
 
 /** Whether `factory` creates its visuals whatever the data: a plain factory, or one choosing by the props alone */
@@ -67,6 +90,8 @@ export function selectVisual<D, P extends PD.Params, K extends string>(
       const kinds = data ? new Set(data.map((d) => select(d, props, graphics))) : candidates(props, graphics);
       return [...kinds].map((k) => variants[k](-1));
     },
+    select: select as (data: D, props: PD.Values<P>, graphics?: GraphicsContext) => string,
+    variants,
   });
 }
 

@@ -44,7 +44,8 @@ export interface Canvas3DRepresentations {
   remove: (repr: Representation.Any) => void;
   /**
    * The values of `repr`'s render objects updated in place, all representations' without one (`Canvas3D.update`);
-   * false where nothing was updated in place (`repr` not added, or added again for its new layer)
+   * false where nothing was updated in place (`repr` not added, or added again: for its new layer, or for render
+   * objects it replaced without `updated`, as a merged visual's `setState` splitting or joining its parts)
    */
   update: (repr: Representation.Any | undefined, keepSphere: boolean) => boolean;
   /** Removes all representations and the objects of the scene, the overlay and the debug helper (`Canvas3D.clear`) */
@@ -114,6 +115,13 @@ export function createCanvas3DRepresentations(host: Canvas3DRepresentationsHost)
       ValueCell.updateIfChanged(values.uOccludedAlpha, occluded);
       ValueCell.updateIfChanged(values.uPickingAlphaMin, pickAlphaMin);
     }
+  }
+
+  /** whether `renderObjects` are those `recorded` */
+  function isSameObjects(recorded: ReadonlySet<GraphicsRenderObject>, renderObjects: ArrayLike<GraphicsRenderObject>) {
+    if (recorded.size !== renderObjects.length) return false;
+    for (let i = 0, il = renderObjects.length; i < il; ++i) if (!recorded.has(renderObjects[i])) return false;
+    return true;
   }
 
   function add(repr: Representation.Any) {
@@ -207,9 +215,10 @@ export function createCanvas3DRepresentations(host: Canvas3DRepresentationsHost)
   function update(repr: Representation.Any | undefined, keepSphere: boolean) {
     // updated values may have changed defines: the updated renderables recorded again
     if (repr) {
-      if (!reprRenderObjects.has(repr)) return false;
-      if (reprScenes.get(repr) !== layerScene(repr)) {
-        // its layer changed (`setState`)
+      const recorded = reprRenderObjects.get(repr);
+      if (!recorded) return false;
+      if (reprScenes.get(repr) !== layerScene(repr) || !isSameObjects(recorded, repr.renderObjects)) {
+        // its layer changed, or its render objects (`setState`): the scene brought in step with them
         add(repr);
         return false;
       }
