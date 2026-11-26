@@ -105,7 +105,8 @@ describe.skipIf(!WebGPU.module)('WebGPU bindings', () => {
       return original.createRenderPipelineAsync.call(this, d);
     };
 
-    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 });
+    // a context of its own (`own`): the shader modules it makes seen (a shared one's made before)
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 }, { own: true });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });

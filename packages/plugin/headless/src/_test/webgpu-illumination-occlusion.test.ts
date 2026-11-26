@@ -150,6 +150,8 @@ describe.skipIf(!WebGPU.module)('illumination inputs culled by occlusion on WebG
   // the inputs (tracing, back depth) culled on the GPU against the previous frame's pyramid, and in a second phase
   // against that of the tracing input's depth so far: a frame after a jump of the camera (the copies behind the front
   // one revealed, the previous pyramid hiding them) the same as without occlusion
+  // The images alone do not tell the second phase ran: without it the inputs are not culled by occlusion at all (no
+  // one-phase path, `frame-render.ts`), the images the same; `secondPhase` does
 
   // quick: a 10x10 wall and 4 copies at 32 px, the front view 2 frames, 2 iterations after the jump
   it('draws what is drawn without occlusion, the camera jumping (small)', async () => {

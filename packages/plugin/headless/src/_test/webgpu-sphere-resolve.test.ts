@@ -28,7 +28,8 @@ const Size = 64;
 const ViewHeight = 16;
 
 function createPlugin() {
-  return createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }).then(async (plugin) => {
+  // a context of its own (`own`): the shader modules it makes seen (a shared one's made before)
+  return createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }, { own: true }).then(async (plugin) => {
     await plugin.init();
     return plugin;
   });

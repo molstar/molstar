@@ -26,7 +26,8 @@ END
 /** one plugin for the file's tests: its device's pipelines compiled once */
 let shared: Promise<HeadlessPluginContext> | undefined;
 const sharedPlugin = () =>
-  (shared ??= createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 }).then(async (plugin) => {
+  // a context of its own (`own`): its resources counted, the context's own among them
+  (shared ??= createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 }, { own: true }).then(async (plugin) => {
     await plugin.init();
     return plugin;
   }));
