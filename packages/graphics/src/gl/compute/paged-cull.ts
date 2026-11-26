@@ -1078,6 +1078,8 @@ export function createPagedCuller(
    */
   let wantsMissed = false;
   let wantsAgainTimer: ReturnType<typeof setTimeout> | undefined;
+  /** settles the pending work the timer tracks (`readWants`): also where the culler is destroyed first */
+  let wantsAgainSettle: (() => void) | undefined;
   let disposed = false;
   /**
    * the wants read back so far, and per leaf page the last read that wanted it: a page let go where reads since did
@@ -1741,8 +1743,10 @@ export function createPagedCuller(
       wantsMissed = true;
       if (!wantsRead && wantsAgainTimer === undefined) {
         const again = new Promise<void>((resolve) => {
+          wantsAgainSettle = resolve;
           wantsAgainTimer = setTimeout(() => {
             wantsAgainTimer = undefined;
+            wantsAgainSettle = undefined;
             wantsAgain();
             resolve();
           }, wait);
@@ -2421,6 +2425,10 @@ export function createPagedCuller(
       disposed = true;
       clearTimeout(wantsAgainTimer);
       wantsAgainTimer = undefined;
+      // its pending work settled (the timer's never runs now): else the context's never ready again (an image pass
+      // waiting for it, Hi-Z not built)
+      wantsAgainSettle?.();
+      wantsAgainSettle = undefined;
       composeKernel?.destroy();
       selectKernel?.destroy();
       selectArgsKernel?.destroy();

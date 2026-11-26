@@ -1137,6 +1137,56 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
     culler.destroy();
   }, 120_000);
 
+  it('settles its pending work when destroyed with a skipped read of its wants waiting', async () => {
+    const graphics = plugin.canvas3d!.graphics;
+    const pending = graphics.resources.pending;
+    const store = new ParticlePageStore();
+    // a template with a coarse level (its leaves' wants read back), one copy
+    store.add(
+      -1,
+      createList(300, () => 1, true),
+      0,
+      placement,
+      undefined,
+      true,
+    );
+    store.add(
+      -2,
+      createList(40, () => 1, true),
+      0,
+      placement,
+      undefined,
+      true,
+    );
+    const center = Vec3.create(50, 50, 40);
+    const poses = new Float32Array(CopyPoseFloats);
+    writeCopyPose(poses, 0, Vec3.create(0, 0, 0), Quat.identity(), center);
+    const of = { tops: Int32Array.of(5), poses, levels: 1, center, spacing: 5, radius: 100 };
+    store.setCopies(-1, { ...of, level: 0 });
+    store.setCopies(-2, { ...of, level: 1 });
+    // its wants read at most every 10 s where none are pending
+    const culler = createPagedCuller(graphics.compute!, graphics.resources, { ...FullRooms, wantsReadMs: 10_000 });
+    culler.sync(store, store.takeChanges(), [2, 3, 1.5, 4]);
+    const far = {
+      ...createView(Vec3.create(50, 50, 300), Vec3.create(50, 50, 0), 1.2),
+      coarse: { scale: 1, ortho: false, pixels: 4 },
+    };
+    // the first cull's read, landed; the next skips its read (within the 10 s), its read again tracked as pending
+    culler.cull(far);
+    await landed();
+    await pending.whenReady();
+    culler.cull(far);
+    expect(pending.isReady()).toBe(false);
+    // destroyed before the timer: settled, not waited on for ever
+    culler.destroy();
+    const settled = await Promise.race([
+      pending.whenReady().then(() => 'ready'),
+      new Promise((resolve) => setTimeout(() => resolve('waiting'), 1000)),
+    ]);
+    expect(settled).toBe('ready');
+    expect(graphics.takeErrors?.() ?? []).toEqual([]);
+  }, 60_000);
+
   it("draws a template's copies coarser while a frame needs more than its budget, finer again where it fits", async () => {
     const graphics = plugin.canvas3d!.graphics;
     const store = new ParticlePageStore();
