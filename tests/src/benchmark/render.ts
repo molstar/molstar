@@ -1181,12 +1181,13 @@ const MergingAssemblyMeshCases: BenchmarkCase<RenderInput>[] = [true].flatMap((m
 
 /**
  * The assembly's colors smoothed, per vertex and instance (element-index): merged on the CPU (data per vertex and
- * instance), unmerged a grid per unit on the GPU; CPU meshes on every backend (`tryUseGpu: false`)
+ * instance); `-off` not smoothed (the build without it); `-per-group` a grid per unit splatted on the GPU where the
+ * context does (`applyMeshColorSmoothing` with the mesh's vertices); CPU meshes on every backend (`tryUseGpu: false`)
  */
-const MergingSmoothCases: BenchmarkCase<RenderInput>[] = [true].map((merged) =>
+const MergingSmoothCases: BenchmarkCase<RenderInput>[] = (['merged', 'off', 'per-group'] as const).map((variant) =>
   renderCase(
-    `merging/assembly-gaussian-smooth-${merged ? 'merged' : 'unmerged'}`,
-    `60 copies of 7qpd (420 units) as Gaussian surfaces colored by element-index, smoothed, ${merged ? 'merged' : 'a render object per unit'}`,
+    `merging/assembly-gaussian-smooth-${variant === 'off' ? 'merged-off' : variant}`,
+    `60 copies of 7qpd (420 units) as Gaussian surfaces colored by element-index, ${variant === 'off' ? 'not smoothed' : 'smoothed'}, ${variant === 'per-group' ? 'a render object per group' : 'merged'}`,
     async () => {
       const s = await getRootAssembly();
       const props = {
@@ -1194,14 +1195,19 @@ const MergingSmoothCases: BenchmarkCase<RenderInput>[] = [true].map((merged) =>
         // a fine grid: `auto` quality gives this assembly resolution 3, which no smoothing applies to (from below 3)
         quality: 'custom',
         resolution: 1,
-        smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+        smoothColors:
+          variant === 'off'
+            ? { name: 'off', params: {} }
+            : { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
       };
       return {
         setupNotes: true,
         byteNotes: true,
         scene: (g) =>
           Promise.all([
-            structureRepr(g, GaussianSurfaceRepresentationProvider, s, props as any, { name: 'element-index' }),
+            variant === 'per-group'
+              ? perGroupGaussianSurface(g, s, props, { name: 'element-index' })
+              : structureRepr(g, GaussianSurfaceRepresentationProvider, s, props as any, { name: 'element-index' }),
           ]),
       };
     },
@@ -1212,7 +1218,12 @@ const MergingSmoothCases: BenchmarkCase<RenderInput>[] = [true].map((merged) =>
  * The Gaussian surfaces of `s` per group: the units representation of the surface's mesh visual without its builder,
  * which merges (`UnitsVisual.builder`), so each group a visual and a render object of its own as before merging
  */
-async function perGroupGaussianSurface(graphics: GraphicsContext, s: Structure, props: object) {
+async function perGroupGaussianSurface(
+  graphics: GraphicsContext,
+  s: Structure,
+  props: object,
+  colorTheme?: { name: string; params?: {} },
+) {
   const registries = getThemeRegistries();
   const visual = (materialId: number) =>
     new Proxy(GaussianSurfaceMeshVisual(materialId), {
@@ -1230,7 +1241,10 @@ async function perGroupGaussianSurface(graphics: GraphicsContext, s: Structure, 
       registries,
       { structure: s },
       {
-        colorTheme: { name: provider.defaultColorTheme.name, params: provider.defaultColorTheme.props ?? {} },
+        colorTheme: colorTheme ?? {
+          name: provider.defaultColorTheme.name,
+          params: provider.defaultColorTheme.props ?? {},
+        },
         sizeTheme: { name: provider.defaultSizeTheme.name, params: provider.defaultSizeTheme.props ?? {} },
       },
     ),
