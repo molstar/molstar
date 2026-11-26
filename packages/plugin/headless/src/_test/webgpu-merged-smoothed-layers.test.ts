@@ -18,6 +18,7 @@ import { getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/ren
 import { type DataArray, readGpuDataArrays } from '@molstar/graphics/gl/renderable/util';
 import { SegmentedArray } from '@molstar/graphics/gl/segmented-array';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
+import { asWebGPUStorageBuffer } from '@molstar/graphics/gl/webgpu/compute';
 import { KernelCode, type StorageBuffer, StorageBufferSpec } from '@molstar/graphics/gl/compute';
 import { LayerSamplingKernels, MeshSmoothingKernels } from '@molstar/graphics/gl/compute/layer-sampling';
 import { getGpuMeshVertices } from '@molstar/graphics/geo/geometry/mesh/gpu-vertices';
@@ -308,6 +309,47 @@ describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', (
     },
     60_000,
   );
+
+  it('uploads no word of a layer part the GPU writes from the CPU (its zeros)', async () => {
+    const plugin = await sharedPlugin();
+    const graphics = plugin.canvas3d!.graphics as WebGPUContext;
+    const { structure, registries, overpaint } = await setup(plugin);
+    // the writes from the CPU (a data page's: `queue.writeBuffer`)
+    const queue = graphics.device.queue;
+    const writeBuffer = queue.writeBuffer;
+    const writes: { buffer: GPUBuffer; start: number; end: number }[] = [];
+    queue.writeBuffer = function (this: GPUQueue, buffer: GPUBuffer, offset: number, ...rest: any[]) {
+      const size = rest[2] ?? (rest[0] as ArrayBufferLike).byteLength - (rest[1] ?? 0);
+      writes.push({ buffer, start: offset, end: offset + size });
+      return (writeBuffer as any).call(this, buffer, offset, ...rest);
+    } as typeof queue.writeBuffer;
+    let inside: typeof writes = [];
+    let drawn: Uint8Array | undefined;
+    try {
+      await image(graphics, registries, structure, 'merged', overpaint, {
+        inspect: async (repr, scene) => {
+          const object = repr.renderObjects.find(
+            (o: any) => isMergedRenderObject(o) && gpuMembers({ renderObjects: [o] }).length,
+          );
+          const layer = scene.get(object)!.renderItem.getDataLayer!('tOverpaint')!;
+          const array = (object.values.tOverpaint.ref.value as DataArray<any>).array as SegmentedArray;
+          const part = array.parts.find((p) => !!p.gpu)!;
+          // the part's whole words in its page
+          const first = layer.offset * 4 + Math.ceil(part.offset / 4) * 4;
+          const last = layer.offset * 4 + Math.floor((part.offset + part.count) / 4) * 4;
+          expect(last).toBeGreaterThan(first);
+          const buffer = asWebGPUStorageBuffer(layer.buffer).getGPUBuffer();
+          inside = writes.filter((w) => w.buffer === buffer && w.start < last && w.end > first);
+          drawn = await readPage(graphics, layer.buffer, layer.offset + part.offset / 4, part.count / 4);
+        },
+      });
+    } finally {
+      queue.writeBuffer = writeBuffer;
+    }
+    expect(inside).toEqual([]);
+    // the part as the GPU wrote it, not the CPU's zeros
+    expect(drawn!.some((b) => b > 0)).toBe(true);
+  });
 
   it('keeps the vertices on the GPU across layers, released with the representation', async () => {
     const plugin = await sharedPlugin();
