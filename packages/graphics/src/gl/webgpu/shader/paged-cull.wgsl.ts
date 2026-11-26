@@ -250,7 +250,7 @@ fn copyLeastLevel(c: u32) -> u32 {
 
 /**
  * copy c's group: its template's copy of the same top particle in every block (its leaf block's and its levels'),
- * what a copy lacking a leaf page holds coarse in all of them (\`lacking\`, \`paged-cull-wants\`)
+ * what a copy lacking leaf pages holds coarse or splits in all of them (\`lacking\`, \`paged-cull-wants\`)
  */
 fn copyGroup(c: u32) -> u32 {
     return u32(bitcast<vec4<f32>>(tables[u32(uParams.uCopiesBase) + 4u * c + 3u]).w);
@@ -302,6 +302,16 @@ fn copyLevel(c: u32, levels: u32) -> u32 {
     return max(least, min(levels, u32(floor(log2(uParams.uCoarsePixels / max(px, 1e-9))))));
 }
 
+/**
+ * whether point \`p\` of copy c (as drawn) is on level 0's side of a split copy (\`paged-cull-select\`): its template's
+ * spacing at its own distance at least \`uCoarsePixels\` pixels, as \`copyLevel\` decides at the copy's center
+ */
+fn isNear(c: u32, p: vec3<f32>) -> bool {
+    let spacing = copySphere(c).w * uParams.uObjectScale;
+    let d = select(max(dot(uParams.uCameraPlane.xyz, p) + uParams.uCameraPlane.w, 1e-3), 1.0, uParams.uCoarseOrtho != 0);
+    return !(spacing * uParams.uCoarseScale / d < uParams.uCoarsePixels);
+}
+
 fn outside(plane: vec4<f32>, p: vec3<f32>, r: f32) -> bool {
     return dot(plane.xyz, p) + plane.w < -r;
 }
@@ -327,6 +337,11 @@ fn selectedEntry(k: u32) -> u32 {
         return 0xffffffffu;
     }
     return tables[base + 1u + k].x;
+}
+
+/** whether the k-th selected entry is of a split copy (\`paged-cull-select\`: each level drawn on its side, \`isNear\`) */
+fn selectedSplit(k: u32) -> bool {
+    return tables[u32(uParams.uSelectedBase) + 1u + k].y != 0u;
 }
 `;
 
@@ -562,6 +577,11 @@ fn instance(g: u32, pageOf: u32) -> Instance {
     if (outside(uParams.uPlane0, p, radius) || outside(uParams.uPlane1, p, radius) ||
         outside(uParams.uPlane2, p, radius) || outside(uParams.uPlane3, p, radius) ||
         outside(uParams.uPlane4, p, radius) || outside(uParams.uPlane5, p, radius)) {
+        return r;
+    }
+    // a split copy's (\`paged-cull-select\`): its leaves near, its first coarse level's sample beyond
+    if (copy != NoIndex && selectedSplit(k) &&
+        ((activeWord(a) >> ${PagedEntryLevelShift}u) == 0u) != isNear(copy, p)) {
         return r;
     }
     // the clip objects: a sphere they clip whole not drawn, with instance clipping one clipped by its center (as the
@@ -815,16 +835,27 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     if (c == NoIndex && (uParams.uFallback != 0 || uParams.uSelectAppend != 0)) {
         return;
     }
+    var split = false;
     if (c != NoIndex) {
         let w = activeWord(a);
-        // a leaf page not written: not drawn (its copy held coarse where it lacks it in view, \`paged-cull-wants\`)
+        // a leaf page not written: not drawn (its copy split or held coarse where it lacks it in view, below)
         if (valueBlockOf(w & ${PagedEntryPageMask}u) == NoIndex) {
             return;
         }
         let levels = (w >> ${PagedEntryLevelsShift}u) & 7u;
         var level = copyLevel(c, levels);
+        // its group lacking a leaf page in view (\`paged-cull-wants\`): at level 0 split (both levels selected, its
+        // written leaves drawn near, the sample beyond: \`isNear\`; a missing page's near particles none till written),
+        // else held at its first coarse level. Why: held coarse whole, its near particles were a sample's, each
+        // larger about its center (a focused molecule as if zoomed into, for the frames its pages took: released
+        // pages coming back into view as it turned); near, a hole a few frames shows less. Not where wanted pages find
+        // no room (\`uSplitNear\` 0: they may never come, the holes would stay)
         if (levels > 0u && lacking[copyGroup(c)] != 0u) {
-            level = max(level, 1u);
+            if (level == 0u && uParams.uSplitNear != 0 && uParams.uCoarsePixels > 0.0 && uParams.uFallback == 0) {
+                split = true;
+            } else {
+                level = max(level, 1u);
+            }
         }
         // the fallback's: a dropped copy group's entries a level coarser, its coarsest at that again (what of it the
         // phases drew drawn twice); none without coarse levels
@@ -834,7 +865,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
             }
             level = min(levels, level + 1u);
         }
-        if ((w >> ${PagedEntryLevelShift}u) != level) {
+        let entryLevel = w >> ${PagedEntryLevelShift}u;
+        if (select(entryLevel != level, entryLevel > 1u, split)) {
             return;
         }
         let b = copyBounds(c);
@@ -874,7 +906,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     // an entry a vec4 of its own: a store to a vector's component may write the whole vector (WGSL; Metal does), four
     // threads' entries in one vec4 lost but one
     let k = atomicAdd(&selectArgs[bucket], 1u);
-    tables[u32(uParams.uSelectedBase) + 1u + k] = vec4<u32>(a, 0u, 0u, 0u);
+    tables[u32(uParams.uSelectedBase) + 1u + k] = vec4<u32>(a, select(0u, 1u, split), 0u, 0u);
 }
 `;
 
@@ -882,9 +914,9 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
  * The leaf pages the view wants (\`paged-cull-wants\`, a thread an active entry, before the select): a leaf entry
  * (its template's with coarse levels, level 0) of a copy at level 0 whose page is not written, its record's box (in
  * the template's frame) placed by the copy, padded by the largest reach times the block's largest scale: in the frustum
- * its page wanted (\`wanted\`, a bit a page) and its copy's group lacking it (\`lacking\`: held at its first coarse
- * level, no holes); grown by \`uWantPadding\` of its radius its page wanted alone (written before it comes into
- * view). Read back, the CPU writes the wanted pages (see \`paged-cull.ts\`). Not by the pyramid: a page's sphere hid
+ * its page wanted (\`wanted\`, a bit a page) and its copy's group lacking it (\`lacking\`: split near and far at level 0,
+ * else held at its first coarse level, \`paged-cull-select\`); grown by \`uWantPadding\` of its radius its page wanted
+ * alone (written before it comes into view). Read back, the CPU writes the wanted pages (see \`paged-cull.ts\`). Not by the pyramid: a page's sphere hid
  * little (the yeast 2x2's a quarter 539 MB either way), and a copy held coarse drew a pyramid of a sample's gaps,
  * wanting more pages (a feedback)
  */

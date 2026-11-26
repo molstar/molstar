@@ -249,6 +249,12 @@ export interface Renderable<T extends RenderableValues> {
    */
   prepareCullView?: (cameraPlane: Plane3D, frustum: Frustum3D, frame: Frame, lod: LodView) => boolean;
   /**
+   * Whether `frame` was culled on the GPU and another view (`prepareCullView`: a ray's pick) culled since: its GPU
+   * lists that view's, so a pass of `frame` drawn again without a new `prepareCull` (a marking redraw) would draw the
+   * other view (`Renderer.isGpuCullStale`)
+   */
+  isGpuCullStale?: (frame: Frame) => boolean;
+  /**
    * Culled on the GPU for the sphere raster only (`gpuCulling` 'auto' by its spheres, not its instances): its spheres;
    * `Renderer.prepareCull` leaves it to the CPU culling where the raster does not take it. Undefined for the others
    */
@@ -355,14 +361,22 @@ export namespace DrawKey {
   }
 }
 
+/** A counter `createDrawVersion`s share: their versions then never the same for different keys */
+export function createDrawVersionCounter() {
+  return { version: 0 };
+}
+
 /**
  * A version of what `append` writes (`Renderable.drawVersion`): it advances when a call finds the key changed from
- * the last call's (after writing the ranges)
+ * the last call's (after writing the ranges); from `counter` where given (shared with other versions)
  */
-export function createDrawVersion(append: (out: DrawKey) => void) {
+export function createDrawVersion(
+  append: (out: DrawKey) => void,
+  counter: { version: number } = createDrawVersionCounter(),
+) {
   let last = DrawKey();
   let next = DrawKey();
-  let version = 0;
+  let version = counter.version;
   return () => {
     next.length = 0;
     append(next);
@@ -370,7 +384,8 @@ export function createDrawVersion(append: (out: DrawKey) => void) {
       const t = last;
       last = next;
       next = t;
-      version += 1;
+      counter.version += 1;
+      version = counter.version;
     }
     return version;
   };
@@ -1549,10 +1564,15 @@ export function createRenderable<T extends GraphicsRenderableValues>(
   const ghostSet = createCullListSet();
   let set = visibleSet;
   const getSet = (clipGhost: boolean | undefined) => (clipGhost ? ghostSet : visibleSet);
-  const getDrawVersion = createDrawVersion((out) => {
+  // a version a set, from one counter (as `MergedRenderable`'s)
+  const drawVersions = createDrawVersionCounter();
+  const appendDrawKey = (out: DrawKey) => {
     DrawKey.add(out, set.cullEnabled ? 1 : 0);
     if (set.cullEnabled) appendMdbDrawKey(set.mdb.list, out);
-  });
+  };
+  const getVisibleDrawVersion = createDrawVersion(appendDrawKey, drawVersions);
+  const getGhostDrawVersion = createDrawVersion(appendDrawKey, drawVersions);
+  const getDrawVersion = () => (set === ghostSet ? getGhostDrawVersion() : getVisibleDrawVersion());
   visibleSet.drawVersion = ghostSet.drawVersion = getDrawVersion();
   // the cells culling reads every frame, resolved once: values objects have too many keys for fast named reads (the
   // cells stay, updates replace their values)

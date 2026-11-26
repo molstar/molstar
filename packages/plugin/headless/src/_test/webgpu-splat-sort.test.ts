@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { createSplatSorter, SplatKeyCount, SplatSortKernels } from '@molstar/graphics/gl/compute/splat-sort';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /** `count` centers (`vec4` each) of a fixed sequence (a linear congruential generator), within ±50 */
@@ -24,12 +25,7 @@ function centers(count: number) {
 describe.skipIf(!WebGPU.module)('gaussian splats sorted on the GPU', () => {
   // the order of two instances, each its block: every splat once, back to front by depth within a key's step
   it('sorts each instance in its block back to front, every splat once', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
     try {
       await plugin.init();
       const compute = plugin.canvas3d!.graphics.compute!;

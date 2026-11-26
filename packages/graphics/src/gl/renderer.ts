@@ -113,9 +113,16 @@ interface Renderer {
   /**
    * Culls on the GPU for a view of its own (a frame of its own: the thickness pass, a ray's pick) with the planes of the
    * last `update`, no pass open: the objects culled on the GPU (`Renderable.prepareCullView`); the others draw the CPU
-   * culling's lists there. Not tested against a pyramid
+   * culling's lists there. Not tested against a pyramid. Required of every pass of a view of its own (a shadow map, a
+   * custom camera): the objects culled on the GPU have no CPU fallback, so a view not culled for them draws none of
+   * them (a warning once an object in debug mode)
    */
   prepareCullView: (scene: Scene.Group) => void;
+  /**
+   * Whether an object of `scene` culled on the GPU for `frame` holds another view's lists since (`prepareCullView`),
+   * so `frame` drawn again needs `update` and `prepareCull` first (`Renderable.isGpuCullStale`)
+   */
+  isGpuCullStale: (scene: Scene.Group, frame: Frame) => boolean;
   /** The objects whose second phase is to run after the last `prepareCull` with `twoPhase` (none: no second part) */
   readonly cullSecondPending: number;
   /**
@@ -286,7 +293,7 @@ export const RendererParams = {
   }),
   sphereRaster: PD.Select('auto', PD.arrayToOptions(['off', 'auto', 'on', 'only'] as const), {
     description:
-      'Draw small opaque spheres by compute kernels instead of impostor quads (WebGPU with 64-bit atomics, perspective views). "auto" draws those of objects culled on the GPU (merged, many instances: their instances split), where measured faster; "on" also those of unmerged objects (split per sphere, their quads drawn all the same: no faster); merged objects need GPU culling either way (`gpuCulling`); "only" (for testing) draws all spheres of the eligible objects by the kernels, whatever their size, and none as quads (spheres through the near plane are missing).',
+      'Draw small opaque spheres by compute kernels instead of impostor quads (WebGPU with 64-bit atomics, perspective views). "auto" draws those of objects culled on the GPU (merged, many instances: their instances split), where measured faster; "on" also those of unmerged objects (split per sphere, their quads drawn all the same: no faster); merged objects need GPU culling either way (`gpuCulling`); "only" (for testing) draws all spheres of the eligible objects by the kernels, whatever their size, and none as quads of the objects it draws whole (their spheres through the near plane are missing; an instance of a merged object through it drawn as quads).',
   }),
   sphereRasterRadius: PD.Numeric(
     24,
@@ -1235,8 +1242,8 @@ namespace Renderer {
      */
     const signatureStandIns = new WeakMap<ProgramItem, Map<string, GraphicsRenderable[]>>();
     const getSignatureStandIns = (signature: ObjectSignature, item: ProgramItem) => {
-      const { opaque, transparent, emissive, gpuCulled } = signature;
-      const flags = `${opaque}|${transparent}|${emissive}|${gpuCulled}`;
+      const { opaque, transparent, emissive, gpuCulled, rasterSpheres } = signature;
+      const flags = `${opaque}|${transparent}|${emissive}|${gpuCulled}|${rasterSpheres}`;
       let cache = signatureStandIns.get(item);
       if (!cache) signatureStandIns.set(item, (cache = new Map()));
       let standIns = cache.get(flags);
@@ -1271,6 +1278,7 @@ namespace Renderer {
             state: { disposed: false, colorOnly: false },
             // whether the sphere raster's `auto` may draw it (`isSphereRasterCandidate`)
             gpuCulled,
+            rasterSpheres,
           } as unknown as GraphicsRenderable;
         });
         cache.set(flags, standIns);
@@ -1539,6 +1547,13 @@ namespace Renderer {
         if (scene.hasGaussianSplats) sortGaussianSplats(scene, camera);
       },
       prepareCullView: culling.prepareView,
+      isGpuCullStale: (scene: Scene.Group, frame: Frame) => {
+        const { renderables } = scene;
+        for (let i = 0, il = renderables.length; i < il; ++i) {
+          if (renderables[i].state.visible && renderables[i].isGpuCullStale?.(frame)) return true;
+        }
+        return false;
+      },
       prepareSphereRaster: culling.prepareRaster,
       get cullSecondPending() {
         return culling.secondPending;

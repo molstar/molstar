@@ -19,6 +19,8 @@ import { Scene } from '@molstar/graphics/gl/scene';
 import type { GlobalDefines } from '@molstar/graphics/gl/renderable/schema';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
+// contexts of their own (`own`): two at once compared (what one compiles, the other does not)
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `ATOM      1  N   ALA A   1      -1.458   0.000   0.000  1.00  0.00           N
@@ -46,12 +48,7 @@ const Passes: Renderer.Pass[] = [
 ];
 
 const createPlugin = async () => {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: 32, height: 32 },
-    { backend: 'webgpu' },
-  );
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 32, height: 32 }, { own: true });
   await plugin.init();
   // the lists under test only: the representation transforms prepare their objects while they build too (here also
   // the label's text, which has no canvas to draw its glyphs with and so draws nothing)
@@ -92,7 +89,7 @@ const Transparency = 'wboit';
 const Globals: GlobalDefines = { dColorMarker: true, dLightCount: 1 };
 
 describe.skipIf(!WebGPU.module)('object signatures on WebGPU', () => {
-  it('prepare the programs and pipelines of their objects, also in another context', async () => {
+  it('prepare the programs and pipelines of their objects, also in another context', { tags: ['medium'] }, async () => {
     const a = await createPlugin();
     const b = await createPlugin();
     try {
@@ -217,7 +214,9 @@ describe.skipIf(!WebGPU.module)('object signatures on WebGPU', () => {
     }
   });
 
-  it('a recorded precompile list prepares what frames draw the objects with, before they exist', async () => {
+  it('a recorded precompile list prepares what frames draw the objects with, before they exist', {
+    tags: ['medium'],
+  }, async () => {
     const a = await createPlugin();
     const b = await createPlugin();
     const c = await createPlugin();
@@ -262,7 +261,9 @@ describe.skipIf(!WebGPU.module)('object signatures on WebGPU', () => {
     }
   });
 
-  it('a precompile list plans the ghost of what clip objects remove, its scenes counts only', async () => {
+  it('a precompile list plans the ghost of what clip objects remove, its scenes counts only', {
+    tags: ['medium'],
+  }, async () => {
     const a = await createPlugin();
     const b = await createPlugin();
     try {

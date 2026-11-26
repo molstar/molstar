@@ -15,6 +15,7 @@ import { arrayMinMax } from '@molstar/core/util/array';
 import { SegmentedArray } from '../segmented-array.js';
 import { getObjectTransforms, type TransformValues } from '../transform-parts.js';
 import { ValueCell } from '@molstar/core/util/value-cell';
+import type { ComputeContext, StorageBuffer } from '../compute.js';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -66,6 +67,81 @@ export function createTextureImage<T extends Uint8Array | Float32Array>(
 export interface DataArray<T extends Uint8Array | Float32Array | Int16Array> {
   readonly array: T;
   readonly count: number;
+  /**
+   * Its elements written on the GPU (a smoothed layer of a merged surface sampled per vertex, `computeLayerSampling`):
+   * `array` then zeros (`getSharedZeros`), the render item writing the elements by this where it draws them
+   */
+  readonly gpu?: GpuDataWriter;
+  /**
+   * an array of its own its producer may reuse for the next data of the same cell (`createDataArray`): with `gpu`, the
+   * input it was sampled from (a smoothed layer's by group and instance), `array` the shared zeros. Why: else every set
+   * of the layer allocates it again (groups times instances, a segment of 60 copies about 0.5 MB)
+   */
+  readonly spare?: T;
+}
+
+/** What writes a data array's elements on the GPU (`DataArray.gpu`) */
+export interface GpuDataWriter {
+  /** the context it writes with: of another one, its data array foreign there (`hasForeignResources`) */
+  readonly compute: ComputeContext;
+  /** bytes per element where written (4 for `rgba8`, 1 for `r8`) */
+  readonly elementBytes: number;
+  /** Writes the elements into `buffer` (a storage page) from `byteOffset`, the bytes around them kept */
+  write(buffer: StorageBuffer, byteOffset: number): void;
+  /** The elements as last written; zeros where never written */
+  read(): Promise<Uint8Array>;
+  /** Releases its GPU resources: the data array replaced or dropped */
+  dispose(): void;
+}
+
+/** the buffers of `getSharedZeros`, by element size */
+const SharedZeroBuffers = new Map<number, ArrayBuffer>();
+const SharedZeroBufferSet = new WeakSet<ArrayBuffer>();
+
+/**
+ * `length` zeros of `ctor`, a view of a buffer shared by all such arrays (the arrays of data written on the GPU,
+ * `DataArray.gpu`): never written, and not reused by `createDataArray`
+ */
+export function getSharedZeros<T extends Uint8Array | Float32Array | Int16Array>(
+  ctor: new (buffer: ArrayBuffer, byteOffset: number, length: number) => T,
+  length: number,
+): T {
+  const bpe = (ctor as unknown as { BYTES_PER_ELEMENT: number }).BYTES_PER_ELEMENT;
+  const words = Math.ceil((length * bpe) / 4) * 4;
+  let buffer = SharedZeroBuffers.get(bpe);
+  if (!buffer || buffer.byteLength < words) {
+    // a new one where longer needed: the views of the old one keep it
+    buffer = new ArrayBuffer(Math.max(words, (buffer?.byteLength ?? 0) * 2));
+    SharedZeroBuffers.set(bpe, buffer);
+    SharedZeroBufferSet.add(buffer);
+  }
+  return new ctor(buffer, 0, words / bpe);
+}
+
+export function isSharedZeros(array: ArrayBufferView) {
+  return SharedZeroBufferSet.has(array.buffer as ArrayBuffer);
+}
+
+/** Releases what writes `data` on the GPU (`DataArray.gpu`), where it is replaced */
+export function releaseGpuData(data: DataArray<any> | undefined) {
+  data?.gpu?.dispose();
+}
+
+/**
+ * `values` with the data arrays written on the GPU (`DataArray.gpu`) read back, for CPU readers of them (the geometry
+ * export): a view of `values` with those cells replaced, `values` itself unchanged
+ */
+export async function readGpuDataArrays<V extends object>(values: V): Promise<V> {
+  let view: { [k: string]: unknown } | undefined;
+  for (const k in values) {
+    const cell = (values as { [k: string]: unknown })[k] as ValueCell<DataArray<any>> | undefined;
+    const data = cell && typeof cell === 'object' && 'ref' in cell ? cell.ref.value : undefined;
+    if (!data?.gpu) continue;
+    const bytes = await data.gpu.read();
+    view ??= Object.create(values) as { [k: string]: unknown };
+    view[k] = ValueCell.create({ array: bytes, count: data.count });
+  }
+  return (view ?? values) as V;
 }
 
 /**
@@ -79,7 +155,8 @@ export function createDataArray<T extends Uint8Array | Float32Array | Int16Array
   array?: T,
 ): DataArray<T> {
   const length = count * itemSize;
-  if (!array || array.length < length) {
+  // shared zeros (`getSharedZeros`) never: they are no producer's to write
+  if (!array || array.length < length || isSharedZeros(array)) {
     const bpe = (arrayCtor as unknown as { BYTES_PER_ELEMENT: number }).BYTES_PER_ELEMENT;
     array = new arrayCtor(Math.ceil((length * bpe) / 4) * (4 / bpe));
   }

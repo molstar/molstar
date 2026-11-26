@@ -14,6 +14,7 @@ import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { RuntimeContext } from '@molstar/core/task';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';
+import { Material } from '@molstar/core/util/material';
 import { MarkerAction } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CIF } from '@molstar/io/reader/cif';
@@ -25,6 +26,7 @@ import { StructureSymmetry } from '@molstar/model/model/structure/structure/symm
 import type { CustomProperty } from '@molstar/model/props/common/custom-property';
 import {
   canMergeRenderObjects,
+  getMergedMembers,
   isMergedRenderObject,
   type GraphicsRenderObject,
 } from '@molstar/graphics/gl/render-object';
@@ -155,9 +157,8 @@ function members(repr: Representation<Structure>): GraphicsRenderObject[] {
   for (const o of repr.renderObjects) {
     if (isMergedRenderObject(o)) {
       o.merged.sync();
-      if (o.members.length) out.push(...o.members);
-      // of records (a merged visual): a member its record's cells over the object's values (the shared types)
-      else for (const r of o.merged.records) out.push({ ...o, values: { ...o.values, ...r } } as GraphicsRenderObject);
+      // a member its record's cells over the shared values
+      out.push(...getMergedMembers(o));
     } else {
       out.push(o);
     }
@@ -165,10 +166,10 @@ function members(repr: Representation<Structure>): GraphicsRenderObject[] {
   return out;
 }
 
-/** markers of every visual: status, average and elements; merged objects also their own (synced) copy */
+/** markers of every unit's object: status, average and elements (a merged object's members, `members`) */
 function markers(repr: Representation<Structure>) {
   const parts: string[] = [];
-  for (const o of [...members(repr), ...repr.renderObjects.filter((o) => isMergedRenderObject(o))]) {
+  for (const o of members(repr)) {
     const v = o.values;
     parts.push(
       `${v.markerStatus.ref.value}/${v.markerAverage.ref.value}/${hash(layerData(v.tMarker.ref.value.array).subarray(0, v.tMarker.ref.value.count))}`,
@@ -267,7 +268,6 @@ describe('representation marking and layers', async () => {
 
   const reprs = [
     ['ball-and-stick', BallAndStickRepresentationProvider, {}],
-    ['ball-and-stick merged', BallAndStickRepresentationProvider, { renderMerged: true }],
     ['cartoon', CartoonRepresentationProvider, {}],
     [
       'gaussian surface',
@@ -284,13 +284,13 @@ describe('representation marking and layers', async () => {
     const other = loci['one residue'];
 
     for (const [reprName, provider, props] of reprs) {
-      // the gaussian surface's layers are smoothed on the CPU, seconds on the cells: its marks on the model are the
-      // quick lane's representative, the rest is medium (AGENTS.md, Tests)
+      // the gaussian surface's layers are smoothed on the CPU, seconds on the cells: its marks are quick on a coarse
+      // surface (the marks do not depend on its vertices), its layers medium (AGENTS.md, Tests)
       const surface = reprName === 'gaussian surface';
-      const marksLane = surface && structureName === 'cells' ? { tags: ['medium'] } : {};
       const layersLane = surface ? { tags: ['medium'] } : {};
-      it(`marks ${reprName} on ${structureName}`, marksLane, async () => {
-        const repr = await createRepr(provider, structure, props);
+      it(`marks ${reprName} on ${structureName}`, async () => {
+        const coarse = surface ? { quality: 'custom', resolution: 2 } : {};
+        const repr = await createRepr(provider, structure, { ...props, ...coarse });
         const result: Record<string, string[]> = {};
         for (const [name, l] of Object.entries(loci)) result[name] = markSequence(repr, l, other);
         expect(result).toMatchSnapshot();
@@ -312,7 +312,12 @@ describe('representation marking and layers', async () => {
 
 describe('layers on surfaces', async () => {
   const model = await load1cbs();
-  const props = { smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } } };
+  // a coarse surface (smoothing applies below resolution 3): the same segments and parts, fewer vertices to smooth
+  const props = {
+    quality: 'custom',
+    resolution: 2,
+    smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+  };
   const protein = model.units.find((u) => Unit.isAtomic(u) && u.polymerElements.length > 0)!;
   const chain = StructureElement.Loci(model, [{ unit: protein, indices: Interval.ofLength(protein.elements.length) }]);
   const overpaint = Overpaint(chain.kind, [{ loci: chain, color: Color(0xff0000), clear: false }]);
@@ -325,8 +330,26 @@ describe('layers on surfaces', async () => {
     });
   }
 
-  it('smooths the layer only on the visuals it reaches', async () => {
-    const repr = await createRepr(GaussianSurfaceRepresentationProvider, model, { ...props, renderMerged: false });
+  it('smooths the layer only on the per-group visuals it reaches', async () => {
+    // per-group visuals: of no builder, a kind that does not merge (as GPU surfaces' texture meshes)
+    const visualCtor = (materialId: number) =>
+      new Proxy(GaussianSurfaceMeshVisual(materialId), {
+        get: (t, k) => (k === 'builder' ? undefined : Reflect.get(t, k)),
+      });
+    const repr = UnitsRepresentation(
+      'test',
+      { ...registries },
+      () => GaussianSurfaceMeshParams as any,
+      visualCtor as any,
+    );
+    repr.setTheme(
+      Theme.create(
+        registries,
+        { structure: model },
+        { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'uniform' } },
+      ),
+    );
+    await repr.createOrUpdate({ ...PD.getDefaultValues(GaussianSurfaceMeshParams), ...props }, model).run();
     expect(repr.renderObjects.length).toBeGreaterThan(1);
     repr.setState({ overpaint });
     const types = layerTypes(repr);
@@ -335,19 +358,68 @@ describe('layers on surfaces', async () => {
     repr.destroy();
   });
 
-  it('does not smooth members of a merged object, which keep one layer type', async () => {
-    const repr = await createRepr(GaussianSurfaceRepresentationProvider, model, { ...props, renderMerged: true });
-    const merged = repr.renderObjects.find((o) => isMergedRenderObject(o));
-    if (!merged || !isMergedRenderObject(merged)) throw new Error('expected a merged render object');
+  it('smooths the layer on the merged segments it reaches, in a part of their own, joined again once cleared', async () => {
+    const repr = await createRepr(GaussianSurfaceRepresentationProvider, model, props);
+    const mergedOf = () => repr.renderObjects.filter((o) => isMergedRenderObject(o));
+    const before = mergedOf().length;
+    expect(before).toBeGreaterThan(0);
     repr.setState({ overpaint });
     const types = layerTypes(repr);
-    expect(types.filter((t) => t === 'groupInstance set')).toHaveLength(1);
-    expect(types.filter((t) => t !== 'groupInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
-    expect(canMergeRenderObjects(merged.members)).toBe(true);
-    // the merged copy shows the layer
-    merged.merged.sync();
-    expect(merged.values.overpaintType.ref.value).toBe('groupInstance');
-    expect(isZero(layerData(merged.values.tOverpaint.ref.value.array))).toBe(false);
+    expect(types.filter((t) => t === 'vertexInstance set')).toHaveLength(1);
+    expect(types.filter((t) => t !== 'vertexInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
+    expect(mergedOf()).toHaveLength(before + 1);
+    // the smoothed part's object reads the layer per vertex and instance
+    const smoothed = mergedOf().find((o) => o.values.overpaintType.ref.value === 'vertexInstance');
+    if (!smoothed || !isMergedRenderObject(smoothed)) throw new Error('expected a smoothed merged object');
+    smoothed.merged.sync();
+    expect(isZero(layerData(smoothed.values.tOverpaint.ref.value.array))).toBe(false);
+    // smoothing off: the layer plain, one part again; on: split again
+    await repr.createOrUpdate({ smoothColors: { name: 'off', params: {} } } as any, model).run();
+    expect(mergedOf()).toHaveLength(before);
+    expect(layerTypes(repr).filter((t) => t === 'groupInstance set')).toHaveLength(1);
+    await repr.createOrUpdate(props as any, model).run();
+    expect(mergedOf()).toHaveLength(before + 1);
+    expect(layerTypes(repr).filter((t) => t === 'vertexInstance set')).toHaveLength(1);
+    repr.setState({ overpaint: Overpaint.Empty });
+    expect(mergedOf()).toHaveLength(before);
+    // off (its array reused, what lies beyond the cleared texels never read)
+    expect(members(repr).every((o) => o.values.overpaintType.ref.value === 'groupInstance')).toBe(true);
+    expect(members(repr).every((o) => !o.values.dOverpaint.ref.value)).toBe(true);
+    repr.destroy();
+  });
+
+  it('smooths the four layer kinds on the segments they reach, keeping markers and the other layers', async () => {
+    const repr = await createRepr(GaussianSurfaceRepresentationProvider, model, props);
+    const status = () =>
+      members(repr).map((o) => `${o.values.markerStatus.ref.value}/${o.values.markerAverage.ref.value}`);
+    // a clipping layer and a highlight before the split, kept by every segment through it
+    const all = Structure.toStructureElementLoci(model);
+    repr.setState({
+      clipping: Clipping(all.kind, [{ loci: all, groups: Clipping.Groups.create(Clipping.Groups.Flag.One) }]),
+    });
+    expect(repr.mark(chain, MarkerAction.Highlight)).toBe(true);
+    const marked = status();
+    const clipped = () => members(repr).map((o) => isZero(layerData(o.values.tClipping.ref.value.array)));
+    const clippedBefore = clipped();
+    repr.setState({
+      overpaint,
+      transparency: { kind: chain.kind, layers: [{ loci: chain, value: 0.5 }] },
+      emissive: { kind: chain.kind, layers: [{ loci: chain, value: 0.8 }] },
+      substance: { kind: chain.kind, layers: [{ loci: chain, material: Material({ metalness: 1 }), clear: false }] },
+    } as any);
+    const types = members(repr).map((o) =>
+      ['overpaintType', 'transparencyType', 'emissiveType', 'substanceType']
+        .map((k) => (o.values as any)[k].ref.value)
+        .join(','),
+    );
+    const smoothed = 'vertexInstance,vertexInstance,vertexInstance,vertexInstance';
+    expect(types.filter((t) => t === smoothed)).toHaveLength(1);
+    expect(
+      types.filter((t) => t !== smoothed).every((t) => t === 'groupInstance,groupInstance,groupInstance,groupInstance'),
+    ).toBe(true);
+    // the members in another order (by part): compared as sets
+    expect([...status()].sort()).toEqual([...marked].sort());
+    expect([...clipped()].sort()).toEqual([...clippedBefore].sort());
     repr.destroy();
   });
 
@@ -368,7 +440,7 @@ describe('layers on surfaces', async () => {
         { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'uniform' } },
       ),
     );
-    const values = { ...PD.getDefaultValues(GaussianSurfaceMeshParams), ...props, renderMerged: true };
+    const values = { ...PD.getDefaultValues(GaussianSurfaceMeshParams), ...props };
     await repr.createOrUpdate(values, model).run();
     repr.setState({ overpaint });
     expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(true);
@@ -376,18 +448,6 @@ describe('layers on surfaces', async () => {
     recreate = true;
     await repr.createOrUpdate({}, model).run();
     expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(true);
-    const types = layerTypes(repr);
-    expect(types.filter((t) => t === 'groupInstance set')).toHaveLength(1);
-    expect(types.filter((t) => t !== 'groupInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
-    repr.destroy();
-  });
-
-  it('smooths the layers again when the surface is no longer merged', async () => {
-    const repr = await createRepr(GaussianSurfaceRepresentationProvider, model, { ...props, renderMerged: true });
-    repr.setState({ overpaint });
-    expect(layerTypes(repr).filter((t) => t === 'groupInstance set')).toHaveLength(1);
-    await repr.createOrUpdate({ renderMerged: false }).run();
-    expect(repr.renderObjects.some((o) => isMergedRenderObject(o))).toBe(false);
     const types = layerTypes(repr);
     expect(types.filter((t) => t === 'vertexInstance set')).toHaveLength(1);
     expect(types.filter((t) => t !== 'vertexInstance set').every((t) => t === 'groupInstance clear')).toBe(true);
@@ -411,17 +471,13 @@ describe('layer updates and picking', async () => {
     repr.setState({ transparency: Transparency('element-loci', [{ loci: unitLoci(a), value: 0.5 }]) });
     const before = versions();
     const op = overpaints(repr);
-    // the same layers again: only the visuals of `a` are set again
+    // the same layers again (for the same geometry): no texture written again, the visuals of `a` neither
     repr.setState({ overpaint: Overpaint('element-loci', [{ loci: unitLoci(a), color: red, clear: false }]) });
     repr.setState({ transparency: Transparency('element-loci', [{ loci: unitLoci(a), value: 0.5 }]) });
-    const after = versions();
     const reached = members(repr).map((o) => !isZero(layerData(o.values.tOverpaint.ref.value.array)));
     expect(reached.some((r) => r)).toBe(true);
     expect(reached.some((r) => !r)).toBe(true);
-    for (let i = 0; i < before.length; ++i) {
-      if (reached[i]) expect(after[i]).not.toBe(before[i]);
-      else expect(after[i]).toBe(before[i]);
-    }
+    expect(versions()).toEqual(before);
     expect(overpaints(repr)).toEqual(op);
     // a layer on `b`: the visuals of `a` are cleared, those of `b` set
     repr.setState({ overpaint: Overpaint('element-loci', [{ loci: unitLoci(b), color: red, clear: false }]) });
@@ -535,7 +591,10 @@ describe('marks through the index of Canvas3D', async () => {
       ),
     ).toEqual([a]);
     expect(mark(EveryLoci, MarkerAction.Deselect)).toEqual([a]);
-    expect(a.renderObjects.every((o) => o.values.markerStatus.ref.value === 0)).toBe(true);
+    // each group's status (a merged object's records', its own is not written)
+    const statuses = members(a).map((o) => o.values.markerStatus.ref.value);
+    expect(statuses.length).toBeGreaterThan(0);
+    expect(statuses.every((v) => v === 0)).toBe(true);
     // the one left out: nothing to deselect
     expect(b.mark(EveryLoci, MarkerAction.Deselect)).toBe(false);
     for (const r of [a, b]) r.destroy();
@@ -545,7 +604,7 @@ describe('marks through the index of Canvas3D', async () => {
 describe('marks on all-clear visuals', async () => {
   const root = await load1cbs();
   const seqId = StructureProperties.residue.label_seq_id;
-  const statusOf = (r: Representation<Structure>) => r.renderObjects.map((o) => o.values.markerStatus.ref.value);
+  const statusOf = (r: Representation<Structure>) => members(r).map((o) => o.values.markerStatus.ref.value);
 
   it('reports no change for a removal on a clear visual, and keeps its status clear', async () => {
     const repr = await createRepr(CartoonRepresentationProvider, root);
@@ -554,11 +613,11 @@ describe('marks on all-clear visuals', async () => {
     // the highlight removed by a mark of all (as one aimed at the representation), the loci's removal comes after
     expect(repr.mark(EveryLoci, MarkerAction.RemoveHighlight)).toBe(true);
     expect(statusOf(repr).every((s) => s === 0)).toBe(true);
-    const versions = repr.renderObjects.map((o) => o.values.tMarker.ref.version);
+    const versions = members(repr).map((o) => o.values.tMarker.ref.version);
     expect(repr.mark(loci, MarkerAction.RemoveHighlight)).toBe(false);
     expect(repr.mark(loci, MarkerAction.Deselect)).toBe(false);
     expect(statusOf(repr).every((s) => s === 0)).toBe(true);
-    expect(repr.renderObjects.map((o) => o.values.tMarker.ref.version)).toEqual(versions);
+    expect(members(repr).map((o) => o.values.tMarker.ref.version)).toEqual(versions);
     // still marks after
     expect(repr.mark(loci, MarkerAction.Select)).toBe(true);
     expect(statusOf(repr).some((s) => s !== 0)).toBe(true);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -21,5 +21,11 @@ vec4 texture3dFrom2dLinear(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) {
 
     float delta0 = abs((pos.z * gridDim.z) - zSlice0);
     return mix(color0, color1, delta0);
+}
+
+// a grid with its values at the cells' corners (cell i at i, as the color smoothing splats them): the filter reads a
+// texel at its center, half a cell on in x and y; z is mixed between slices from the corners already
+vec4 texture3dFrom2dLinearCorners(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) {
+    return texture3dFrom2dLinear(tex, pos + vec3(0.5, 0.5, 0.0) / gridDim, gridDim, texDim);
 }
 `;

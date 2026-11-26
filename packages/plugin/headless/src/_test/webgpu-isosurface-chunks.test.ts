@@ -36,6 +36,7 @@ import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
 import { isNullTexture } from '@molstar/graphics/gl/texture';
 import { createWrappedTensor } from '@molstar/graphics/repr/volume/util';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /** A density falling off from the grid center, `n` minus the distance: a sphere of radius `r` at iso value `n - r` */
@@ -86,13 +87,16 @@ async function readVertices(compute: ComputeContext, surface: ChunkedSurface, co
   return out;
 }
 
+/** The largest distance of the vertices from a sphere of radius `r` about `center` (one `expect`, not one a vertex) */
+function sphereError(points: Iterable<{ p: Vec3 }>, center: Vec3, r: number) {
+  let max = 0;
+  for (const { p } of points) max = Math.max(max, Math.abs(Vec3.distance(p, center) - r));
+  return max;
+}
+
 async function withCompute(fn: (graphics: GraphicsContext & { compute: ComputeContext }) => Promise<void>) {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: 16, height: 16 },
-    { backend: 'webgpu' },
-  );
+  // a context of its own: its pages and bytes counted (`own`)
+  const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 }, { own: true });
   try {
     await plugin.init();
     const graphics = plugin.canvas3d!.graphics;
@@ -134,17 +138,25 @@ describe.skipIf(!WebGPU.module)('chunked isosurfaces on WebGPU', () => {
       expect(state.pages).toBe(getChunkPages(state.vertices) + getChunkPages(state.count / 3));
       expect(state.missingPages).toBe(0);
       const c = (n - 1) / 2;
-      for (const { p, n: normal, group } of await readVertices(compute, surface, state.count)) {
-        // a cell of the grid (the cell index of buffer inputs)
-        expect(group).toBeGreaterThanOrEqual(0);
-        expect(group).toBeLessThan(n * n * n);
-        const radial = Vec3.sub(Vec3(), p, Vec3.create(c, c, c));
-        expect(Math.abs(Vec3.magnitude(radial) - r)).toBeLessThan(0.1);
-        expect(Math.abs(Vec3.magnitude(normal) - 1)).toBeLessThan(0.01);
-        // out of the sphere, against the density gradient (as the CPU normals): radial, within the 24-bit octahedral
-        // encoding and the gradient's error
-        expect(Vec3.dot(normal, Vec3.normalize(radial, radial))).toBeGreaterThan(0.995);
+      const vertices = await readVertices(compute, surface, state.count);
+      // the worst of each, asserted once
+      let [minGroup, maxGroup, normalError, minDot] = [Infinity, -Infinity, 0, Infinity];
+      const radial = Vec3();
+      for (const { p, n: normal, group } of vertices) {
+        minGroup = Math.min(minGroup, group);
+        maxGroup = Math.max(maxGroup, group);
+        normalError = Math.max(normalError, Math.abs(Vec3.magnitude(normal) - 1));
+        Vec3.normalize(radial, Vec3.sub(radial, p, Vec3.create(c, c, c)));
+        minDot = Math.min(minDot, Vec3.dot(normal, radial));
       }
+      // a cell of the grid (the cell index of buffer inputs)
+      expect(minGroup).toBeGreaterThanOrEqual(0);
+      expect(maxGroup).toBeLessThan(n * n * n);
+      expect(sphereError(vertices, Vec3.create(c, c, c), r)).toBeLessThan(0.1);
+      expect(normalError).toBeLessThan(0.01);
+      // out of the sphere, against the density gradient (as the CPU normals): radial, within the 24-bit octahedral
+      // encoding and the gradient's error
+      expect(minDot).toBeGreaterThan(0.995);
     });
   });
 
@@ -168,9 +180,11 @@ describe.skipIf(!WebGPU.module)('chunked isosurfaces on WebGPU', () => {
       expect(state.count).toBe(cpu.triangleCount * 3);
       // on the sphere around `c` or one of its periodic images
       const d = (v: number) => Math.min(Math.abs(v - c), n - Math.abs(v - c));
+      let error = 0;
       for (const { p } of await readVertices(compute, surface, state.count)) {
-        expect(Math.abs(Math.hypot(d(p[0]), d(p[1]), d(p[2])) - r)).toBeLessThan(0.1);
+        error = Math.max(error, Math.abs(Math.hypot(d(p[0]), d(p[1]), d(p[2])) - r));
       }
+      expect(error).toBeLessThan(0.1);
       volume.destroy();
     });
   });
@@ -248,7 +262,8 @@ describe.skipIf(!WebGPU.module)('chunked isosurfaces on WebGPU', () => {
       // the first surface's vertices survived the growth (copied into the new buffers)
       const vertices = await readVertices(compute, a.surface, stateA.count);
       const c = (n - 1) / 2;
-      for (const { p } of vertices) expect(Math.abs(Vec3.distance(p, Vec3.create(c, c, c)) - 50)).toBeLessThan(0.1);
+      expect(vertices.length).toBe(stateA.count);
+      expect(sphereError(vertices, Vec3.create(c, c, c), 50)).toBeLessThan(0.1);
     });
   });
 
@@ -271,10 +286,8 @@ describe.skipIf(!WebGPU.module)('chunked isosurfaces on WebGPU', () => {
       const { vertices, vertexCount } = await readChunkedVertices(compute, chunks, count);
       expect(vertexCount).toBe(count);
       const c = (n - 1) / 2;
-      for (let i = 0; i < vertexCount; ++i) {
-        const p = Vec3.fromArray(Vec3(), vertices, i * 4);
-        expect(Math.abs(Vec3.distance(p, Vec3.create(c, c, c)) - 50)).toBeLessThan(0.1);
-      }
+      const points = Array.from({ length: vertexCount }, (_, i) => ({ p: Vec3.fromArray(Vec3(), vertices, i * 4) }));
+      expect(sphereError(points, Vec3.create(c, c, c), 50)).toBeLessThan(0.1);
     });
   });
 
@@ -372,9 +385,9 @@ describe.skipIf(!WebGPU.module)('chunked isosurfaces on WebGPU', () => {
       // its pages returned to the first arena
       expect(new Uint32Array(await arenas[0].free.readAsync(0, 4))[0]).toBe(64 - surfaceA.pages);
       const c = (n - 1) / 2;
-      for (const { p } of await readVertices(limited.compute, surfaceB, b.meta.readVertexCount!)) {
-        expect(Math.abs(Vec3.distance(p, Vec3.create(c, c, c)) - 50)).toBeLessThan(0.1);
-      }
+      const vertices = await readVertices(limited.compute, surfaceB, b.meta.readVertexCount!);
+      expect(vertices.length).toBe(b.meta.readVertexCount);
+      expect(sphereError(vertices, Vec3.create(c, c, c), 50)).toBeLessThan(0.1);
       a.doubleBuffer.destroy();
       b.doubleBuffer.destroy();
     });

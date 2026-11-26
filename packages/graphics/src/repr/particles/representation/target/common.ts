@@ -343,7 +343,7 @@ export function isTargetCulledOnGpu(
   props: ParticleTargetProps,
   graphics: GraphicsContext | undefined,
 ) {
-  if (props.renderMerged === false || !canCullOnGpu(graphics)) return false;
+  if (!canCullOnGpu(graphics)) return false;
   const levels = Math.max(1, Spheres.getLodPixelLevelCount(props.lodPixelSize));
   return resolveGpuCulling(props.gpuCulling, particles.count, Math.max(1, particles.targetInfo.size) * levels);
 }

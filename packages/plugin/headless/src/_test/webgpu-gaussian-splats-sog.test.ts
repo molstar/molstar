@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Color } from '@molstar/core/util/color';
@@ -19,6 +19,8 @@ import type { PostprocessingProps } from '@molstar/graphics/canvas3d/passes/post
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { createSplatSorter, SplatSortKernels } from '@molstar/graphics/gl/compute/splat-sort';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
+// contexts of their own (`own`): two at once compared (what one compiles, the other does not)
 import { WebGPU } from './webgpu-module.js';
 
 type SogFile = Parameters<typeof gaussianSplatsFromSog>[0];
@@ -184,42 +186,61 @@ function sogSplats(graphics: GraphicsContext, file: SogFile, shDegree: number) {
 }
 
 describe.skipIf(!WebGPU.module)('SOG read in place on WebGPU', () => {
+  // one context for the tests that draw a representation of their own (removed after) or use its graphics alone
+  let shared: Promise<HeadlessPluginContext> | undefined;
+  const sharedPlugin = () => {
+    shared ??= createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }, { own: true }).then(
+      async (plugin) => {
+        await plugin.init();
+        return plugin;
+      },
+    );
+    return shared;
+  };
+  afterAll(async () => {
+    (await shared)?.dispose();
+  });
+
   /** the splats of `make` (with `colors` by group: the packed path's base colors, else the shader's) seen from `eye` */
   async function render(make: (graphics: GraphicsContext) => GaussianSplats, eye: Vec3, colors?: Uint8Array) {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await sharedPlugin();
+    const canvas = plugin.canvas3d!;
+    canvas.setProps({ renderer: { backgroundColor: Color(0x000000) }, cameraFog: { name: 'off', params: {} } });
+    const shape = createSplatShape('splats', {}, undefined, {
+      splats: make(canvas.graphics),
+      colors,
+      upright: false,
+    });
+    const repr = ShapeRepresentation(() => shape, GaussianSplats.Utils, { graphics: canvas.graphics });
+    await repr.createOrUpdate(PD.getDefaultValues(GaussianSplats.Params), {}).run();
+    canvas.add(repr);
+    canvas.commit(true);
     try {
-      await plugin.init();
-      const canvas = plugin.canvas3d!;
-      canvas.setProps({ renderer: { backgroundColor: Color(0x000000) }, cameraFog: { name: 'off', params: {} } });
-      const shape = createSplatShape('splats', {}, undefined, {
-        splats: make(canvas.graphics),
-        colors,
-        upright: false,
-      });
-      const repr = ShapeRepresentation(() => shape, GaussianSplats.Utils, { graphics: canvas.graphics });
-      await repr.createOrUpdate(PD.getDefaultValues(GaussianSplats.Params), {}).run();
-      canvas.add(repr);
-      canvas.commit(true);
       canvas.camera.setState({ position: eye, target: Vec3(), up: Vec3.unitY }, 0);
       const { pending } = canvas.graphics.resources;
+      // drawn until its pipelines, kernels and sort are ready: two frames alike with nothing pending
       let image = await plugin.getImageRaw({ width: Size, height: Size }, NoPostprocessing);
       for (let i = 0; i < 10; i++) {
         await pending.whenReady();
-        image = await plugin.getImageRaw({ width: Size, height: Size }, NoPostprocessing);
+        const tracked = pending.trackedCount;
+        const next = await plugin.getImageRaw({ width: Size, height: Size }, NoPostprocessing);
+        const same = i > 0 && pending.trackedCount === tracked && next.data.every((v, k) => v === image.data[k]);
+        image = next;
+        if (same) break;
       }
       expect(canvas.graphics.takeErrors?.() ?? []).toEqual([]);
       return image.data;
     } finally {
-      plugin.dispose();
+      canvas.remove(repr);
+      canvas.commit(true);
+      repr.destroy();
     }
   }
 
-  it('draws as the CPU decode in the packed layout: positions, scales, rotations, colors, palette', async () => {
+  it('draws as the CPU decode in the packed layout: positions, scales, rotations, colors, palette', {
+    tags: ['medium'],
+    timeout: 120_000,
+  }, async () => {
     const file = sogFile();
     // a runtime that never yields
     const runtime = { shouldUpdate: false, update: async () => {} } as never;
@@ -237,17 +258,15 @@ describe.skipIf(!WebGPU.module)('SOG read in place on WebGPU', () => {
       expect(lit).toBeGreaterThan(500);
       expect(max).toBeLessThanOrEqual(8);
     }
-  }, 120_000);
+  });
 
   // the encoding's programs (its defines, the direct colors) prepared from a list recorded where it was drawn
-  it('a precompile list of SOG read in place prepares what its frames draw it with, before it exists', async () => {
+  it('a precompile list of SOG read in place prepares what its frames draw it with, before it exists', {
+    tags: ['medium'],
+    timeout: 60_000,
+  }, async () => {
     const create = async () => {
-      const plugin = await HeadlessPluginContext.create(
-        { webgpu: WebGPU.module! },
-        DefaultPluginSpec(),
-        { width: 32, height: 32 },
-        { backend: 'webgpu' },
-      );
+      const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 32, height: 32 }, { own: true });
       await plugin.init();
       return plugin;
     };
@@ -287,43 +306,33 @@ describe.skipIf(!WebGPU.module)('SOG read in place on WebGPU', () => {
       a.dispose();
       b.dispose();
     }
-  }, 60_000);
+  });
 
   // the GPU sorts SOG by the centers it decodes itself (the CPU's read later): the same as the CPU's
   it("decodes the centers on the GPU as the CPU does, for the GPU's sort", async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
+    const plugin = await sharedPlugin();
+    const graphics = plugin.canvas3d!.graphics;
+    const compute = graphics.compute!;
+    await compute.prepareKernels(SplatSortKernels);
+    const splats = sogSplats(graphics, sogFile(), 0);
+    const sorter = createSplatSorter(compute);
+    const positions = compute.createBuffer(splats.splatCount * 16, 'centers');
+    const { sog } = splats;
+    sorter.decodeSogCenters(
+      sog.meansLow.ref.value,
+      sog.meansHigh.ref.value,
+      sog.meansMin.ref.value,
+      sog.meansMax.ref.value,
+      splats.splatCount,
+      positions,
     );
-    try {
-      await plugin.init();
-      const graphics = plugin.canvas3d!.graphics;
-      const compute = graphics.compute!;
-      await compute.prepareKernels(SplatSortKernels);
-      const splats = sogSplats(graphics, sogFile(), 0);
-      const sorter = createSplatSorter(compute);
-      const positions = compute.createBuffer(splats.splatCount * 16, 'centers');
-      const { sog } = splats;
-      sorter.decodeSogCenters(
-        sog.meansLow.ref.value,
-        sog.meansHigh.ref.value,
-        sog.meansMin.ref.value,
-        sog.meansMax.ref.value,
-        splats.splatCount,
-        positions,
-      );
-      const gpu = new Float32Array(await positions.readAsync());
-      const cpu = splats.positionGroup.ref.value.array;
-      for (let i = 0; i < splats.splatCount; ++i) {
-        for (let c = 0; c < 3; ++c) expect(gpu[i * 4 + c]).toBeCloseTo(cpu[i * 4 + c], 4);
-      }
-      sorter.destroy();
-      positions.destroy();
-      GaussianSplats.dispose(splats);
-    } finally {
-      plugin.dispose();
+    const gpu = new Float32Array(await positions.readAsync());
+    const cpu = splats.positionGroup.ref.value.array;
+    for (let i = 0; i < splats.splatCount; ++i) {
+      for (let c = 0; c < 3; ++c) expect(gpu[i * 4 + c]).toBeCloseTo(cpu[i * 4 + c], 4);
     }
+    sorter.destroy();
+    positions.destroy();
+    GaussianSplats.dispose(splats);
   }, 60_000);
 });

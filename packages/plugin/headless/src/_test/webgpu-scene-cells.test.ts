@@ -20,6 +20,7 @@ import {
 import { CulledData } from '@molstar/graphics/gl/culled-data';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 /** A small deterministic generator (an LCG), values in [0, 1) */
@@ -125,12 +126,7 @@ function getCell(grid: SceneGrid, k: number, x: number, y: number, z: number, ep
 
 describe.skipIf(!WebGPU.module)('scene cells built on the GPU', () => {
   it('bins each instance into its class grid cell, each cell the sphere of its instances', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
     try {
       await plugin.init();
       const graphics = plugin.canvas3d!.graphics;

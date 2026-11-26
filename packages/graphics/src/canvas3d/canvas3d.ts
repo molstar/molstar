@@ -1742,9 +1742,10 @@ namespace Canvas3D {
       // representations continue with the new context and update: visuals create again what was rendered or computed
       // with the previous context and geometry relying on what the new one lacks (see `GeometryUtils.isCompatible`),
       // the others change nothing
+      // pending work (`resources.pending`) till each is done: an image waits for what they draw (`ImagePass`)
       for (const repr of reprs.keys()) {
         repr.setGraphics?.(graphics);
-        repr
+        const updating = repr
           .createOrUpdate()
           .run()
           .then(() => {
@@ -1754,6 +1755,7 @@ namespace Canvas3D {
             console.error('Updating a representation for the new graphics context failed', e);
             representationFailed.next({ repr, error: e, reason: 'context' });
           });
+        graphics.resources.pending.track(updating, 'representation update for the new context');
       }
 
       const unowned = dropped.filter((o) => reprs.isDropped(o) && !reprs.owns(o));
@@ -2066,7 +2068,11 @@ namespace Canvas3D {
         if (attribs.warmUp !== undefined) a.warmUp = attribs.warmUp;
       },
       getImagePass: (props: Partial<ImageProps> = {}) => {
-        const pass = new ImagePass(graphics, assetManager, renderer, scene, camera, helper, props);
+        const pass = new ImagePass(graphics, assetManager, renderer, scene, camera, helper, props, () => {
+          if (!scene.needsCommit && !helper.overlay.scene.needsCommit) return false;
+          commit(true);
+          return true;
+        });
         imagePasses.add(new WeakRef(pass));
         return pass;
       },

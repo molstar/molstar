@@ -6,7 +6,7 @@
 
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
-import { type DataArray, createDataArray } from '@molstar/graphics/gl/renderable/util';
+import { type DataArray, createDataArray, releaseGpuData } from '@molstar/graphics/gl/renderable/util';
 import type { Texture } from '@molstar/graphics/gl/texture';
 import { Material } from '@molstar/core/util/material';
 import { getLayerTypeDefine, type LayerType, NoLayerGrid } from './layer-type.js';
@@ -57,10 +57,12 @@ export function createSubstance(count: number, type: SubstanceType, substanceDat
     Uint8Array,
     // its array reused, not the empty one: shared by every object (one's layer another's)
     substanceData && substanceData.tSubstance.ref.value !== emptySubstanceTexture
-      ? substanceData.tSubstance.ref.value.array
+      ? (substanceData.tSubstance.ref.value.spare ?? substanceData.tSubstance.ref.value.array)
       : undefined,
   );
   if (substanceData) {
+    // what wrote its elements on the GPU (`DataArray.gpu`) released
+    releaseGpuData(substanceData.tSubstance.ref.value);
     ValueCell.update(substanceData.tSubstance, substance);
     ValueCell.updateIfChanged(substanceData.dSubstance, count > 0);
     setSubstanceType(substanceData, type);
@@ -84,6 +86,8 @@ export function createSubstance(count: number, type: SubstanceType, substanceDat
 const emptySubstanceTexture = { array: new Uint8Array(4), count: 1 };
 export function createEmptySubstance(substanceData?: SubstanceData): SubstanceData {
   if (substanceData) {
+    // what wrote its elements on the GPU (`DataArray.gpu`) released
+    releaseGpuData(substanceData.tSubstance.ref.value);
     ValueCell.update(substanceData.tSubstance, emptySubstanceTexture);
     return substanceData;
   } else {

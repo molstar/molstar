@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Size = 8;
@@ -16,12 +17,7 @@ const Size = 8;
 // replayed as cleared; where the bundle can't clear as the pass would, the recording fails (drawn directly)
 describe.skipIf(!WebGPU.module)('clears in render bundles on WebGPU', () => {
   it('replay as cleared, or fail the recording', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: Size, height: Size },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size });
     try {
       await plugin.init();
       const g = plugin.canvas3d!.graphics as WebGPUContext;

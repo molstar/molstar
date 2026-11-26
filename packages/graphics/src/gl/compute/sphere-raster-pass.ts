@@ -86,6 +86,11 @@ export interface SphereRasterPass {
   finish: () => void;
   /** whether the raster draws `r` (its resolve drawn) until `finish` */
   isDrawn: (r: Renderable<any>) => boolean;
+  /**
+   * whether the raster draws all of `r`'s spheres until `finish`: an object drawn by it, not a merged one split by its
+   * culler (its other regions' instances its impostors': through the near plane, too large)
+   */
+  isDrawnWhole: (r: Renderable<any>) => boolean;
   /** whether objects of the last `prepare` are drawn by the raster until `finish` */
   readonly active: boolean;
   destroy: () => void;
@@ -96,6 +101,8 @@ export function createSphereRasterPass(compute: ComputeContext, resources: Graph
   let vis: StorageBuffer | undefined;
   /** the renderables drawn by the raster since `prepare` */
   const drawn: Renderable<any>[] = [];
+  /** of `drawn`, those drawn whole (`isDrawnWhole`) */
+  const drawnWhole: Renderable<any>[] = [];
   /** the merged objects (culled on the GPU) of the last views drawn, their values kept (`release` when no longer) */
   const held: Renderable<any>[] = [];
   /** the merged objects whose impostors leave out the raster regions until `finish` (`Renderable.rasterDrawn`) */
@@ -123,6 +130,7 @@ export function createSphereRasterPass(compute: ComputeContext, resources: Graph
       else release(r);
     }
     drawn.length = 0;
+    drawnWhole.length = 0;
   }
   /** the held objects not drawn by the raster now released */
   function releaseHeld() {
@@ -253,6 +261,7 @@ export function createSphereRasterPass(compute: ComputeContext, resources: Graph
         ValueCell.updateIfChanged(values.sRasterTransforms, range.transforms!);
         bound.add(r);
         drawn.push(r);
+        if (!culled) drawnWhole.push(r);
       }
       releaseHeld();
       if (isDebugMode) {
@@ -271,6 +280,9 @@ export function createSphereRasterPass(compute: ComputeContext, resources: Graph
         if (!r.renderItem.renderFullscreen!('color', 'dSphereResolve', globals)) {
           release(r);
           drawn.splice(i, 1);
+          // nor drawn whole by it: its impostors draw it (`isDrawnWhole`, 'only' skips them for what is)
+          const whole = drawnWhole.indexOf(r);
+          if (whole >= 0) drawnWhole.splice(whole, 1);
           if (isDebugMode) console.log(`sphere raster #${r.renderItem.id}: resolve not ready`);
         } else {
           resolved += 1;
@@ -294,6 +306,7 @@ export function createSphereRasterPass(compute: ComputeContext, resources: Graph
     },
     finish,
     isDrawn: (r) => drawn.includes(r),
+    isDrawnWhole: (r) => drawnWhole.includes(r),
     get active() {
       return drawn.length > 0;
     },

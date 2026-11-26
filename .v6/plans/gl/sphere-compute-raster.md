@@ -8,6 +8,11 @@
   6k atoms 0.90, 0.88; 300k 4.39, 3.47; 4V6X 0.56, 0.63; 3J3Q 1.48, 0.63. AMD iGPU: 300k 290, 210; 4V6X 22.4, 7.29; 3J3Q
   61.9, 11.5. Decided when objects merge, where `sphereRaster` is not known: with the raster off such objects stay
   culled on the GPU without it (a little slower on what was measured by hand).
+- **Merged objects without a culler: not drawn by the raster** (decided). The raster takes a merged object's instances
+  from its culler, and merged spheres are culled for the raster alone at any count with `auto`; left to the impostors:
+  `gpuCulling: false` (asked for) and devices with `atomic-vec2u-min-max` but without `indirect-first-instance` (no GPU
+  culling, `canCullOnGpu`). Why: a raster input of all of an object's instances (no culler) for those alone, none
+  measured; taken up if such devices show up.
 - **Current**: steps 1 (the prototype, the gate passed) and 2 (shared chunks) done, step 3 done, step 4 done (the resolve and the split per instance through the renderer, draw lists, visual cases, instance clipping, prepared ahead), step 5 (occlusion) and step 6 (`auto`: objects culled on the GPU) done:
   with occlusion as the impostors have it (one phase, per instance) the raster takes 9-30 % of their opaque pass zoomed
   into PetWorld and mostly 39-57 % whole, at the default levels and at higher detail (Step 1: results, Levels by size

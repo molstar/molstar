@@ -10,6 +10,14 @@ here.
 
 ## [Unreleased]
 
+- Fix unit transforms (Unwind Assembly, Explode) not moving the representations whose symmetry groups are not the
+  structure's own (e.g. with `includeParent`): their units' transforms are now found by unit
+- Fix clearing unit transforms (`unitTransforms: null`) leaving the units at their last transforms
+- Fix `Structure.instances` (the structure-instances transform) giving units of one id where a transform is the
+  identity: that copy kept its unit's id, which the numbering of the other copies repeated (now numbered above the
+  units' ids)
+- Fix smoothed colors and layers (overpaint, transparency, emissive, substance) of surfaces being sampled half a grid
+  cell off in x and y
 - Direct volume `renderMode`: `composite` (as before) blends the samples of a ray front to back by the transfer
   function; `maximum` keeps the brightest sample along the ray, unlit (a maximum intensity projection), as bright as the
   transfer function makes its value. A sample below the value the transfer function first rises above zero at adds

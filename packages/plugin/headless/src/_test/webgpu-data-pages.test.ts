@@ -53,7 +53,8 @@ async function render(maxDataBindingSize?: number) {
 
 // An item's theme layers together beyond the storage binding limit are read from up to 4 pages, each within it
 describe.skipIf(!WebGPU.module)('data layers on WebGPU', () => {
-  it('beyond the binding limit, read from several pages, draw the same image', async () => {
+  // medium: four devices compiling their pipelines, a limit each
+  it('beyond the binding limit, read from several pages, draw the same image', { tags: ['medium'] }, async () => {
     const device = (WebGPU.module!.globals as { GPUDevice: { prototype: GPUDevice } }).GPUDevice.prototype;
     const createShaderModule = device.createShaderModule;
     const codes: string[] = [];

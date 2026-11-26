@@ -26,6 +26,7 @@ import { createContext } from '@molstar/graphics/gl/contexts/webgl';
 import {
   createWebGPUContext,
   requestWebGPUDevice,
+  type WebGPUContext,
   type WebGPUContextOptions,
 } from '@molstar/graphics/gl/contexts/webgpu';
 import { DefaultAssetManager } from '@molstar/core/util/assets';
@@ -59,6 +60,12 @@ export type HeadlessScreenshotHelperOptions = {
   webgl?: WebGLContextAttributes;
   /** of the WebGPU context, e.g. a lower data binding size (`maxDataBindingSize`) */
   webgpu?: Pick<WebGPUContextOptions, 'maxDataBindingSize' | 'fragDepthInBundles' | 'viewportOutsideTarget'>;
+  /**
+   * an existing WebGPU context to draw with (`HeadlessScreenshotHelper.create`), its drawing buffer resized to the
+   * canvas size: not destroyed with the helper. Several helpers in turn on one device (tests: its pipelines compiled
+   * once), not at once (one drawing buffer); `backend` and `webgpu` not read
+   */
+  graphics?: WebGPUContext;
   canvas?: Partial<Canvas3DProps>;
   imagePass?: Partial<ImageProps>;
 };
@@ -73,7 +80,7 @@ export type RawImageData = {
 const HeadlessContexts = new WeakMap<Canvas3D, Canvas3DContext>();
 
 /** `Canvas3D` without canvas and input, rendering with `graphics` */
-function createHeadlessCanvas3D(graphics: GraphicsContext, options?: HeadlessScreenshotHelperOptions) {
+function createHeadlessCanvas3D(graphics: GraphicsContext, options?: HeadlessScreenshotHelperOptions, owned = true) {
   const input = InputObserver.create();
   const attribs = { ...Canvas3DContext.DefaultAttribs };
   const props = { ...Canvas3DContext.DefaultProps };
@@ -148,7 +155,8 @@ function createHeadlessCanvas3D(graphics: GraphicsContext, options?: HeadlessScr
   const dispose = () => {
     contextLostSub.unsubscribe();
     input.dispose();
-    current.destroy();
+    // a context given (`HeadlessScreenshotHelperOptions.graphics`) kept; one replaced after a loss this canvas' own
+    if (owned || current !== graphics) current.destroy();
     contextLost.complete();
     contextRestored.complete();
     contextChanged.complete();
@@ -228,6 +236,11 @@ export class HeadlessScreenshotHelper {
     canvasSize: { width: number; height: number },
     options?: HeadlessScreenshotHelperOptions,
   ) {
+    if (options?.graphics) {
+      options.graphics.setDrawingBufferSize(canvasSize.width, canvasSize.height);
+      const canvas3d = createHeadlessCanvas3D(options.graphics, options, false);
+      return new HeadlessScreenshotHelper(externalModules, canvasSize, canvas3d, options);
+    }
     if (options?.backend !== 'webgpu')
       return new HeadlessScreenshotHelper(externalModules, canvasSize, undefined, options);
     if (!externalModules.webgpu) throw new Error(`external module 'webgpu' is required for the 'webgpu' backend`);

@@ -101,6 +101,11 @@ export class ImagePass {
     private camera: Camera,
     helper: Helper,
     props: Partial<ImageProps>,
+    /**
+     * commits what the scene and overlay hold uncommitted, true where there was any (`Canvas3D.commit`): what pending
+     * work `prepare` waits for changed (a representation updated for a new context adds its objects)
+     */
+    private commitScene?: () => boolean,
   ) {
     this.props = { ...PD.getDefaultValues(ImageParams), ...props };
     this.init(helper);
@@ -202,6 +207,8 @@ export class ImagePass {
     for (let i = 0; i <= MaxRerenders; ++i) {
       const version = this.contextVersion;
       await this.prepare();
+      // what the pending work `prepare` waited for added committed, and made ready in turn
+      if (this.commitScene?.()) await this.prepare();
       const { pending } = this.graphics.resources;
       const trackedCount = pending.trackedCount;
       if (version === this.contextVersion) await this.renderOnce(runtime, version);

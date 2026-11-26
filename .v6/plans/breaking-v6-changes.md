@@ -1580,6 +1580,22 @@ The scale line's `labelSize` (`ScaleLineParams`, `Canvas3D` `helper.scaleLine`) 
 pixels, its default 14: it was the text's atlas line height (about 1.58 times the font size), its default 20. A value
 set by an app draws about 1.58 times as large as before: divide it by 1.58 for the old size (20 → 13).
 
+## `renderMerged` removed
+
+The geometry param `renderMerged` (`on`, `off`, `auto` above `AutoRenderMergedThreshold` units) is gone, with
+`RenderMergedValue`, `RenderMergedOptions`, `AutoRenderMergedThreshold` and `resolveRenderMerged`
+(`@molstar/graphics/geo/geometry/base`). Units representations always merge their groups into one render object per
+part; a value in saved props or snapshots is ignored. Code reading a units representation's render objects gets merged
+ones (`getMergedMembers` for per-group views) where it got one a group.
+
+With it (`@molstar/graphics/gl/render-object`, `@molstar/graphics/repr/merged`):
+
+- A merged render object has no `members` array: its members' values are its records, read one by one as views through
+  `getMergedMembers(o)` (each with its own instance count); `isMergedRenderObject` tests for `merged`.
+- `mergeRenderObjectsByType(entries, prevMergedByType, renderObjects, gpuCulling?, gpuSupported?, graphics?, …)` takes
+  no `renderMerged` second argument: two or more objects of a type merge, one alone where it is culled on the GPU.
+- `pickMergedLoci`'s `resolve` gets the picked member's object id as its last argument, not the merged render object.
+
 ## `PCG` draws the PCG32 sequence
 
 - `PCG` from `@molstar/core/data/util/hash-functions` draws a different sequence for the same seed (now PCG32 with

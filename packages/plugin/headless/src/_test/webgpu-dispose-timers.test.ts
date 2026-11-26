@@ -10,6 +10,7 @@ import { DrawPass } from '@molstar/graphics/canvas3d/passes/draw';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const readExample = (name: string) =>
@@ -19,14 +20,9 @@ const readExample = (name: string) =>
 // destroyed context (with native GL an uncaught "Invalid GL context", which ends a plain Node script)
 describe.skipIf(!WebGPU.module)('timers after dispose on WebGPU', () => {
   it('plan no frame after dispose', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 64, height: 64 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 });
     await plugin.init();
-    const data = await plugin.builders.data.rawData({ data: readExample('1cbs_updated.cif'), label: '1cbs' });
+    const data = await plugin.builders.data.rawData({ data: readExample('1crn.cif'), label: '1crn' });
     const trajectory = await plugin.builders.structure.parseTrajectory(data, 'mmcif');
     await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
     await plugin.getImageRaw();

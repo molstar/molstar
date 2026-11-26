@@ -30,7 +30,7 @@ import { eachIntraBondedAtom, typeSymbol } from '@molstar/model/props/computed/c
 import { FeatureType, InteractionFlag, InteractionType } from '@molstar/model/props/computed/interactions/common';
 import { Bridges, Interactions } from '@molstar/model/props/computed/interactions/interactions';
 import { BridgeProviderParams, ContactProviderParams } from '@molstar/model/props/computed/interactions/params';
-import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
+import { type GraphicsRenderObject, getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import type { Representation } from '@molstar/graphics/repr/representation';
 import { ColorTheme } from '@molstar/graphics/theme/color';
 import { BuiltInColorThemes } from '@molstar/graphics/theme/color/catalog';
@@ -94,6 +94,20 @@ async function createRepr(structure: Structure, graphics: any, props: Record<str
   const params = PD.getDefaultValues(provider.getParams(registries, structure));
   await repr.createOrUpdate({ ...params, quality: 'low', ...props }, structure).run();
   return repr;
+}
+
+/** the objects of `repr` one by one: a merged object's members (`getMergedMembers`), as the units' objects */
+function objectsOf(repr: Representation.Any): GraphicsRenderObject[] {
+  return entriesOf(repr).map((e) => e.ro);
+}
+
+/** `objectsOf` with what picks each: the object's id and the member's first instance in it */
+function entriesOf(repr: Representation.Any) {
+  return repr.renderObjects.flatMap((o) => {
+    if (!isMergedRenderObject(o)) return [{ ro: o, objectId: o.id, instanceBase: 0 }];
+    const { instanceBases } = o.merged.segments;
+    return getMergedMembers(o).map((ro, k) => ({ ro, objectId: o.id, instanceBase: instanceBases[k] }));
+  });
 }
 
 function hash(xs: ArrayLike<number>) {
@@ -161,9 +175,11 @@ function groupCentroids(ro: GraphicsRenderObject) {
  * picked loci marks; then the groups a residue loci marks across all render objects
  */
 function signature(repr: Representation.Any, structure: Structure) {
-  const ros = repr.renderObjects;
+  const entries = entriesOf(repr);
+  const ros = entries.map((e) => e.ro);
   const rows: string[] = [];
-  for (const ro of ros) {
+  for (let k = 0; k < entries.length; ++k) {
+    const { ro, objectId, instanceBase } = entries[k];
     const v = ro.values as any;
     const groupCount: number = v.uGroupCount.ref.value;
     const instanceCount: number = v.instanceCount.ref.value;
@@ -172,10 +188,12 @@ function signature(repr: Representation.Any, structure: Structure) {
     const marked: number[] = [];
     for (const instanceId of [0, instanceCount - 1]) {
       for (const groupId of drawn) {
-        const loci = repr.getLoci({ objectId: ro.id, instanceId, groupId });
+        const loci = repr.getLoci({ objectId, instanceId: instanceBase + instanceId, groupId });
         picked.push(...lociRows(loci));
         repr.mark(loci, MarkerAction.Highlight);
-        for (const r of ros) for (const i of markedIndices(r)) marked.push(r.id === ro.id ? i : -1 - i);
+        ros.forEach((r, j) => {
+          for (const i of markedIndices(r)) marked.push(j === k ? i : -1 - i);
+        });
         repr.mark(loci, MarkerAction.RemoveHighlight);
       }
     }
@@ -185,9 +203,10 @@ function signature(repr: Representation.Any, structure: Structure) {
   }
   rows.sort();
 
-  // residue loci: every residue of the first unit, marked with the 'select' semantics (both features inside)
+  // residue loci: every residue of the first unit, marked with the 'select' semantics (both features inside); per object
+  // by its group count, in that order (not its id: a merged object's members share it)
   const unit = structure.units[0];
-  const marked: number[] = [];
+  const byObject = ros.map(() => [] as number[]);
   const { residueAtomSegments } = unit.model.atomicHierarchy;
   const { elements } = unit;
   let start = 0;
@@ -197,11 +216,12 @@ function signature(repr: Representation.Any, structure: Structure) {
     const indices = new Int32Array(i - start).map((_, k) => start + k);
     const loci = StructureElement.Loci(structure, [{ unit, indices: indices as any }]);
     repr.mark(loci, MarkerAction.Highlight);
-    for (const ro of ros) marked.push(ro.id - ros[0].id, ...markedIndices(ro));
+    ros.forEach((ro, j) => byObject[j].push(start, ...markedIndices(ro)));
     repr.mark(loci, MarkerAction.RemoveHighlight);
     start = i;
   }
-  rows.push(`residues=${hash(marked)}`);
+  const residues = ros.map((ro, j) => `${(ro.values as any).uGroupCount.ref.value}:${hash(byObject[j])}`).sort();
+  rows.push(`residues=${residues.join(',')}`);
   return rows;
 }
 
@@ -228,18 +248,18 @@ describe('interactions representation', async () => {
     'groups=5308 instances=1 drawn=3714:b9d4f0a8 picked=d0bf6c41 marked=b45c7705',
     'groups=614 instances=16 drawn=430:df17f4ac picked=4ef33375 marked=cc066459',
     'groups=6628 instances=1 drawn=3388:9bbce37b picked=894807c5 marked=87d83c85',
-    'residues=fe1b5bba',
+    'residues=5308:bf8478e1,614:73a86f0f,6628:73a86f0f',
   ];
 
   it('mesh visuals: drawn groups, picking and marking', async () => {
     const repr = await createRepr(structure, undefined);
-    expect(repr.renderObjects.every((ro) => ro.type === 'mesh')).toBe(true);
+    expect(objectsOf(repr).every((ro) => ro.type === 'mesh')).toBe(true);
     expect(signature(repr, structure)).toEqual(expected);
   });
 
   it('impostor visuals: the same groups, picking and marking', async () => {
     const repr = await createRepr(structure, graphicsStub);
-    expect(repr.renderObjects.every((ro) => ro.type === 'cylinders')).toBe(true);
+    expect(objectsOf(repr).every((ro) => ro.type === 'cylinders')).toBe(true);
     expect(signature(repr, structure)).toEqual(expected);
   });
 
@@ -249,14 +269,14 @@ describe('interactions representation', async () => {
     const { sizeFactor, dashScale, dashCount } = PD.getDefaultValues(
       InteractionsRepresentationProvider.getParams(registries, structure),
     );
-    expect(mesh.renderObjects.length).toBe(impostors.renderObjects.length);
-    for (let i = 0; i < mesh.renderObjects.length; ++i) {
-      const m = groupCentroids(mesh.renderObjects[i]);
-      const c = groupCentroids(impostors.renderObjects[i]);
+    expect(objectsOf(mesh).length).toBe(objectsOf(impostors).length);
+    for (let i = 0; i < objectsOf(mesh).length; ++i) {
+      const m = groupCentroids(objectsOf(mesh)[i]);
+      const c = groupCentroids(objectsOf(impostors)[i]);
       expect([...c.keys()]).toEqual([...m.keys()]);
       for (const [g, p] of m) expect(Vec3.distance(p, c.get(g)!)).toBeLessThan(1e-3);
 
-      const v = impostors.renderObjects[i].values as any;
+      const v = objectsOf(impostors)[i].values as any;
       const cylinderCount = v.drawCount.ref.value / 12;
       // one impostor per dash, ceil(dashCount / 2) dashes per drawn half
       expect(cylinderCount).toBe(c.size * Math.ceil(dashCount / 2));
@@ -273,7 +293,7 @@ describe('interactions representation', async () => {
     const impostors = await createRepr(structure, graphicsStub);
     const mesh = await createRepr(structure, undefined);
     const versions = (repr: Representation.Any, name: string) =>
-      repr.renderObjects.map((ro) => (ro.values as any)[name].ref.version as number);
+      objectsOf(repr).map((ro) => (ro.values as any)[name].ref.version as number);
     const starts = versions(impostors, 'tCylinder');
     const positions = versions(mesh, 'aPosition');
     // the first update after a build keeps the geometry (the interactions version it was built from is known)
@@ -284,22 +304,22 @@ describe('interactions representation', async () => {
     await impostors.createOrUpdate({ sizeFactor: 0.5 }, structure).run();
     await mesh.createOrUpdate({ sizeFactor: 0.5 }, structure).run();
     expect(versions(impostors, 'tCylinder')).toEqual(starts);
-    for (const ro of impostors.renderObjects) expect((ro.values as any).uSizeFactor.ref.value).toBeCloseTo(0.5);
+    for (const ro of objectsOf(impostors)) expect((ro.values as any).uSizeFactor.ref.value).toBeCloseTo(0.5);
     const after = versions(mesh, 'aPosition');
     expect(after.every((v, i) => v > positions[i])).toBe(true);
   });
 
   it('switches between impostors and mesh with tryUseImpostor', async () => {
     const repr = await createRepr(structure, graphicsStub, { tryUseImpostor: false });
-    expect(repr.renderObjects.every((ro) => ro.type === 'mesh')).toBe(true);
+    expect(objectsOf(repr).every((ro) => ro.type === 'mesh')).toBe(true);
     await repr.createOrUpdate({ tryUseImpostor: true }, structure).run();
-    expect(repr.renderObjects.every((ro) => ro.type === 'cylinders')).toBe(true);
+    expect(objectsOf(repr).every((ro) => ro.type === 'cylinders')).toBe(true);
     expect(signature(repr, structure)).toEqual(expected);
   });
 
   it("draws colorMode 'interpolate' as 'default' (the iterators give one location per group)", async () => {
     const repr = await createRepr(structure, graphicsStub, { colorMode: 'interpolate' });
-    for (const ro of repr.renderObjects) {
+    for (const ro of objectsOf(repr)) {
       const v = ro.values as any;
       const modes = cylinderVertices(v).colorMode;
       expect(modes.every((x) => x === 2)).toBe(true);
@@ -360,10 +380,10 @@ describe('interactions representation', async () => {
     await repr.createOrUpdate({}, cell).run();
     const fresh = await createRepr(cell, graphicsStub, {}, 'physical');
 
-    expect(repr.renderObjects.length).toBe(fresh.renderObjects.length);
-    for (let i = 0; i < repr.renderObjects.length; ++i) {
-      const a = repr.renderObjects[i].values as any;
-      const b = fresh.renderObjects[i].values as any;
+    expect(objectsOf(repr).length).toBe(objectsOf(fresh).length);
+    for (let i = 0; i < objectsOf(repr).length; ++i) {
+      const a = objectsOf(repr)[i].values as any;
+      const b = objectsOf(fresh)[i].values as any;
       const groupCount = b.uGroupCount.ref.value;
       expect(a.uGroupCount.ref.value).toBe(groupCount);
       const sizeA = (a.tSize.ref.value.array as Uint8Array).subarray(0, groupCount * 4);
@@ -383,7 +403,7 @@ describe('interactions representation', async () => {
       const parent = child.asParent();
       const mesh = await createRepr(parent, undefined, props);
       const impostors = await createRepr(parent, graphicsStub, props);
-      expect(impostors.renderObjects.every((ro) => ro.type === 'cylinders')).toBe(true);
+      expect(objectsOf(impostors).every((ro) => ro.type === 'cylinders')).toBe(true);
       expect(signature(impostors, parent)).toEqual(signature(mesh, parent));
     }
   });
@@ -429,7 +449,7 @@ describe('interactions representation', async () => {
       expect(expected.length).toBeGreaterThan(0);
 
       // u0 alone is its child-aware group
-      const ro = repr.renderObjects.find((ro) => (ro.values as any).instanceCount.ref.value === 1)!;
+      const ro = objectsOf(repr).find((ro) => (ro.values as any).instanceCount.ref.value === 1)!;
       expect((ro.values as any).uGroupCount.ref.value).toBe(contacts.edgeCount * 2);
       expect([...groupCentroids(ro).keys()]).toEqual(expected);
     }
@@ -484,8 +504,8 @@ describe('interactions representation', async () => {
         expect(expected.length).toBeLessThan(4 * n);
         counts.add(expected.length);
 
-        expect(repr.renderObjects.length).toBe(1);
-        expect([...groupCentroids(repr.renderObjects[0]).keys()].sort((x, y) => x - y)).toEqual(expected);
+        expect(objectsOf(repr).length).toBe(1);
+        expect([...groupCentroids(objectsOf(repr)[0]).keys()].sort((x, y) => x - y)).toEqual(expected);
       }
       // the three modes draw different legs
       expect(counts.size).toBe(3);
@@ -498,7 +518,7 @@ describe('interactions representation', async () => {
   ])('%s: a new theme with the same size keeps the geometry', async (_name, graphics) => {
     const repr = await createRepr(structure, graphics);
     const geometryVersions = () =>
-      repr.renderObjects.map((ro) => {
+      objectsOf(repr).map((ro) => {
         const v = ro.values as any;
         return (v.aPosition ?? v.tCylinder).ref.version;
       });
@@ -528,7 +548,7 @@ describe('interactions representation', async () => {
     const interactions = InteractionsProvider.get(ace2).value!;
     const contacts = interactions.unitsContacts.get(unit.id);
     const { members, offsets, types } = interactions.unitsFeatures.get(unit.id);
-    const ro = repr.renderObjects.find((ro) => (ro.values as any).uGroupCount.ref.value === contacts.edgeCount * 2)!;
+    const ro = objectsOf(repr).find((ro) => (ro.values as any).uGroupCount.ref.value === contacts.edgeCount * 2)!;
     const v = ro.values as any;
     const { group, start, end } = cylinderVertices(v);
 
@@ -627,7 +647,7 @@ describe('interactions representation', async () => {
     const interactions = InteractionsProvider.get(split).value!;
     const contacts = interactions.unitsContacts.get(heavy.id);
     const { members, offsets, types } = interactions.unitsFeatures.get(heavy.id);
-    const ro = repr.renderObjects.find((ro) => (ro.values as any).uGroupCount.ref.value === contacts.edgeCount * 2)!;
+    const ro = objectsOf(repr).find((ro) => (ro.values as any).uGroupCount.ref.value === contacts.edgeCount * 2)!;
     const v = ro.values as any;
     const { group, start, end } = cylinderVertices(v);
 

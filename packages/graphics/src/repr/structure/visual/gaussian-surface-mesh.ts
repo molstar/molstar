@@ -430,11 +430,12 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
         props: PD.Values<GaussianSurfaceMeshParams>,
         theme: Theme,
         graphics?: GraphicsContext,
+        perVertexOnGpu?: boolean,
       ) => {
         const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
         if (csp) {
-          applyMeshColorSmoothing(values, csp, graphics, colorTexture);
+          applyMeshColorSmoothing(values, csp, graphics, colorTexture, perVertexOnGpu);
           (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
         }
       },

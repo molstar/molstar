@@ -6,12 +6,13 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DefaultPrismViewerSpec } from '../../default-spec.js';
 import { createDefaultPlugin } from '../../sources/create-plugin.js';
-import type { PrismStore } from '../../spec.js';
+import type { PrismStore, PrismViewerSpec } from '../../spec.js';
 import { createViewerCore, type ViewerCore } from '../../viewer.js';
 import { mountShell } from '../shell.js';
 
@@ -46,9 +47,13 @@ function memoryStore(): PrismStore & { readonly values: Map<string, unknown> } {
   };
 }
 
-async function core(preferences?: PrismStore) {
+async function core(preferences?: PrismStore, spec?: Partial<PrismViewerSpec>) {
   const c = await createViewerCore({
-    spec: { ...DefaultPrismViewerSpec(), ...(preferences ? { persist: { key: 'mount-test', preferences } } : {}) },
+    spec: {
+      ...DefaultPrismViewerSpec(),
+      ...(preferences ? { persist: { key: 'mount-test', preferences } } : {}),
+      ...spec,
+    },
     createPlugin: createDefaultPlugin,
     modules: ['files', 'page'],
   });
@@ -59,6 +64,48 @@ async function core(preferences?: PrismStore) {
 }
 
 describe('the shell on a page', () => {
+  it("shows the assistant it loaded for its opened placeholder, its real tab in the placeholder's place", async () => {
+    const tabId = 'assistant.tab.assistant';
+    let loaded!: () => void;
+    const created = new Promise<void>((r) => (loaded = r));
+    const c = await core(undefined, {
+      agent: {
+        assistant: async () => ({
+          createViewerAgent: (() => ({ dispose() {} })) as never,
+          createAssistant: () => {
+            loaded();
+            return {
+              ui: {
+                tabs: [{ id: tabId, title: 'Assistant', icon: 'bot', place: 'foot', render: { mount() {} } as never }],
+              },
+              commandMenu: {} as never,
+              agentView: () => null,
+              dispose() {},
+            };
+          },
+        }),
+      },
+    });
+    const target = document.createElement('div');
+    document.body.append(target);
+    const mounted = await mountShell(c, target);
+    const { shell } = mounted;
+    const docks = () => shell.navigation.state.value.docks;
+    const dock = (['left', 'right', 'bottom'] as const).find((d) =>
+      shell.dock(d).tabs.value.some((t) => t.id === tabId),
+    )!;
+    // other tabs in its dock: with the placeholder removed before the real tab is in, it would open one of them
+    expect(shell.dock(dock).tabs.value.length).toBeGreaterThan(1);
+    // opened: its placeholder's body loads it
+    shell.show(tabId);
+    await created;
+    for (let i = 0; i < 10; ++i) await new Promise((r) => setTimeout(r, 0));
+    expect(docks()[dock]?.active).toBe(tabId);
+    expect(docks()[dock]?.collapsed).toBeFalsy();
+    expect(shell.dock(dock).tabs.value.find((t) => t.id === tabId)?.icon).toBe('bot');
+    mounted.dispose();
+  });
+
   it('keeps the theme only once the person changes it', async () => {
     const preferences = memoryStore();
     const c = await core(preferences);

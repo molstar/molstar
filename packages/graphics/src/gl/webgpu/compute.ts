@@ -199,6 +199,7 @@ export function getStorageBufferView(buffer: GPUBuffer): WebGPUStorageBuffer {
 
 type KernelBinding =
   | { kind: 'uniforms'; binding: number }
+  | { kind: 'sampler'; binding: number }
   | { kind: 'storage-buffer'; name: string; binding: number; readOnly: boolean }
   | { kind: 'texture'; name: string; binding: number; spec: TextureSpec<TextureKind> }
   | {
@@ -210,12 +211,24 @@ type KernelBinding =
       dimension: '2d' | '3d';
     };
 
-/** Bindings of a kernel schema in group 0: the uniform block (if any) first, then the schema order */
+/**
+ * Whether a kernel samples `spec` filtered (`textureSampleLevel` with `sLinear`), not only by `textureLoad`: a linear
+ * texture of a format every device filters (not 32-bit floats, which need `float32-filterable`)
+ */
+function isFilteredTexture(spec: TextureSpec<TextureKind>) {
+  return spec.filter === 'linear' && spec.sampleType === 'float' && spec.dataType !== 'float';
+}
+
+/**
+ * Bindings of a kernel schema in group 0: the uniform block (if any) first, then the schema order, then the linear
+ * sampler (`sLinear`, as render shaders name it) where a texture is filtered (`isFilteredTexture`)
+ */
 function getKernelBindings(schema: KernelSchema, defines: DefineValues) {
   const lookup = getWgslDefineLookup(getWgslDefines(defines));
   const uniforms = getUniformBlockLayout('object', schema as unknown as RenderableSchema);
   const bindings: KernelBinding[] = [];
   if (uniforms) bindings.push({ kind: 'uniforms', binding: 0 });
+  let filtered = false;
   for (const name of Object.keys(schema)) {
     const spec = schema[name];
     const binding = bindings.length;
@@ -223,12 +236,14 @@ function getKernelBindings(schema: KernelSchema, defines: DefineValues) {
       bindings.push({ kind: 'storage-buffer', name, binding, readOnly: spec.access === 'read' });
     } else if (spec.type === 'texture') {
       bindings.push({ kind: 'texture', name, binding, spec });
+      if (isFilteredTexture(spec)) filtered = true;
     } else if (spec.type === 'storage-texture') {
       const format = getGPUTextureFormat(spec.format, spec.dataType);
       const access = GPUStorageAccess[spec.access];
       bindings.push({ kind: 'storage-texture', name, binding, format, access, dimension: spec.dimension });
     }
   }
+  if (filtered) bindings.push({ kind: 'sampler', binding: bindings.length });
   return { uniforms, bindings, lookup };
 }
 
@@ -266,6 +281,9 @@ export function getWgslKernelDeclarations(code: KernelCode, schema: KernelSchema
       case 'uniforms':
         lines.push(`${at} var<uniform> uParams: KernelParams;`);
         break;
+      case 'sampler':
+        lines.push(`${at} var sLinear: sampler;`);
+        break;
       case 'storage-buffer': {
         const spec = schema[b.name] as { element: string };
         lines.push(`${at} var<storage, ${b.readOnly ? 'read' : 'read_write'}> ${b.name}: array<${spec.element}>;`);
@@ -292,12 +310,15 @@ function getBindGroupLayoutEntry(b: KernelBinding, lookup: DefineLookup): GPUBin
   switch (b.kind) {
     case 'uniforms':
       return { binding: b.binding, visibility, buffer: { type: 'uniform', hasDynamicOffset: true } };
+    case 'sampler':
+      return { binding: b.binding, visibility, sampler: { type: 'filtering' } };
     case 'storage-buffer':
       return { binding: b.binding, visibility, buffer: { type: b.readOnly ? 'read-only-storage' : 'storage' } };
     case 'texture': {
       const dimension = getTextureDimension(b.spec, lookup);
-      // kernels read textures with `textureLoad`
-      const sampleType = b.spec.sampleType === 'float' ? 'unfilterable-float' : b.spec.sampleType;
+      // kernels read textures with `textureLoad`, filtered ones also sampled (`isFilteredTexture`)
+      const sampleType =
+        b.spec.sampleType === 'float' && !isFilteredTexture(b.spec) ? 'unfilterable-float' : b.spec.sampleType;
       return {
         binding: b.binding,
         visibility,
@@ -434,6 +455,17 @@ function prepareKernelPipelines(
   return waits.length ? Promise.all(waits).then(() => {}) : Promise.resolve();
 }
 
+/** The linear sampler of kernels per device (`sLinear`, clamped to the edge) */
+const LinearSamplers = new WeakMap<GPUDevice, GPUSampler>();
+function getLinearSampler(device: GPUDevice) {
+  let sampler = LinearSamplers.get(device);
+  if (!sampler) {
+    sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear', label: 'kernel sLinear' });
+    LinearSamplers.set(device, sampler);
+  }
+  return sampler;
+}
+
 /** The bind groups a kernel keeps, of its last binding sets (`createKernel`) */
 const KernelBindGroupCacheSize = 4;
 
@@ -491,6 +523,8 @@ function createKernel<S extends KernelSchema>(
     for (const b of current.bindings) {
       if (b.kind === 'uniforms') {
         bindKey.push(uniformBuffers.get(uniformBuffer!)!);
+      } else if (b.kind === 'sampler') {
+        bindKey.push(0);
       } else if (b.kind === 'storage-buffer') {
         const buffer = asWebGPUStorageBuffer(values[b.name].ref.value as StorageBuffer);
         bindKey.push(buffer.id, buffer.version);
@@ -514,6 +548,8 @@ function createKernel<S extends KernelSchema>(
     for (const b of current.bindings) {
       if (b.kind === 'uniforms') {
         entries.push({ binding: b.binding, resource: { buffer: uniformBuffer!, size: current.uniforms!.size } });
+      } else if (b.kind === 'sampler') {
+        entries.push({ binding: b.binding, resource: getLinearSampler(env.device) });
       } else if (b.kind === 'storage-buffer') {
         const buffer = asWebGPUStorageBuffer(values[b.name].ref.value as StorageBuffer);
         entries.push({ binding: b.binding, resource: { buffer: buffer.getGPUBuffer() } });

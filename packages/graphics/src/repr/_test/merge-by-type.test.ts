@@ -44,16 +44,16 @@ describe('mergeRenderObjectsByType', () => {
     const entries = [spheres(3), spheres(2)].map((renderObject, visual) => ({ visual, renderObject }));
     const graphics = { capabilities: {}, resources: { ownsTexture: () => true } } as unknown as GraphicsContext;
     const out: GraphicsRenderObject[] = [];
-    let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, true, new Map(), out);
+    let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, new Map(), out);
     const object = out[0];
-    merged = mergeRenderObjectsByType(entries, true, merged, out, false, false, graphics);
+    merged = mergeRenderObjectsByType(entries, merged, out, false, false, graphics);
     expect(out).toEqual([object]);
 
     // a storage buffer in the merged object's own values, of a context `graphics` is not
     const buffer = { copyTo: () => {}, readAsync: async () => new ArrayBuffer(0) };
     (object.values as unknown as { [k: string]: unknown }).sForeign = ValueCell.create(buffer);
     const other = { capabilities: {}, resources: { ownsTexture: () => true } } as unknown as GraphicsContext;
-    mergeRenderObjectsByType(entries, true, merged, out, false, false, other);
+    mergeRenderObjectsByType(entries, merged, out, false, false, other);
     expect(out.length).toBe(1);
     expect(out[0]).not.toBe(object);
   });
@@ -61,20 +61,20 @@ describe('mergeRenderObjectsByType', () => {
   it('skips the merge check for the same members, unchanged since it passed (perf-audit-2 07/P17)', () => {
     const entries = [spheres(3), spheres(2), spheres(4)].map((renderObject, visual) => ({ visual, renderObject }));
     const out: GraphicsRenderObject[] = [];
-    let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, true, new Map(), out);
+    let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, new Map(), out);
     expect(out.length).toBe(1);
     const object = out[0];
 
     expect(
       checks(() => {
-        merged = mergeRenderObjectsByType(entries, true, merged, out);
+        merged = mergeRenderObjectsByType(entries, merged, out);
       }),
     ).toBe(false);
     expect(out).toEqual([object]);
 
     // a member whose defines changed is checked again: here it no longer merges
     ValueCell.update(entries[1].renderObject.values.dXrayShaded, 'on');
-    merged = mergeRenderObjectsByType(entries, true, merged, out);
+    merged = mergeRenderObjectsByType(entries, merged, out);
     expect(out.length).toBe(3);
     expect(merged.size).toBe(0);
   });
@@ -82,7 +82,7 @@ describe('mergeRenderObjectsByType', () => {
   it('does not check again after a visual update that changes nothing it reads (perf-audit-3 07/P17)', () => {
     const entries = [spheres(3), spheres(2), spheres(4)].map((renderObject, visual) => ({ visual, renderObject }));
     const out: GraphicsRenderObject[] = [];
-    let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, true, new Map(), out);
+    let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, new Map(), out);
     const object = out[0];
     const props = PD.getDefaultValues(Spheres.Params);
     // what every update of a visual runs (a recolor, a new alpha): `uLod`, `lodLevels` set again
@@ -97,14 +97,14 @@ describe('mergeRenderObjectsByType', () => {
       update();
       expect(
         checks(() => {
-          merged = mergeRenderObjectsByType(entries, true, merged, out);
+          merged = mergeRenderObjectsByType(entries, merged, out);
         }),
       ).toBe(false);
     }
     update({ ...props, alpha: 0.5 });
     expect(
       checks(() => {
-        merged = mergeRenderObjectsByType(entries, true, merged, out);
+        merged = mergeRenderObjectsByType(entries, merged, out);
       }),
     ).toBe(false);
     expect(out).toEqual([object]);
@@ -113,7 +113,7 @@ describe('mergeRenderObjectsByType', () => {
     update({ ...props, lod: Vec3.create(1, 100, 0) });
     expect(
       checks(() => {
-        merged = mergeRenderObjectsByType(entries, true, merged, out);
+        merged = mergeRenderObjectsByType(entries, merged, out);
       }),
     ).toBe(true);
     expect(out).toEqual([object]);
@@ -124,7 +124,7 @@ describe('mergeRenderObjectsByType', () => {
     }
     expect(
       checks(() => {
-        merged = mergeRenderObjectsByType(entries, true, merged, out);
+        merged = mergeRenderObjectsByType(entries, merged, out);
       }),
     ).toBe(true);
     for (const { renderObject } of entries) {
@@ -132,7 +132,7 @@ describe('mergeRenderObjectsByType', () => {
     }
     expect(
       checks(() => {
-        merged = mergeRenderObjectsByType(entries, true, merged, out);
+        merged = mergeRenderObjectsByType(entries, merged, out);
       }),
     ).toBe(false);
   });
@@ -161,12 +161,12 @@ describe('mergeRenderObjectsByType', () => {
     ).toEqual([...read, ...notRead].sort());
 
     const out: GraphicsRenderObject[] = [];
-    let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, true, new Map(), out);
+    let merged: Map<string, MergedEntry<number>> = mergeRenderObjectsByType(entries, new Map(), out);
     for (const k of [...read, ...notRead]) {
       ValueCell.update(values[k], values[k].ref.value);
       expect(
         checks(() => {
-          merged = mergeRenderObjectsByType(entries, true, merged, out);
+          merged = mergeRenderObjectsByType(entries, merged, out);
         }),
         k,
       ).toBe(read.includes(k));

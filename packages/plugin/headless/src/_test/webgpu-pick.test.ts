@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `ATOM      1  N   ALA A   1      -1.458   0.000   0.000  1.00  0.00           N
@@ -22,12 +23,8 @@ END
 // the background and their draws are skipped, the pick waits for them instead of resolving to nothing
 describe.skipIf(!WebGPU.module)('picking on WebGPU', () => {
   it('finds the structure with the first pick after loading', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 64, height: 64 },
-      { backend: 'webgpu' },
-    );
+    // a context of its own: its first frames' pipelines not compiled yet (`own`)
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 }, { own: true });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });

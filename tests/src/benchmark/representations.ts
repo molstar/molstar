@@ -187,7 +187,7 @@ export const RepresentationCases: BenchmarkCase<any>[] = [
       provider: SpacefillRepresentationProvider,
       data: await chainGrid(100_000, 6),
       // the per-unit visual (above 10k unit groups the default is the structure-level one)
-      props: { visuals: ['element-sphere'], renderMerged: true },
+      props: { visuals: ['element-sphere'] },
       sizeTheme: 'physical',
       units: 100_000,
     }),

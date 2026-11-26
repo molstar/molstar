@@ -116,8 +116,11 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 - [shared-draw-resources.md](shared-draw-resources.md): geometry sub-allocated in shared buffers, theme layers in
   storage pages updated by range, shared object groups done (WebGPU replay of 10k draws 37 to about 1 ms per frame
   measured); the CPU geometry store deferred (measured: little to gain).
-- [merged-render-objects.md](merged-render-objects.md): CPU-side merging (`renderMerged`) the main path for many units
-  of a representation: `auto` from 30 units, update costs, geometry and layers without copies, the costs per member, GPU
+- [merged-smoothed-layers-gpu.md](merged-smoothed-layers-gpu.md): smoothed layers on CPU meshes splatted and, merged,
+  sampled per vertex by compute kernels on WebGPU, done (all 420 units of 60 copies of 7qpd 2.75 s to 33 ms a frame
+  merged, 20 ms per group), the grids sampled at their cells' corners in every shader; WebGL stays on the CPU splat.
+- [merged-render-objects.md](merged-render-objects.md): CPU-side merging the main path for units representations
+  (always, `renderMerged` removed), update costs, geometry and layers without copies, the costs per member, GPU
   culling with occlusion (`gpuCulling: 'auto'`, from 20k instances) done; left: the visuals' own update work (the GPU
   culling's instance copy on weak GPUs measured, about 2% to gain, not taken up).
 - [shader-f16.md](shader-f16.md): paused after measuring: the impostor lighting in half precision 6-11% faster on an
@@ -196,8 +199,12 @@ Follow-ups from the review of the WebGPU branch (correctness, memory, one decisi
 - [many-units.md](many-units.md): proposed: 100k small units merged within a tab's heap, the memory per member from
   about 41 KB to under 10 KB (never more sphere extrema than points, absent layers shared, no instance grid for one
   instance, hashed merge keys).
-- [merged-from-units.md](merged-from-units.md): proposed: merged objects built from the symmetry groups by one visual,
-  without a visual, render values and render object per member (about 19.5 KB a member after many-units.md).
+- [merged-from-units.md](merged-from-units.md): done: merged objects built from the symmetry groups by one visual,
+  without a visual, render values and render object per member (7.9 KB a unit at 100k units).
+- [merged-units-core.md](merged-units-core.md): proposed: every units representation merged on one segment core (what
+  does not merge today given the segment data it lacks; GPU surfaces on WebGL the only plain objects), one table of a
+  segment's keys, parts owning their shared values, updates by the builders' update state and transactional, one
+  merged object form, culling not tied to merging.
 - [merged-segment-draws.md](merged-segment-draws.md): merged objects of many single-instance segments: the cull view
   by one version done (70 → 50 ms a moving frame of the NPC capsid); item-range draws (GPU 1.31 → 0.23 ms) and
   flattening rejected (complexity, clipping by the original unit); culling by batches open.

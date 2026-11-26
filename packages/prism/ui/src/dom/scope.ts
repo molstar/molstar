@@ -4,6 +4,7 @@
  * Developed in collaboration with Anyfold <https://anyfold.ai/>
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { isObservable, type Observable, type Subscription, type Unsubscribable } from 'rxjs';
@@ -352,6 +353,16 @@ class Watcher extends Live implements WatchHandle {
 }
 
 /**
+ * The registry of root scopes a test setup puts on `globalThis` (`vitest.setup.ts`: it disposes the roots a test file
+ * leaves, so that a view left listening on the document cannot wake up in a later file of the worker); absent in apps,
+ * where this is one lookup per root scope
+ */
+const TestRootScopes = Symbol.for('molstar.test.rootScopes');
+function testRootScopes(): { add(scope: { dispose(): void }): void; delete(scope: object): void } | undefined {
+  return (globalThis as { [TestRootScopes]?: ReturnType<typeof testRootScopes> })[TestRootScopes];
+}
+
+/**
  * Owns what a piece of rendered DOM needs to clean up: subscriptions of its bindings, child scopes of its dynamic
  * regions, and anything registered with `onCleanup`. Disposing a scope disposes its children first, then runs its own
  * cleanups in reverse order.
@@ -381,6 +392,7 @@ export class Scope {
     this.#parent = parent;
     this.depth = parent ? parent.depth + 1 : 0;
     this.#active = parent ? parent.#active : true;
+    if (!parent) testRootScopes()?.add(this);
   }
 
   /** Whether the scope and all its parents are active; bindings update the DOM only while it is. */
@@ -556,6 +568,7 @@ export class Scope {
     if (this.#disposed) return;
     this.#disposed = true;
     this.#disposing = true;
+    if (!this.#parent) testRootScopes()?.delete(this);
     this.#hooks = undefined;
     const children = this.#children;
     if (children) {

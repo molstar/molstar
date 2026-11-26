@@ -16,6 +16,7 @@ import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { RelionStarParticlesProvider } from '@molstar/plugin/state/formats/particles/star';
 import { ParticleListWithTargets } from '@molstar/plugin/state/transforms/particles/ops';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const readExample = (name: string) => readFileSync(new URL(`../../../../../data/examples/${name}`, import.meta.url));
@@ -83,19 +84,20 @@ function describeMiss(r: ObjectSignature, derived: readonly ObjectSignature[]) {
   return `${r.type}${r.merged ? ' merged' : ''}: ${best ? best.join('; ') : 'no derived signature of the kind'}`;
 }
 
+/** a new device each: the shape quick, the others medium */
 const Targets = [
-  { kind: 'structure', file: () => new File([readExample('1crn.cif')], '1crn.cif') },
-  { kind: 'volume', file: () => new File([ballDx(12)], 'ball.dx') },
-  { kind: 'shape', file: () => new File([CubeObj], 'cube.obj') },
+  { kind: 'structure', tags: ['medium'], file: () => new File([readExample('1crn.cif')], '1crn.cif') },
+  { kind: 'volume', tags: ['medium'], file: () => new File([ballDx(12)], 'ball.dx') },
+  { kind: 'shape', tags: [], file: () => new File([CubeObj], 'cube.obj') },
 ];
 
 async function createPlugin() {
   const spec = DefaultPluginSpec();
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
+  // a context of its own: what its frames compile after preparing read (`own`)
+  const plugin = await createWebGPUPlugin(
     { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
     { width: 32, height: 32 },
-    { backend: 'webgpu' },
+    { own: true },
   );
   await plugin.init();
   return plugin;
@@ -125,42 +127,49 @@ async function addTargets(plugin: HeadlessPluginContext, file: File) {
 // shape each), so its transform prepares them while it builds (`prepareRepresentation`)
 describe.skipIf(!WebGPU.module)('particle targets prepared while they build on WebGPU', () => {
   for (const target of Targets) {
-    it(`cover what a ${target.kind} target draws, and leave its first frame nothing to compile`, async () => {
-      const plugin = await createPlugin();
-      try {
-        const canvas = plugin.canvas3d!;
-        const prepared: PrecompileList[] = [];
-        const prepareObjects = canvas.prepareObjects.bind(canvas);
-        canvas.prepareObjects = (owner, list) => {
-          prepared.push(list);
-          prepareObjects(owner, list);
-        };
-        const { pending } = canvas.graphics.resources;
-        let time = now();
-        const frame = () => {
-          canvas.requestDraw();
-          canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
-        };
-        frame();
-        await pending.whenReady();
+    it(
+      `cover what a ${target.kind} target draws, and leave its first frame nothing to compile`,
+      { tags: target.tags },
+      async () => {
+        const plugin = await createPlugin();
+        try {
+          const canvas = plugin.canvas3d!;
+          const prepared: PrecompileList[] = [];
+          const prepareObjects = canvas.prepareObjects.bind(canvas);
+          canvas.prepareObjects = (owner, list) => {
+            prepared.push(list);
+            prepareObjects(owner, list);
+          };
+          const { pending } = canvas.graphics.resources;
+          let time = now();
+          const frame = () => {
+            canvas.requestDraw();
+            canvas.tick((time += 1000) as now.Timestamp, { isSynchronous: true });
+          };
+          frame();
+          await pending.whenReady();
 
-        canvas.resetPrecompileList();
-        await addTargets(plugin, target.file());
-        await pending.whenReady();
-        const before = pending.trackedCount;
-        frame();
-        const compiled = pending.trackedSince(before).filter((label) => label.startsWith('pipeline '));
+          canvas.resetPrecompileList();
+          await addTargets(plugin, target.file());
+          await pending.whenReady();
+          const before = pending.trackedCount;
+          frame();
+          const compiled = pending.trackedSince(before).filter((label) => label.startsWith('pipeline '));
 
-        const recorded = canvas.getPrecompileList().objects;
-        const derived = prepared.flatMap((l) => l.objects);
-        const keys = new Set(derived.map(getSignatureKey));
-        expect(recorded.length).toBeGreaterThan(0);
-        expect(recorded.filter((r) => !keys.has(getSignatureKey(r))).map((r) => describeMiss(r, derived))).toEqual([]);
-        expect(compiled).toEqual([]);
-        await pending.whenReady();
-      } finally {
-        plugin.dispose();
-      }
-    }, 120_000);
+          const recorded = canvas.getPrecompileList().objects;
+          const derived = prepared.flatMap((l) => l.objects);
+          const keys = new Set(derived.map(getSignatureKey));
+          expect(recorded.length).toBeGreaterThan(0);
+          expect(recorded.filter((r) => !keys.has(getSignatureKey(r))).map((r) => describeMiss(r, derived))).toEqual(
+            [],
+          );
+          expect(compiled).toEqual([]);
+          await pending.whenReady();
+        } finally {
+          plugin.dispose();
+        }
+      },
+      120_000,
+    );
   }
 });

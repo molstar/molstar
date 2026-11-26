@@ -493,16 +493,63 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
     offset: number,
   ) {
     const bpe = array.BYTES_PER_ELEMENT;
-    const write = (start: number, end: number) => {
-      const s = Math.floor((start * bpe) / 4) * 4;
-      const e = Math.min(array.byteLength, Math.ceil((end * bpe) / 4) * 4);
+    // the whole words within the parts written on the GPU (`writeGpuParts`, after these writes) left out: their bytes
+    // zeros on the CPU (a smoothed layer of a merged surface: its vertices times its instances); the words at a part's
+    // ends written, shared with its neighbours'
+    let gpuWords: number[] | undefined;
+    for (const p of array.parts) {
+      if (!p.gpu || p.count === 0) continue;
+      const a = Math.ceil((p.offset * bpe) / 4) * 4;
+      const b = Math.floor(((p.offset + p.count) * bpe) / 4) * 4;
+      if (b > a) (gpuWords ??= []).push(a, b);
+    }
+    const writeBytes = (s: number, e: number) => {
       if (e > s) ctx.dataPages.write(range, SegmentedArray.read(array, s / bpe, Math.ceil(e / bpe)), offset + s);
+    };
+    const write = (start: number, end: number) => {
+      let s = Math.floor((start * bpe) / 4) * 4;
+      const e = Math.min(array.byteLength, Math.ceil((end * bpe) / 4) * 4);
+      if (gpuWords) {
+        for (let k = 0; k < gpuWords.length && s < e; k += 2) {
+          if (gpuWords[k + 1] <= s || gpuWords[k] >= e) continue;
+          writeBytes(s, gpuWords[k]);
+          s = gpuWords[k + 1];
+        }
+      }
+      writeBytes(s, e);
     };
     if (ranges) {
       for (let k = 0; k < ranges.length; k += 2) write(ranges[k], ranges[k + 1]);
     } else {
       // all at once: a write per part is a write per member of a merged object (many thousands)
       write(0, array.length);
+    }
+  }
+  /**
+   * The parts of `array` written on the GPU (`SegmentedArray.Part.gpu`) written there again, after the writes of
+   * `ranges` (all: undefined) from the CPU: those whose bytes or the words around them were written (zeros on the CPU)
+   */
+  function writeGpuParts(
+    range: BufferRange,
+    array: SegmentedArray,
+    ranges: readonly number[] | undefined,
+    offset: number,
+  ) {
+    const bpe = array.BYTES_PER_ELEMENT;
+    for (const p of array.parts) {
+      if (!p.gpu || p.count === 0) continue;
+      const start = p.offset * bpe;
+      const end = (p.offset + p.count) * bpe;
+      if (ranges) {
+        let written = false;
+        for (let k = 0; k < ranges.length && !written; k += 2) {
+          const s = Math.floor((ranges[k] * bpe) / 4) * 4;
+          const e = Math.ceil((ranges[k + 1] * bpe) / 4) * 4;
+          written = s < end && e > start;
+        }
+        if (!written) continue;
+      }
+      p.gpu.write(getStorageBufferView(range.buffer), range.offset + offset + start);
     }
   }
   const layerImage = (layer: DataLayer) => dataValues[layer].ref.value as DataArray<Uint8Array>;
@@ -647,6 +694,7 @@ export function createWebGPURenderItem<T extends ProgramVariant>(
           const ranges = moved ? undefined : SegmentedArray.changedRanges(array, layerParts[i]);
           if (!ranges) layerParts[i] = SegmentedArray.uploaded(array);
           writeSegmentedLayer(range, array, ranges, offset);
+          writeGpuParts(range, array, ranges, offset);
           layerVersions[i] = cell.ref.version;
         }
       } else if (moved || cell.ref.version !== layerVersions[i]) {

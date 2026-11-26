@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const Pdb = `ATOM      1  N   ALA A   1      -1.458   0.000   0.000  1.00  0.00           N
@@ -26,79 +27,81 @@ const Size = 64;
 /** What the view holds top to bottom with a `distance` (Å), about the structure's size */
 const ViewHeight = 16;
 
+function createPlugin() {
+  // a context of its own (`own`): the shader modules it makes seen (a shared one's made before)
+  return createWebGPUPlugin(DefaultPluginSpec(), { width: Size, height: Size }, { own: true }).then(async (plugin) => {
+    await plugin.init();
+    return plugin;
+  });
+}
+
 /**
  * The structure as spacefill colored by element index, its spheres drawn by the raster (`on`) or as impostors; with
- * `distance` seen from that far, its size on screen kept by the field of view
+ * `distance` seen from that far, its size on screen kept by the field of view; the scene of a render before removed
+ * (a test's renders on one plugin: a new one compiles the pipelines again)
  */
-async function render(sphereRaster: 'on' | 'off' | 'auto' | 'only', distance?: number) {
-  const plugin = await HeadlessPluginContext.create(
-    { webgpu: WebGPU.module! },
-    DefaultPluginSpec(),
-    { width: Size, height: Size },
-    { backend: 'webgpu' },
-  );
-  try {
-    await plugin.init();
-    if (!plugin.canvas3d!.graphics.capabilities.atomicMinMax64) return undefined;
-    plugin.canvas3d!.setProps({
-      renderer: { sphereRaster, sphereRasterRadius: 32 },
-      // the raster draws perspective views
-      camera: { mode: 'perspective' } as never,
-      cameraFog: { name: 'off', params: {} },
-      postprocessing: {
-        occlusion: { name: 'off', params: {} },
-        outline: { name: 'off', params: {} },
+async function render(plugin: HeadlessPluginContext, sphereRaster: 'on' | 'off' | 'auto' | 'only', distance?: number) {
+  await plugin.clear();
+  // committed empty: the next scene's camera reset immediate, as on a new canvas (else a transition from the last)
+  plugin.canvas3d!.commit(true);
+  if (!plugin.canvas3d!.graphics.capabilities.atomicMinMax64) return undefined;
+  plugin.canvas3d!.setProps({
+    renderer: { sphereRaster, sphereRasterRadius: 32 },
+    // the raster draws perspective views
+    camera: { mode: 'perspective' } as never,
+    cameraFog: { name: 'off', params: {} },
+    postprocessing: {
+      occlusion: { name: 'off', params: {} },
+      outline: { name: 'off', params: {} },
+    },
+  });
+  const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
+  const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
+  const model = await plugin.builders.structure.createModel(trajectory);
+  const structure = await plugin.builders.structure.createStructure(model);
+  await plugin.builders.structure.representation.addRepresentation(structure, {
+    type: 'spacefill',
+    color: 'element-index',
+  });
+  // committed whole before the camera is set: the scene's camera reset and its forced draw (whose controls keep the
+  // camera within their distance of the scene, far nearer than the far view) done now, not by a commit left to the
+  // image (a commit's budget runs out under load)
+  plugin.canvas3d!.commit(true);
+  if (distance) {
+    const camera = plugin.canvas3d!.camera;
+    const { target } = camera.getSnapshot();
+    camera.setState(
+      {
+        target,
+        position: Vec3.create(target[0], target[1], target[2] + distance),
+        up: Vec3.create(0, 1, 0),
+        fov: 2 * Math.atan(ViewHeight / 2 / distance),
+        radius: ViewHeight,
+        radiusMax: ViewHeight,
       },
-    });
-    const data = await plugin.builders.data.rawData({ data: Pdb, label: 'test' });
-    const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
-    const model = await plugin.builders.structure.createModel(trajectory);
-    const structure = await plugin.builders.structure.createStructure(model);
-    await plugin.builders.structure.representation.addRepresentation(structure, {
-      type: 'spacefill',
-      color: 'element-index',
-    });
-    // committed whole before the camera is set: the scene's camera reset and its forced draw (whose controls keep the
-    // camera within their distance of the scene, far nearer than the far view) done now, not by a commit left to the
-    // image (a commit's budget runs out under load)
-    plugin.canvas3d!.commit(true);
-    if (distance) {
-      const camera = plugin.canvas3d!.camera;
-      const { target } = camera.getSnapshot();
-      camera.setState(
-        {
-          target,
-          position: Vec3.create(target[0], target[1], target[2] + distance),
-          up: Vec3.create(0, 1, 0),
-          fov: 2 * Math.atan(ViewHeight / 2 / distance),
-          radius: ViewHeight,
-          radiusMax: ViewHeight,
-        },
-        0,
-      );
-    }
-    const image = () => plugin.getImageRaw({ width: Size, height: Size });
-    // pipelines and kernels compile in the background: frames drawn before they are ready draw impostors or skip
-    // draws; at least three images, then until one skips no draw and leaves nothing pending (slower under load)
-    const { stats, resources } = plugin.canvas3d!.graphics;
-    for (let i = 0; i < 20; ++i) {
-      const skipped = stats.skippedDraws;
-      await image();
-      const settled = stats.skippedDraws === skipped && resources.pending.isReady();
-      await resources.pending.whenReady();
-      if (settled && i >= 2) break;
-    }
-    const pixels = Array.from((await image()).data);
-    expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
-    return pixels;
-  } finally {
-    plugin.dispose();
+      0,
+    );
   }
+  const image = () => plugin.getImageRaw({ width: Size, height: Size });
+  // pipelines and kernels compile in the background: frames drawn before they are ready draw impostors or skip
+  // draws; at least three images, then until one skips no draw and leaves nothing pending (slower under load)
+  const { stats, resources } = plugin.canvas3d!.graphics;
+  for (let i = 0; i < 20; ++i) {
+    const skipped = stats.skippedDraws;
+    await image();
+    const settled = stats.skippedDraws === skipped && resources.pending.isReady();
+    await resources.pending.whenReady();
+    if (settled && i >= 2) break;
+  }
+  const pixels = Array.from((await image()).data);
+  expect(plugin.canvas3d!.graphics.takeErrors?.() ?? []).toEqual([]);
+  return pixels;
 }
 
 // the raster's spheres resolved in the opaque pass draw the image the impostors draw
 describe.skipIf(!WebGPU.module)('sphere raster resolve on WebGPU', () => {
-  it('draws the image of the impostors', async () => {
+  // medium: four scenes, the raster's kernels and resolve compiled
+  it('draws the image of the impostors', { tags: ['medium'] }, async () => {
     const device = (WebGPU.module!.globals as { GPUDevice: { prototype: GPUDevice } }).GPUDevice.prototype;
     const createShaderModule = device.createShaderModule;
     const shaders: string[] = [];
@@ -106,16 +109,20 @@ describe.skipIf(!WebGPU.module)('sphere raster resolve on WebGPU', () => {
       shaders.push(descriptor.code);
       return createShaderModule.call(this, descriptor);
     };
+    let plugin: HeadlessPluginContext | undefined;
     try {
-      const impostors = await render('off');
+      // made after the spy: the shaders of its programs seen
+      plugin = await createPlugin();
+      const impostors = await render(plugin, 'off');
       if (!impostors) return;
       expect(shaders.some((c) => c.includes('fn resolveSphere'))).toBe(false);
       expect(new Set(impostors).size).toBeGreaterThan(2);
-      // `auto` leaves objects not culled on the GPU (this one, unmerged) to the impostors
-      expect(await render('auto')).toEqual(impostors);
+      // `auto` leaves objects of few spheres to the impostors (this one, merged and culled on the GPU for the raster
+      // alone where the device has it: by `on` and `only`)
+      expect(await render(plugin, 'auto')).toEqual(impostors);
       expect(shaders.some((c) => c.includes('fn resolveSphere'))).toBe(false);
       // the raster's spheres with the larger ones as impostors, and all by the raster (`only`, no impostor drawn)
-      for (const raster of [(await render('on'))!, (await render('only'))!]) {
+      for (const raster of [(await render(plugin, 'on'))!, (await render(plugin, 'only'))!]) {
         // the resolve's program and the raster's kernels were made
         expect(shaders.some((c) => c.includes('fn resolveSphere'))).toBe(true);
         expect(shaders.some((c) => c.includes('atomicStoreMax'))).toBe(true);
@@ -132,25 +139,36 @@ describe.skipIf(!WebGPU.module)('sphere raster resolve on WebGPU', () => {
         expect(differ).toBeLessThanOrEqual(Size * Size * 0.01);
       }
     } finally {
+      plugin?.dispose();
       device.createShaderModule = createShaderModule;
     }
   });
 
-  // the distance squared is rounded by more than the radius squared far from the camera: the hits may not follow it
-  it.each(['off', 'only'] as const)('shades alike from near and far (sphereRaster %s)', async (sphereRaster) => {
-    const near = await render(sphereRaster, 400);
-    if (!near) return;
-    const far = (await render(sphereRaster, 30000))!;
-    expect(new Set(near).size).toBeGreaterThan(2);
-    let differ = 0;
-    for (let i = 0; i < near.length; i += 4) {
-      const d = Math.max(
-        Math.abs(near[i] - far[i]),
-        Math.abs(near[i + 1] - far[i + 1]),
-        Math.abs(near[i + 2] - far[i + 2]),
-      );
-      if (d > 16) differ += 1;
-    }
-    expect(differ).toBeLessThanOrEqual(Size * Size * 0.05);
-  });
+  // the distance squared is rounded by more than the radius squared far from the camera: the hits may not follow it.
+  // The impostors' case quick, the raster's medium (its kernels and resolve compiled)
+  for (const sphereRaster of ['off', 'only'] as const) {
+    it(`shades alike from near and far (sphereRaster ${sphereRaster})`, {
+      tags: sphereRaster === 'off' ? [] : ['medium'],
+    }, async () => {
+      const plugin = await createPlugin();
+      try {
+        const near = await render(plugin, sphereRaster, 400);
+        if (!near) return;
+        const far = (await render(plugin, sphereRaster, 30000))!;
+        expect(new Set(near).size).toBeGreaterThan(2);
+        let differ = 0;
+        for (let i = 0; i < near.length; i += 4) {
+          const d = Math.max(
+            Math.abs(near[i] - far[i]),
+            Math.abs(near[i + 1] - far[i + 1]),
+            Math.abs(near[i + 2] - far[i + 2]),
+          );
+          if (d > 16) differ += 1;
+        }
+        expect(differ).toBeLessThanOrEqual(Size * Size * 0.05);
+      } finally {
+        plugin.dispose();
+      }
+    });
+  }
 });

@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { reportUnhandledError } from '@molstar/core/reactive/config';
@@ -32,6 +33,16 @@ export interface Live {
 const Reported = {};
 
 /**
+ * The registry of root scopes a test setup puts on `globalThis` (`vitest.setup.ts`: it disposes the roots a test file
+ * leaves, so that a view left listening on the document cannot wake up in a later file of the worker); absent in apps,
+ * where this is one lookup per root scope
+ */
+const TestRootScopes = Symbol.for('molstar.test.rootScopes');
+function testRootScopes(): { add(scope: { dispose(): void }): void; delete(scope: object): void } | undefined {
+  return (globalThis as { [TestRootScopes]?: ReturnType<typeof testRootScopes> })[TestRootScopes];
+}
+
+/**
  * What a piece of rendered DOM owns (dom §1): its bindings and watches, the child scopes of its regions, its cleanups.
  * Core's `Scope` (cleanups last added first, every one attempted) plus a parent, a depth (a watch's place in a flush:
  * parents first), children (an intrusive list: no allocation per child, O(1) removal) and **activity**: a paused scope
@@ -58,6 +69,7 @@ export class ViewScope extends Scope {
     this._parent = parent;
     this.depth = parent ? parent.depth + 1 : 0;
     this._active = parent ? parent._active : true;
+    if (!parent) testRootScopes()?.add(this);
   }
 
   /** Whether the scope and all its parents are active; bindings update the DOM only while it is. */
@@ -186,6 +198,7 @@ export class ViewScope extends Scope {
   }
 
   protected override _dispose(): void {
+    if (!this._parent) testRootScopes()?.delete(this);
     this._hooks = undefined;
     // Newest first, each child unlinked before it is disposed and the list read again after it (dom §1): this scope's
     // bindings are still live while its children go, so a child's cleanup can make one of its regions dispose another

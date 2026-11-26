@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { releaseGpuMeshVertices } from '@molstar/graphics/geo/geometry/mesh/gpu-vertices';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Visual, type VisualContext } from '../visual.js';
 import { Bond, Structure, StructureElement } from '@molstar/model/model/structure';
@@ -242,6 +243,8 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     if (updateState.createNew) {
       locationIt = createLocationIterator(newStructure, newProps);
       if (newGeometry) {
+        // the old object's mesh vertices on the GPU (the smoothing's splat), kept by its position cell
+        if (renderObject) releaseGpuMeshVertices(renderObject.values);
         renderObject = createComplexRenderObject(newStructure, newGeometry, locationIt, newTheme, newProps, materialId);
         if (geometry === undefined || geometryGraphics === newGraphics)
           foreignResources.created(renderObject, newGraphics);
@@ -458,6 +461,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     destroy() {
       dispose?.(geometry);
       if (renderObject) {
+        releaseGpuMeshVertices(renderObject.values);
         renderObject.state.disposed = true;
         renderObject = undefined;
       }

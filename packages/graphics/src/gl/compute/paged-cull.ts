@@ -140,13 +140,14 @@ export const PagedLeafReleaseMs = 10_000;
 export const PagedWantsReadMs = 250;
 /**
  * a leaf page wanted where its sphere, grown by this share of its radius, is in view (written before it is), its copy
- * held coarse where it is in view itself
+ * lacking it where it is in view itself (`paged-cull-select`: the copy split near and far, or held coarse)
  */
 export const PagedLeafPagePadding = 0.5;
 /**
  * a wanted leaf block's pages written at most this many bytes a cull (their positions and rotations), the view culled
- * again till all are, its copies drawn at their first coarse level meanwhile (`copyLeastLevel`); resident once all are.
- * Why: written in one cull, the yeast cell's leaves (576 MB) a frame of about a second as a zoom came near
+ * again till all are; meanwhile a copy lacking a page in view split at level 0 (its written leaves near, the sample
+ * beyond: `paged-cull-select`), else drawn at its first coarse level; resident once all are. Why: written in one cull,
+ * the yeast cell's leaves (576 MB) a frame of about a second as a zoom came near
  */
 export const PagedLeafUploadBytes = 32 * 1024 * 1024;
 /**
@@ -248,6 +249,11 @@ const PagedCullUniforms = {
   uCoarseScale: UniformSpec('f'),
   uCoarseOrtho: UniformSpec('i'),
   uCoarsePixels: UniformSpec('f'),
+  /**
+   * 1: a copy lacking a leaf page in view split at level 0 (`paged-cull-select`); 0 while wanted pages find no room in
+   * the value blocks (they may not come: held coarse, no holes that stay)
+   */
+  uSplitNear: UniformSpec('i'),
   /**
    * the frame's slots of a copy's visible instances (their poses composed by the cull: the copy's and its template
    * particle's), from slot `uFrameBase` (the persistent slots' room), `uFrameRoom` of them (past it not drawn); their
@@ -423,8 +429,12 @@ export const PagedCullSelectSchema = {
   uValueBlocksBase: UniformSpec('i'),
   tables: StorageBufferSpec('vec4<u32>', 'read-write'),
   selectArgs: StorageBufferSpec('atomic<u32>', 'read-write'),
-  /** per copy group whether it lacks a leaf page in view (`paged-cull-wants`): held at its first coarse level */
+  /**
+   * per copy group whether it lacks a leaf page in view (`paged-cull-wants`): split at level 0 (its leaves near, its
+   * sample beyond), else held at its first coarse level
+   */
   lacking: StorageBufferSpec('u32', 'read'),
+  uSplitNear: UniformSpec('i'),
   /** the fallback's (1): a dropped copy group's entries alone, a level coarser (`dropped`, from `uDroppedBase`) */
   uFallback: UniformSpec('i'),
   /**
@@ -795,6 +805,7 @@ export function createPagedCuller(
     uCoarseScale: ValueCell.create(0),
     uCoarseOrtho: ValueCell.create(0),
     uCoarsePixels: ValueCell.create(0),
+    uSplitNear: ValueCell.create(1),
     uFrameBase: ValueCell.create(0),
     uFrameRoom: ValueCell.create(0),
     uFrameCursor: ValueCell.create(0),
@@ -887,6 +898,7 @@ export function createPagedCuller(
     selectArgs,
     uValueBlocksBase: uniforms.uValueBlocksBase,
     lacking,
+    uSplitNear: uniforms.uSplitNear,
     uFallback: uniforms.uFallback,
     uDroppedBase: uniforms.uDroppedBase,
     marks: occludedBits,
@@ -1059,6 +1071,16 @@ export function createPagedCuller(
   /** a read of the wants pending (one at a time), and when the last began */
   let wantsRead = false;
   let wantsReadAt = Number.NEGATIVE_INFINITY;
+  /**
+   * a cull whose wants were not read (one on its way, or read lately): the view culled again once a read can be
+   * (`wantsAgain`). Why: a view held still after it culls no more (its culls skipped), so its wants would never be read,
+   * its copies drawn coarse (a zoom ending within `PagedWantsReadMs` of the last read)
+   */
+  let wantsMissed = false;
+  let wantsAgainTimer: ReturnType<typeof setTimeout> | undefined;
+  /** settles the pending work the timer tracks (`readWants`): also where the culler is destroyed first */
+  let wantsAgainSettle: (() => void) | undefined;
+  let disposed = false;
   /**
    * the wants read back so far, and per leaf page the last read that wanted it: a page let go where reads since did
    * not want it, not by the time alone (a still view's culls none, its pages' wants not read: kept)
@@ -1712,11 +1734,30 @@ export function createPagedCuller(
    * culled again)
    */
   const readWants = () => {
-    if (wantsRead || !source?.templates?.some(isLeafBlock)) return;
+    if (!source?.templates?.some(isLeafBlock)) return;
     // every cull while wanted pages are not written yet, else a few times a second (the written ones' wants kept up
     // for their release, a page wanted anew found): not a submit and a read a frame
     const now = performance.now();
-    if (pendingWants.size === 0 && now - wantsReadAt < (options.wantsReadMs ?? PagedWantsReadMs)) return;
+    const wait = (options.wantsReadMs ?? PagedWantsReadMs) - (now - wantsReadAt);
+    if (wantsRead || (pendingWants.size === 0 && wait > 0)) {
+      wantsMissed = true;
+      if (!wantsRead && wantsAgainTimer === undefined) {
+        const again = new Promise<void>((resolve) => {
+          wantsAgainSettle = resolve;
+          wantsAgainTimer = setTimeout(() => {
+            wantsAgainTimer = undefined;
+            wantsAgainSettle = undefined;
+            wantsAgain();
+            resolve();
+          }, wait);
+        });
+        // not keeping Node (headless rendering, tests) alive: its timers are objects, browsers' numbers
+        if (typeof wantsAgainTimer === 'object') (wantsAgainTimer as { unref?: () => void }).unref?.();
+        void resources.pending.track(again, 'paged cull: wants read again');
+      }
+      return;
+    }
+    wantsMissed = false;
     wantsReadAt = now;
     wantsRead = true;
     const pageWords = Math.max(1, Math.ceil(Math.max(1, source.pageCapacity) / 32));
@@ -1725,6 +1766,7 @@ export function createPagedCuller(
     Promise.all([wanted.ref.value.readAsync(0, pageWords * 4), lacking.ref.value.readAsync(0, groups * 4)])
       .then(([w, l]) => {
         wantsRead = false;
+        wantsAgain();
         const bits = new Uint32Array(w);
         const at = performance.now();
         let added = false;
@@ -1754,6 +1796,13 @@ export function createPagedCuller(
       .catch(() => {
         wantsRead = false;
       });
+  };
+  /** a cull's wants not read (`wantsMissed`): the view culled again, its wants read then */
+  const wantsAgain = () => {
+    if (!wantsMissed || disposed) return;
+    wantsMissed = false;
+    frameVersion += 1;
+    void resources.pending.track(Promise.resolve(), 'paged cull: the view culled again for its wants');
   };
   const leafUploadBytes = options.leafUploadBytes ?? PagedLeafUploadBytes;
   /** a page's bytes in the values' buffer: its positions, then its rotations */
@@ -1856,6 +1905,8 @@ export function createPagedCuller(
     );
     return true;
   }
+  /** wanted pages found no room at the last residency update (`uSplitNear`) */
+  let starved = false;
   function updateResidency() {
     const src = source;
     if (!src) return false;
@@ -1863,6 +1914,7 @@ export function createPagedCuller(
     let changed = false;
     const pageBytes = valueBytes();
     const toWrite: number[] = [];
+    starved = false;
     // a template drawn whole (no coarse level: not a leaf block) of a deferred list: its pages not read wanted
     if (src.requestValues) {
       for (const t of src.templates ?? []) {
@@ -1891,6 +1943,8 @@ export function createPagedCuller(
         if (released > 0) changed = true;
       }
       const count = Math.max(0, Math.min(upload, room));
+      // wanted pages past the room (not the upload's limit): no split while they wait (`uSplitNear`)
+      starved = count < Math.min(upload, toWrite.length);
       // every wanted page's block within the budget made room for at once (one growth, not one a cull)
       reserveBlocks(Math.min(toWrite.length, Math.max(0, room)));
       for (let i = 0; i < count; ++i) {
@@ -2113,6 +2167,7 @@ export function createPagedCuller(
       // made resident (its pyramid of the copies drawn coarse, a sample's gaps hiding little: the yeast's first near
       // cull 27.6 M frame slots, 1.5 M after, its rooms and the raster's chunks grown to it), culled again instead
       residencyChanged = updateResidency();
+      ValueCell.updateIfChanged(uniforms.uSplitNear, starved ? 0 : 1);
       if (residencyChanged && source) {
         forceSync = true;
         this.sync(source, NoChanges, syncedReaches);
@@ -2367,6 +2422,13 @@ export function createPagedCuller(
       return culled;
     },
     destroy() {
+      disposed = true;
+      clearTimeout(wantsAgainTimer);
+      wantsAgainTimer = undefined;
+      // its pending work settled (the timer's never runs now): else the context's never ready again (an image pass
+      // waiting for it, Hi-Z not built)
+      wantsAgainSettle?.();
+      wantsAgainSettle = undefined;
       composeKernel?.destroy();
       selectKernel?.destroy();
       selectArgsKernel?.destroy();

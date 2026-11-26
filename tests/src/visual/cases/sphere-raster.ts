@@ -109,7 +109,11 @@ async function globule(ctx: SceneContext, props: { [k: string]: unknown } = {}) 
  * Copies of a small globule on a grid as spacefill, the units merged and culled on the GPU (the raster's input the
  * culler's instances; `merged` false: instanced objects of their own), colored per atom
  */
-async function globuleGrid(ctx: SceneContext, props: { [k: string]: unknown } = {}, merged = true) {
+async function globuleGrid(
+  ctx: SceneContext,
+  props: { [k: string]: unknown } = {},
+  gpuCulling: boolean | 'auto' = true,
+) {
   // the copies the structure's own units (`Structure.instances` makes the globule their parent, which the themes read)
   const globule = await globuleStructure(400);
   const builder = Structure.Builder();
@@ -117,13 +121,9 @@ async function globuleGrid(ctx: SceneContext, props: { [k: string]: unknown } = 
     for (const unit of globule.units) builder.addWithOperator(unit, SymmetryOperator.create('copy', t));
   }
   const structure = builder.getStructure();
-  return structureRepr(
-    ctx.graphics,
-    SpacefillRepresentationProvider,
-    structure,
-    { renderMerged: merged, gpuCulling: merged, ...props } as any,
-    { name: 'element-index' },
-  );
+  return structureRepr(ctx.graphics, SpacefillRepresentationProvider, structure, { gpuCulling, ...props } as any, {
+    name: 'element-index',
+  });
 }
 
 /** A plane through the center, tilted: the instances whose centers are above it clipped whole */
@@ -253,7 +253,7 @@ export const SphereRasterCases: VisualTestCase[] = [
           ctx.graphics,
           SpacefillRepresentationProvider,
           builder.getStructure(),
-          { renderMerged: true, gpuCulling: true } as any,
+          { gpuCulling: true } as any,
           { name: 'element-index' },
         ),
       ];
@@ -357,9 +357,10 @@ export const SphereRasterCases: VisualTestCase[] = [
   ),
   rasterCase(
     'clip-instance',
-    'The copies as instanced objects (not merged), clipped by instance by a tilted plane: the raster leaves out the ' +
-      'instances whose centers are clipped, as the impostors do.',
-    async (ctx) => [await globuleGrid(ctx, { clip: InstanceClip }, false)],
+    'The copies merged (a units representation’s always) and culled on the GPU for the raster alone (`gpuCulling` ' +
+      '`auto`, few instances), clipped by instance by a tilted plane: the raster leaves out the instances whose ' +
+      'centers are clipped, as the impostors do.',
+    async (ctx) => [await globuleGrid(ctx, { clip: InstanceClip }, 'auto')],
     { radius: 4 },
   ),
   rasterCase(

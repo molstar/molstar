@@ -9,6 +9,7 @@ import { getCulledSegmentData } from '../culled-data.js';
 import type { PagedCullChanges, PagedCullSource } from '../compute/paged-cull.js';
 import { createPagedMergedCuller } from './merged-paged-culler.js';
 import { fillSerial, getSharedSerial, isSharedSerial } from '@molstar/core/util/array';
+import { isDebugMode } from '@molstar/core/util/debug';
 import type { OcclusionPyramid } from '../compute/cell-cull.js';
 import { createMergedCuller, type MergedRasterParams } from './merged-culler.js';
 import { isSphereRasterEligible } from '../compute/sphere-raster-pass.js';
@@ -89,7 +90,9 @@ import {
   type RenderableState,
   appendMdbDrawKey,
   createDrawVersion,
+  createDrawVersionCounter,
   createCullView,
+  type DrawKey,
   createSegmentedMdbList,
   type CullSegment,
   type LodLevelsValue,
@@ -151,6 +154,33 @@ export const MergeRecordOptionalKeys = [
 export type MergeRecord = Pick<BaseValues, (typeof MergeRecordKeys)[number]> & {
   readonly [key: string]: ValueCell<any> | undefined;
 };
+
+/**
+ * The cells of a segment its own beside its record's (`MergeRecordKeys`, `getMergeRecordKeys`): what differs by segment
+ * but the merged object does not read (it has its own, `createMergedValues`): its instance count's uniform, its
+ * invariant sphere's, its geometry's meta (meshes), its transform's (read back by the transform writers,
+ * `createUnitsTransform`, `Visual.setTransform`). A record's prototype is its part's shared values: a segment's writes
+ * of a cell not its own would land in them, the last segment's value then every segment's (a member view's,
+ * `getMergedMembers`: the geometry export)
+ */
+export const MergeSegmentKeys = [
+  'uInstanceCount',
+  'uInvariantBoundingSphere',
+  'meta',
+  'transform',
+  'extraTransform',
+  'hasExtraTransform',
+] as const;
+
+/**
+ * The keys a segment of a merged object of `type` owns (`MergeRecordKeys`, `MergeSegmentKeys`), of those `values` has;
+ * the rest its part's shared values'
+ */
+export function getMergeSegmentKeys(type: MergedType, values: MergeableValues): string[] {
+  const keys = getMergeRecordKeys(type, values);
+  for (const k of MergeSegmentKeys) if (values[k] !== undefined && !keys.includes(k)) keys.push(k);
+  return keys;
+}
 
 export const MergedTypes = ['spheres', 'mesh', 'cylinders', 'lines', 'points'] as const;
 
@@ -225,7 +255,7 @@ export function isMergeableType(type: string): type is MergedType {
 //
 
 /** `table`: a member's own entries packed after the members' before (spheres' `siteType` sizes, a table by type) */
-type Granularity = 'instance' | 'group' | 'groupInstance' | 'vertex' | 'item' | 'table' | 'none';
+type Granularity = 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance' | 'item' | 'table' | 'none';
 
 type MergedTexSpec = {
   tex: string;
@@ -270,6 +300,8 @@ function pickGranularity(type: string): Granularity {
       return 'groupInstance';
     case 'vertex':
       return 'vertex';
+    case 'vertexInstance':
+      return 'vertexInstance';
     case 'siteType':
     // a texel a member: packed in order, member i's at i (its segment, `ColorTypeIndex` 'object')
     case 'object':
@@ -371,6 +403,16 @@ type MergedTypeDescriptor = {
   readonly extraTextures: MergedTexSpec[];
   readonly vertexAttributes: VertexAttribute[];
 };
+
+/**
+ * Spheres from which `gpuCulling: 'auto'` culls on the GPU where the device has the sphere raster, which takes merged
+ * objects culled there only: faster at 300k spheres and up on both GPUs measured (3J3Q 1.48 -> 0.63 ms, 61.9 -> 11.5 ms on
+ * an integrated GPU), about 0.1 ms slower at a few hundred. Such an object is merged for
+ * it (merged spheres at any count, `resolveMergedCulling`), the renderer culling it on the GPU only where the raster
+ * takes it (`'auto'` from this count) (`Renderable.rasterSpheres`,
+ * `sphereRasterObjects`), else on the CPU
+ */
+export const AutoGpuCullingMinRasterSpheres = 100_000;
 
 /** Whether merged objects can be culled on the GPU (`gpuCulling`): compute and indirect draws by first instance */
 export function canCullOnGpu(ctx: GraphicsContext | undefined) {
@@ -548,37 +590,77 @@ function computeMergeKey(values: MergeableValues, defineKeys: readonly string[])
   parts.push(`ig:${values.uInstanceGranularity.ref.value}`);
   parts.push(`ct:${values.colorType.ref.value}`);
   parts.push(`uLod:${(values.uLod.ref.value as Vec4).join(',')}`);
-  const lodLevels = values.lodLevels?.ref.value as LodLevelsValue | undefined;
-  parts.push(
-    `lod${lodLevels?.pixelSize ? `px${lodLevels.pixelSize}` : ''}:` +
-      (lodLevels ? lodLevels.map((l) => `${l[0]},${l[1]}`).join(';') : ''),
-  );
+  parts.push(getMergeLodKey(values.lodLevels));
   return parts.join('|');
 }
 
-const SupportedVertexTypes = ['uniform', 'object', 'instance', 'group', 'groupInstance', 'vertex', 'siteType'];
-const SupportedIgTypes = ['instance', 'groupInstance'];
+/**
+ * The part of the merge key of `lodLevels`, a member's levels (`getMergeKey`): their ranges and pixel size, not their
+ * scales (per member, in the segment data)
+ */
+export function getMergeLodKey(lodLevels: ValueCell<unknown> | undefined) {
+  const levels = lodLevels?.ref.value as LodLevelsValue | undefined;
+  return (
+    `lod${levels?.pixelSize ? `px${levels.pixelSize}` : ''}:` +
+    (levels ? levels.map((l) => `${l[0]},${l[1]}`).join(';') : '')
+  );
+}
 
-export function canMergeValues(type: string, members: readonly MergeableValues[]): boolean {
+/**
+ * `key` (`getMergeKey`) with the levels `lodLevels` in place of its own (its last part, `computeMergeKey`): the key of
+ * a member of the values `key` is of with levels of its own
+ */
+export function withMergeLodKey(key: string, lodLevels: ValueCell<unknown> | undefined) {
+  const i = key.lastIndexOf('|lod');
+  return `${i < 0 ? key : key.slice(0, i)}|${getMergeLodKey(lodLevels)}`;
+}
+
+const SupportedSizeTypes = ['uniform', 'object', 'instance', 'group', 'groupInstance', 'vertex', 'siteType'];
+/** the color types: the size types' and per vertex and instance (`SegmentTexels`' offset, the shaders' index) */
+const SupportedColorTypes = [...SupportedSizeTypes, 'vertexInstance'];
+const SupportedIgTypes = ['instance', 'groupInstance'];
+/** the layers that may be per vertex and instance (smoothed: overpaint, transparency, emissive, substance) */
+const SupportedVertexLayerTypes = [...SupportedIgTypes, 'vertexInstance'];
+
+/**
+ * Whether `members` merge into one object of `type`; `layers` false: their layers' types not checked (values whose
+ * layers the merged object sets again its own way, e.g. per-group visuals' smoothed layers, `UnitsRepresentation`)
+ */
+export function canMergeValues(
+  type: string,
+  members: readonly MergeableValues[],
+  layers = true,
+  /** colors smoothed into a grid merge too: a per-group mesh's, which a merged visual smooths per vertex instead */
+  gridColors = false,
+): boolean {
   if (!isMergeableType(type)) return false;
   // a single member merges as well (culled on the GPU): how many is the caller's (`canMergeRenderObjects`)
   if (members.length < 1) return false;
 
+  // a palette the theme's (its texture, domain and default shared values), looked up after `tColor`, read by segment
   const first = members[0];
-  if (first.dUsePalette?.ref.value) return false;
-  if (!SupportedVertexTypes.includes(first.colorType.ref.value)) return false;
-  if (first.sizeType && !SupportedVertexTypes.includes(first.sizeType.ref.value)) return false;
-  if (first.dOverpaint.ref.value && !SupportedIgTypes.includes(first.overpaintType.ref.value)) return false;
-  if (first.dTransparency.ref.value && !SupportedIgTypes.includes(first.transparencyType.ref.value)) return false;
-  if (first.dEmissive.ref.value && !SupportedIgTypes.includes(first.emissiveType.ref.value)) return false;
-  if (first.dSubstance.ref.value && !SupportedIgTypes.includes(first.substanceType.ref.value)) return false;
-  if (first.dClipping.ref.value && !SupportedIgTypes.includes(first.clippingType.ref.value)) return false;
-  if (first.dWiggle.ref.value && !SupportedIgTypes.includes(first.wiggleType.ref.value)) return false;
+  const colorType = first.colorType.ref.value;
+  const smoothed = gridColors && (colorType === 'volume' || colorType === 'volumeInstance');
+  if (!smoothed && !SupportedColorTypes.includes(colorType)) return false;
+  if (first.sizeType && !SupportedSizeTypes.includes(first.sizeType.ref.value)) return false;
+  if (layers && !canMergeLayers(first)) return false;
 
   const key = getMergeKey(first);
   for (let i = 1, il = members.length; i < il; ++i) {
     if (getMergeKey(members[i]) !== key) return false;
   }
+  return true;
+}
+
+function canMergeLayers(first: MergeableValues) {
+  if (first.dOverpaint.ref.value && !SupportedVertexLayerTypes.includes(first.overpaintType.ref.value)) return false;
+  if (first.dTransparency.ref.value && !SupportedVertexLayerTypes.includes(first.transparencyType.ref.value)) {
+    return false;
+  }
+  if (first.dEmissive.ref.value && !SupportedVertexLayerTypes.includes(first.emissiveType.ref.value)) return false;
+  if (first.dSubstance.ref.value && !SupportedVertexLayerTypes.includes(first.substanceType.ref.value)) return false;
+  if (first.dClipping.ref.value && !SupportedIgTypes.includes(first.clippingType.ref.value)) return false;
+  if (first.dWiggle.ref.value && !SupportedIgTypes.includes(first.wiggleType.ref.value)) return false;
   return true;
 }
 
@@ -913,6 +995,10 @@ export function createMergedValues(
   const n = members.length;
 
   const texSpecs = [...descriptor.extraTextures, ...BaseTexSpecs].filter((spec) => shared[spec.tex] !== undefined);
+  // a source's instances are elsewhere (on the GPU): no data per vertex and instance of them
+  if (source && texSpecs.some((spec) => spec.granularity(shared) === 'vertexInstance')) {
+    throw new Error('merged values of a source: no data per vertex and instance');
+  }
   /** the second color's type (`dSiteColor`): a define, the shared values' (read again: a define changed rebuilds) */
   const siteColorTypeOf = () => (shared as { dSiteColor?: ValueCell<string> }).dSiteColor?.ref.value;
 
@@ -1032,6 +1118,8 @@ export function createMergedValues(
       case 'vertex':
         // the data vertices (`Geometry.getVertexCount`)
         return v.uVertexCount.ref.value * factor;
+      case 'vertexInstance':
+        return memberInstanceCount(i) * v.uVertexCount.ref.value * factor;
       case 'item':
         return descriptor.itemTexels(v) * factor;
       case 'table':
@@ -1226,7 +1314,9 @@ export function createMergedValues(
   /** member i's part of the layer of `spec` read again from the member (its array may be another one) */
   function updateTexPart(spec: MergedTexSpec, i: number) {
     const part = layerArray(spec).parts[source && isAllocTexture(spec) ? liveAlloc[i] : i] as SegmentedArray.Part;
-    part.array = (members[i][spec.tex]!.ref.value as DataArray<any>).array;
+    const data = members[i][spec.tex]!.ref.value as DataArray<any>;
+    part.array = data.array;
+    part.gpu = data.gpu;
     part.version += 1;
   }
 
@@ -1251,8 +1341,8 @@ export function createMergedValues(
     for (let i = 0; i < n; ++i) {
       bases[i] = total;
       const texels = getTexelCount(i, spec);
-      const { array } = members[i][spec.tex]!.ref.value as DataArray<any>;
-      parts.push({ array, offset: total * spec.itemSize, count: texels * spec.itemSize, bias: 0, version: 0 });
+      const { array, gpu } = members[i][spec.tex]!.ref.value as DataArray<any>;
+      parts.push({ array, offset: total * spec.itemSize, count: texels * spec.itemSize, bias: 0, version: 0, gpu });
       total += texels;
     }
     // whole words, as `createDataArray`
@@ -1261,14 +1351,19 @@ export function createMergedValues(
     ValueCell.update(cell, { array: SegmentedArray.create(ctor, parts, length), count });
   }
 
+  /** the members' spheres, those drawing nothing left out (as the scene leaves out such objects, `Scene`) */
   function unionSpheres(out: Sphere3D, sphere: (i: number) => Sphere3D) {
     boundaryHelper.reset();
     for (let i = 0; i < n; ++i) {
-      boundaryHelper.includeSphere(sphere(i));
+      if (!memberCells[i].drawCount.ref.value) continue;
+      const s = sphere(i);
+      if (s.radius) boundaryHelper.includeSphere(s);
     }
     boundaryHelper.finishedIncludeStep();
     for (let i = 0; i < n; ++i) {
-      boundaryHelper.radiusSphere(sphere(i));
+      if (!memberCells[i].drawCount.ref.value) continue;
+      const s = sphere(i);
+      if (s.radius) boundaryHelper.radiusSphere(s);
     }
     return boundaryHelper.getSphere(out);
   }
@@ -1591,10 +1686,23 @@ export function createMergedValues(
     array[o + 13] = origin?.[1] ?? 0;
     array[o + 14] = origin?.[2] ?? 0;
     array[o + 15] = (member as { uSiteScale?: ValueCell<number> }).uSiteScale?.ref.value ?? 1;
+    // high and low 16 bits each, exact as floats (the offset may be negative: its high part floored)
+    const offset = vertexInstanceOffsets[i];
+    const vertexCount = source ? 0 : member.uVertexCount.ref.value;
+    array[o + 16] = Math.floor(offset / 65536);
+    array[o + 17] = offset - Math.floor(offset / 65536) * 65536;
+    array[o + 18] = Math.floor(vertexCount / 65536);
+    array[o + 19] = vertexCount % 65536;
   }
 
   /** per member its first entry of the merged size table (`siteType` sizes, `table` granularity), 0 otherwise */
   const sizeTableBases = new Array<number>(n).fill(0);
+  /**
+   * per member the index offset of its data per vertex and instance (`vertexInstance`): its first texel less its
+   * first instance times its vertex count and its first vertex (the shaders' index the offset plus the instance times
+   * the vertex count plus the vertex, of the merged instances and vertices)
+   */
+  const vertexInstanceOffsets = new Array<number>(n).fill(0);
   /** per member its first entry of the merged second color table (`dSiteColor` 'siteType'), 0 otherwise */
   const siteColorTableBases = new Array<number>(n).fill(0);
 
@@ -1910,10 +2018,14 @@ export function createMergedValues(
     let maxGroupCount = 0;
     let groupInstanceBase = 0;
     let groupBase = 0;
+    let vertexInstanceBase = 0;
     for (let i = 0; i < n; ++i) {
       const v = members[i];
       const instanceCount = memberInstanceCount(i);
       const groupCount = v.uGroupCount.ref.value;
+      const vertexCount = v.uVertexCount.ref.value;
+      vertexInstanceOffsets[i] = vertexInstanceBase - instanceTotal * vertexCount - vertexTotal;
+      vertexInstanceBase += instanceCount * vertexCount;
       segments.instanceBases[i] = instanceTotal;
       segments.instanceCounts[i] = instanceCount;
       segments.vertexBases[i] = vertexTotal;
@@ -2475,6 +2587,9 @@ export function MergedRenderable(
 ): Renderable<MergeableValues & SegmentValues> {
   const descriptor = MergedTypeDescriptors[merged.type];
   const schema = getMergedRenderableSchema(merged.type);
+  // the records written since the last sync (a layer set before a scene adds the object): synced first, the program's
+  // defines and the shared data then theirs
+  if (merged.recordsUnchanged && !merged.recordsUnchanged()) merged.sync();
   const members = merged.records;
   const renderValues: MergeableValues & SegmentValues & InternalValues & GlobalDefineValues = {
     ...merged.values,
@@ -2574,6 +2689,8 @@ export function MergedRenderable(
 
   /** the frame culled on the GPU (its first view) and the planes it was culled with */
   let gpuFrame: Frame | undefined;
+  /** told once (debug mode) that a view not culled on the GPU for it drew none of it (`prepareCullView` not called) */
+  let warnedUnculledView = false;
   const gpuPlanes = new Float64Array(28);
   let gpuLists: MultiDrawBaseData[] = [];
   const getPlane = (i: number, cameraPlane: Plane3D, frustum: Frustum3D) => (i < 6 ? frustum[i as 0] : cameraPlane);
@@ -2625,19 +2742,30 @@ export function MergedRenderable(
     set.shiftedBase = culler.identityBase;
     return shiftLists(set.mdb.list, set.shiftedLists);
   }
+  /**
+   * per list its shifted one (`shiftLists`): the same object each call, its fields the list's now; a level's draw
+   * block is made once a level object (WebGPU's), a new one each call would leave one behind each call
+   */
+  const shiftedListOf = new WeakMap<MultiDrawBaseData, MultiDrawBaseData>();
   /** `lists` shifted to the identity region of the compacted attributes (`culler.identityBase`) into `out` */
   function shiftLists(lists: MultiDrawBaseData[], out: MultiDrawBaseData[]) {
     const base = culler!.identityBase;
     out.length = lists.length;
     for (let j = 0, jl = lists.length; j < jl; ++j) {
       const l = lists[j];
-      const previous = out[j];
+      let shifted = shiftedListOf.get(l);
       const baseInstances =
-        previous && previous.baseInstances.length >= l.count
-          ? previous.baseInstances
+        shifted && shifted.baseInstances.length >= l.count
+          ? shifted.baseInstances
           : new Uint32Array(l.baseInstances.length);
       for (let i = 0; i < l.count; ++i) baseInstances[i] = l.baseInstances[i] + base;
-      out[j] = { ...l, baseInstances };
+      if (shifted) {
+        Object.assign(shifted, l);
+        shifted.baseInstances = baseInstances;
+      } else {
+        shiftedListOf.set(l, (shifted = { ...l, baseInstances }));
+      }
+      out[j] = shifted;
     }
     return out;
   }
@@ -2738,9 +2866,14 @@ export function MergedRenderable(
   /**
    * what the last CPU cull read: a still frame keeps its lists (`createCullView`); the members' cells by the version
    * `sync` advances where they changed, not each (with 100k members, recording them was most of a moving frame); the
-   * object's transient transform, which moves every member's cells
+   * object's transient transform, which moves every member's cells; its clip objects (the shared values', a clip moved
+   * alone syncs as a mark: neither of the others moves, nor are the modes reset where a culler culls on the GPU)
    */
-  const cullCells = [merged.cullVersion, merged.values.uObjectTransform];
+  const cullCells = [
+    merged.cullVersion,
+    merged.values.uObjectTransform,
+    (merged.values as { clipObjects?: ValueCell<unknown> }).clipObjects,
+  ];
 
   const segment: CullSegment = { first: 0, offset: 0, instanceBase: 0 };
   function setSegment(i: number) {
@@ -2831,6 +2964,14 @@ export function MergedRenderable(
     // alone, `rasterOnly`): a view not culled on the GPU for it draws none, as while the kernels compile (`'none'`; no
     // CPU lists, no grids built for them; `prepareCullView` culls a view of its own)
     if (culler && (culler.paged || !rasterOnly)) {
+      // its kernels ready: a pass of a view of its own (a shadow map, a custom camera) that did not cull it on the GPU
+      // (`Renderer.prepareCullView`), no CPU fallback: said once in debug mode, the cause hard to see otherwise
+      if (isDebugMode && !warnedUnculledView && gpuFrame !== undefined && culler.areKernelsReady()) {
+        warnedUnculledView = true;
+        console.warn(
+          'merged object culled on the GPU: drawn in a view not culled for it (Renderer.prepareCullView), nothing drawn',
+        );
+      }
       set.mdb.prepare(memberCull[0].lodLevels, 0, true, lod);
       set.mode = 'none';
       set.lastCullFrame = frame;
@@ -2976,9 +3117,13 @@ export function MergedRenderable(
     const v = renderValues as { dClipObjects?: ValueCell<boolean>; clipGhost?: ValueCell<boolean> };
     return !!v.dClipObjects?.ref.value && v.clipGhost?.ref.value !== false;
   };
-  const getDrawVersion = createDrawVersion((out) =>
-    appendMdbDrawKey(set.mode === 'gpu' ? gpuLists : set.mdb.list, out),
-  );
+  // a version a set (one key each: the visible and the ghost set culled in one frame would each advance a shared one
+  // every frame), from one counter (a set's version never another's with other lists)
+  const drawVersions = createDrawVersionCounter();
+  const appendDrawKey = (out: DrawKey) => appendMdbDrawKey(set.mode === 'gpu' ? gpuLists : set.mdb.list, out);
+  const getVisibleDrawVersion = createDrawVersion(appendDrawKey, drawVersions);
+  const getGhostDrawVersion = createDrawVersion(appendDrawKey, drawVersions);
+  const getDrawVersion = () => (set === ghostSet ? getGhostDrawVersion() : getVisibleDrawVersion());
   visibleSet.drawVersion = ghostSet.drawVersion = getDrawVersion();
   return {
     id,
@@ -3046,6 +3191,9 @@ export function MergedRenderable(
           return !!gpuFrame;
         }
       : undefined,
+    // its lists the GPU's of another view than `frame`'s: a view culled since (a ray's pick, whose pass culls with its own
+    // frame first: the last cull then of that frame, not of `frame`)
+    isGpuCullStale: culler ? (frame: Frame) => visibleSet.mode === 'gpu' && gpuFrame !== frame : undefined,
     get rasterSpheres() {
       return rasterOnly ? getRasterSpheres() : undefined;
     },

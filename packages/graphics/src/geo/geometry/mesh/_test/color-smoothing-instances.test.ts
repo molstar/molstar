@@ -48,11 +48,14 @@ import {
   calcMeshColorSmoothing,
 } from '../color-smoothing.js';
 import { Mesh } from '../mesh.js';
+import { getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 
 // Layer smoothing on an instanced surface whose layer reaches only some instances (perf-audit 13/P1): the gaussian
 // surface of the 1cbs protein over two unit cells (8 instances, neighbours within the smoothing reach). The snapshot
 // pins, per instance, what the CPU path writes and what the GPU path's grid gives at the vertices, as computed when
-// every instance was splatted over the grid of all instances.
+// every instance was splatted over the grid of all instances. Medium: the fixture is large (the quick lane's
+// representative: `color-smoothing.test.ts`, a layer reaching one of three instances).
+// @module-tag medium
 
 const registries = (() => {
   const colorThemeRegistry = ColorTheme.createRegistry();
@@ -89,11 +92,10 @@ async function surfaceGeometry(structure: Structure) {
   const repr = provider.factory({ ...registries }, provider.getParams) as Representation<Structure>;
   repr.setTheme(Theme.create(registries, { structure }, themeProps));
   const params = PD.getDefaultValues(provider.getParams(registries, structure));
-  await repr
-    .createOrUpdate({ ...params, renderMerged: false, smoothColors: { name: 'off', params: {} } }, structure)
-    .run();
+  await repr.createOrUpdate({ ...params, smoothColors: { name: 'off', params: {} } }, structure).run();
   let values: MeshValues | undefined;
-  for (const o of repr.renderObjects) {
+  // the units' objects: a merged object's members one by one
+  for (const o of repr.renderObjects.flatMap((r) => (isMergedRenderObject(r) ? [...getMergedMembers(r)] : [r]))) {
     const v = o.values as MeshValues;
     if (!values || v.uVertexCount.ref.value > values.uVertexCount.ref.value) values = v;
   }
@@ -293,9 +295,6 @@ function spreadTransforms() {
 /** the surface, computed once for the file: the cases copy what they change */
 const CellsGeometry = loadCells().then(surfaceGeometry);
 
-/** the first layer's sweep is the quick lane's representative, the others are medium (AGENTS.md, Tests) */
-const sweepLane = (layer: Layer) => (layer === 'overpaint' ? {} : { tags: ['medium'] });
-
 const Options: ColorSmoothingOptions[] = [
   { resolution: 1.2, stride: 3 },
   { resolution: 0.8, stride: 2 },
@@ -319,7 +318,7 @@ describe('mesh layer smoothing on instances', async () => {
   });
 
   for (const layer of ['overpaint', 'transparency', 'emissive', 'substance', 'color'] as Layer[]) {
-    it(`smooths ${layer} reaching some instances as when every instance is splatted`, sweepLane(layer), () => {
+    it(`smooths ${layer} reaching some instances as when every instance is splatted`, () => {
       const result: Record<string, ReturnType<typeof smoothed>> = {};
       for (const [name, reach, options] of Reach) {
         for (const o of options) {
@@ -354,7 +353,7 @@ describe('mesh layer smoothing on spread instances', async () => {
   ];
 
   for (const layer of ['overpaint', 'transparency', 'emissive', 'substance'] as Layer[]) {
-    it(`smooths ${layer} reaching some instances as when every instance is splatted`, sweepLane(layer), () => {
+    it(`smooths ${layer} reaching some instances as when every instance is splatted`, () => {
       const result: Record<string, ReturnType<typeof smoothed>> = {};
       for (const [name, reach, options] of Reach) {
         for (const o of options) {
@@ -379,7 +378,7 @@ describe('mesh layer smoothing on reordered and clipped instances, odd groups', 
   const quarter = (g: number) => g >= spread.groupCount / 4 && g < spread.groupCount / 2;
 
   const Cases: [string, Layer, Geometry, (instance: number, group: number) => boolean][] = [
-    // the GPU path reads the rows of `aInstance`, the CPU path the serial rows
+    // reordered rows: both paths by instance (`aInstance`), as the shaders read the output
     ['reordered, a lone instance', 'overpaint', { ...spread, permutation: [3, 5, 0, 4, 1, 2] }, (i) => i === 4],
     ['reordered, a pair', 'transparency', { ...spread, permutation: [3, 5, 0, 4, 1, 2] }, (i) => i === 0],
     ['clipped sphere, a pair', 'overpaint', { ...spread, sphereScale: 0.5 }, (i) => i === 0],
@@ -440,7 +439,7 @@ describe('mesh layer smoothing splats the reached instances and their neighbours
     // two reached instances far apart: their neighbours, not every instance between them
     expect(splatCounts(spread, [0, 4])).toEqual([3, 3]);
     expect(splatCounts(spread, [0, 1, 2, 3, 4, 5])).toEqual([6, 6]);
-    // with a graphics context, rows are those of `aInstance`: instance 4 is drawn at index 3
-    expect(splatCounts({ ...spread, permutation: [3, 5, 0, 4, 1, 2] }, [4])).toEqual([2, 1]);
+    // reordered rows (`aInstance`): by instance, with a graphics context or without (instance 4 alone, at row 3)
+    expect(splatCounts({ ...spread, permutation: [3, 5, 0, 4, 1, 2] }, [4])).toEqual([1, 1]);
   });
 });

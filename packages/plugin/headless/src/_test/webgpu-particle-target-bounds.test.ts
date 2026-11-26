@@ -9,13 +9,14 @@ import { describe, expect, it } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Asset } from '@molstar/core/util/assets';
 import { getMaxSize } from '@molstar/graphics/geo/geometry/size-data';
-import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
+import { type GraphicsRenderObject, getMergedMembers, isMergedRenderObject } from '@molstar/graphics/gl/render-object';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { RelionStarParticlesProvider } from '@molstar/plugin/state/formats/particles/star';
 import { ParticleListWithTargets } from '@molstar/plugin/state/transforms/particles/ops';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 const readExample = (name: string) => readFileSync(new URL(`../../../../../data/examples/${name}`, import.meta.url));
@@ -25,11 +26,9 @@ const readExample = (name: string) => readFileSync(new URL(`../../../../../data/
 describe.skipIf(!WebGPU.module)('particle structure targets on WebGPU', () => {
   it("pad the bounds by the elements' sizes", async () => {
     const spec = DefaultPluginSpec();
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
+    const plugin = await createWebGPUPlugin(
       { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
       { width: 32, height: 32 },
-      { backend: 'webgpu' },
     );
     try {
       await plugin.init();
@@ -55,7 +54,7 @@ describe.skipIf(!WebGPU.module)('particle structure targets on WebGPU', () => {
         .commit();
 
       const objects = (repr.cell!.obj!.data.repr.renderObjects as GraphicsRenderObject[]).flatMap((o) =>
-        'members' in o ? o.members : [o],
+        isMergedRenderObject(o) ? getMergedMembers(o) : [o],
       );
       const spheres = objects.filter((o) => o.type === 'spheres');
       expect(spheres.length).toBeGreaterThan(0);

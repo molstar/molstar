@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,6 +10,7 @@ import { IntMap } from '@molstar/core/data/int';
 import { fillIdentityTransform } from '@molstar/core/math/linear-algebra/3d/transform-array';
 
 const tmpMat = Mat4();
+const identity = Mat4.identity();
 
 export class StructureUnitTransforms {
   private unitTransforms: Float32Array;
@@ -70,7 +71,25 @@ export class StructureUnitTransforms {
     return Mat4.fromArray(out, this.unitTransforms, this.unitOffsetMap.get(unit.id));
   }
 
+  /** per group not of `structure.unitSymmetryGroups` its units' transforms, gathered by unit id at each call */
+  private otherGroupTransforms = new WeakMap<Unit.SymmetryGroup, Float32Array>();
+
+  /**
+   * The transforms of `group`'s units, in its order: a view of the structure's own groups' (`unitSymmetryGroups`), and
+   * for any other group (a representation's, e.g. `computeChildAwareTransformGroups`: new group objects) gathered by
+   * unit id; a unit not of the structure identity
+   */
   getSymmetryGroupTransforms(group: Unit.SymmetryGroup): Float32Array {
-    return this.groupUnitTransforms[this.groupIndexMap.get(group)!];
+    const index = this.groupIndexMap.get(group);
+    if (index !== undefined) return this.groupUnitTransforms[index];
+    const { units } = group;
+    let out = this.otherGroupTransforms.get(group);
+    if (!out) this.otherGroupTransforms.set(group, (out = new Float32Array(units.length * 16)));
+    for (let j = 0, jl = units.length; j < jl; ++j) {
+      const offset = this.unitOffsetMap.get(units[j].id);
+      if (offset === undefined) Mat4.toArray(identity, out, j * 16);
+      else out.set(this.unitTransforms.subarray(offset, offset + 16), j * 16);
+    }
+    return out;
   }
 }

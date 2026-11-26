@@ -8,17 +8,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { BackgroundPass } from '@molstar/graphics/canvas3d/passes/background';
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { createWebGPUPlugin } from './webgpu-plugin.js';
 import { WebGPU } from './webgpu-module.js';
 
 // `Canvas3D.prepare` with props that may never be set (a snapshot's): the live background (its images) stays
 describe.skipIf(!WebGPU.module)('preparing with other background props on WebGPU', () => {
   it('plans the background of the props without updating the live one', async () => {
-    const plugin = await HeadlessPluginContext.create(
-      { webgpu: WebGPU.module! },
-      DefaultPluginSpec(),
-      { width: 16, height: 16 },
-      { backend: 'webgpu' },
-    );
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
     const update = vi.spyOn(BackgroundPass.prototype, 'update');
     const prepare = vi.spyOn(BackgroundPass.prototype, 'prepare');
     try {
