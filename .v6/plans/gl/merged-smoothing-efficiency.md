@@ -1,6 +1,6 @@
 # Merged smoothing: what is left of its cost
 
-Status: planned. Follows [merged-smoothed-colors-gpu.md](merged-smoothed-colors-gpu.md) and
+Status: item 1 measured and dropped, item 2 done; items 3 and 4 open. Follows [merged-smoothed-colors-gpu.md](merged-smoothed-colors-gpu.md) and
 [merged-smoothed-layers-gpu.md](merged-smoothed-layers-gpu.md): the items of the efficiency review of that work not done
 yet. Done from it: a layer written once a geometry (`layersWritten`), a rebuild keeping the geometries, the regroup only
 where a layer may smooth, the layers' kernels alone prepared, a layer's input reused (`DataArray.spare`); not done: a
@@ -8,22 +8,18 @@ split's objects made again (measured: no time, `merging/assembly-gaussian-smooth
 
 ## Items
 
-### 1. GPU objects made and destroyed by every write
+### 1. GPU objects made and destroyed by every write (dropped: measured)
 
-- **What**: a splat (`smooth`, `gl/compute/color-smoothing.ts`) makes two kernels and three buffers (sums, transforms,
-  instances) and destroys them; a sampling write (`computeLayerSampling`) a kernel (its pipeline cached, its uniform
-  snapshot and bind group new) and its own compute pass; a layer's data (`createGpuLayerData`) its transforms and
-  reached buffers, the same transforms for every kind of a segment and every set.
-- **Why it matters**: a layer set on one unit is about 3 ms a frame (`merging/assembly-gaussian-smooth-layer-one`),
-  each segment a few kernels and buffers; their share not measured.
-- **Design**: measure first (a profile of the one-unit case: the creations' share). Then, by what it shows: the sums a
-  scratch buffer (`getScratchBuffer`, as the Gaussian density's); a writer's sampling kernel kept (its cells updated, not
-  made again); the transforms kept by their cell (`aTransform`, as `GpuMeshVertices` by `aPosition`), shared by the
-  kinds; the samplings of a sync in one compute pass.
-- **Test**: the creations counted (a spy on `createKernel` and `createBuffer`): a set of the same layer again makes
-  none; the images and read-backs as before.
+- **What**: a splat (`smooth`, `gl/compute/color-smoothing.ts`) makes two kernels and three buffers and destroys them; a
+  sampling write (`computeLayerSampling`) a kernel and its own compute pass; a layer's data (`createGpuLayerData`) its
+  transforms and reached buffers.
+- **Measured** (a CPU profile of `merging/assembly-gaussian-smooth-layer-one`, WebGPU, 48 updates): a frame 3.3 ms, of it
+  the update 0.74 ms on the CPU and the GPU's 1.81 ms; under `setState` the kernels' and buffers' creation, destruction
+  and bind groups about 0.16 ms an update (5% of the frame), the input's upload (`load`) as much, the reached instances
+  (`getSplatInstances`) 0.09 ms. Not worth the state that keeping them takes (kernels a writer, transforms by their
+  cell, scratch sums).
 
-### 2. A trajectory frame writes the layers twice
+### 2. A trajectory frame writes the layers twice (done)
 
 - **What**: a new structure (a frame) remakes the geometry; the merged visual smooths its layers again (`resmooth`)
   with its state's loci, of the previous structure; the layers' nodes then set them remapped to the new one
@@ -31,8 +27,10 @@ split's objects made again (measured: no time, `merging/assembly-gaussian-smooth
   so written again (`layersWritten` skips only equal ones).
 - **Design**: the update smooths the layers remapped to its structure (`Overpaint.remap`, ..., as `setState` remaps
   them) and keeps those as written and as its state: the nodes' set then equal, skipped.
-- **Test**: a frame with a smoothed layer: its cells written once (the versions), drawn as before. **Measured**: a
-  trajectory case (a layer on all units, a frame each frame), before and after.
+- **Test**: a new structure and geometry with a smoothed layer, then the layer set as a node sets it (its loci of the
+  new structure): its cells not written again (without the remap: written twice). **Measured**: the saving one layer
+  write a frame (with a layer on all units of 60 copies of 7qpd about 33 ms on WebGPU, seconds on the CPU); no trajectory
+  case (no benchmark structure has frames, an alternating structure would measure its surfaces' remaking).
 
 ### 3. The grids span every instance
 
@@ -59,7 +57,7 @@ split's objects made again (measured: no time, `merging/assembly-gaussian-smooth
 
 ## Steps
 
-1. **Item 1**: measure (the profile), then the fixes it supports, measured again.
-2. **Item 2**: the remap in the update; the trajectory case; measured.
+1. **Item 1** (dropped): measured, 5% of the frame.
+2. **Item 2** (done): the remap in the update.
 3. **Item 3**: the region-sized grid for the per-vertex sampling; the bytes measured.
 4. **Item 4**: decided by the memory items 3 leaves (a layer on few copies of many measured), then designed in detail.

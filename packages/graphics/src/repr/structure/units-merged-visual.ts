@@ -119,6 +119,14 @@ const SmoothedLayerEquals = {
   substance: Substance.areEqual,
 } as unknown as { [K in SmoothedLayerKind]: (a: LayersOf, b: LayersOf) => boolean };
 
+/** a layer of a kind remapped to a structure (`Overpaint.remap`, ...): its loci of that structure */
+const SmoothedLayerRemaps = {
+  overpaint: Overpaint.remap,
+  transparency: Transparency.remap,
+  emissive: Emissive.remap,
+  substance: Substance.remap,
+} as unknown as { [K in SmoothedLayerKind]: (layer: LayersOf, structure: Structure) => LayersOf };
+
 const SmoothedLayerSetters = {
   overpaint: Visual.setOverpaint,
   transparency: Visual.setTransparency,
@@ -1208,6 +1216,8 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       // not at the first update: its segments made with the layers (`createSegment`)
       !!currentProps &&
       (geometriesRemade !== remadeBefore || !isSameSmoothing(props as PD.Values<any>, currentProps as PD.Values<any>));
+    // another structure (a trajectory frame): the layers' loci of the previous one
+    const structureChanged = !!currentStructure && structure !== currentStructure;
     currentProps = props;
     currentTheme = theme;
     currentStructure = structure;
@@ -1225,7 +1235,16 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       return;
     }
     if (resmooth) {
-      writeLayers(smoothedLayers!);
+      // of another structure: remapped to this one as written and kept, as the layers' nodes then set them alike
+      // (`setState`, remapped too): skipped there (`layersWritten`), not written a second time
+      const layers: SmoothedLayers = {};
+      for (const kind of SmoothedLayerKinds) {
+        const layer = smoothedLayers![kind];
+        if (layer === undefined) continue;
+        layers[kind] = structureChanged ? SmoothedLayerRemaps[kind](layer, structure) : layer;
+        if (structureChanged) (state as { [K in SmoothedLayerKind]?: LayersOf })[kind] = layers[kind];
+      }
+      writeLayers(layers);
       recordsWritten();
     }
     listObjects(props, graphics);

@@ -746,6 +746,18 @@ describe('the merged units visual', async () => {
     // another color: written
     repr.setState({ overpaint: overpaint(0x0000ff) });
     expect(versions()).not.toEqual(written);
+
+    // another structure (as a trajectory frame) and another geometry: the layer smoothed again with it, remapped to it;
+    // set again as a layer node does (its loci of the new structure): not written a second time
+    const next = Structure.ofModel(structure.model);
+    const nextUnit = next.units.find((u) => u.id === protein.id)!;
+    const nextLoci = StructureElement.Loci(next, [
+      { unit: nextUnit, indices: Interval.ofLength(nextUnit.elements.length) },
+    ]);
+    await repr.createOrUpdate({ ...props, resolution: 1.3 }, next).run();
+    const remade = versions();
+    repr.setState({ overpaint: Overpaint(nextLoci.kind, [{ loci: nextLoci, color: Color(0x0000ff), clear: false }]) });
+    expect(versions()).toEqual(remade);
     repr.destroy();
   });
 
