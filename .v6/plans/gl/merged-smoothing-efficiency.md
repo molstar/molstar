@@ -1,6 +1,6 @@
 # Merged smoothing: what is left of its cost
 
-Status: item 1 measured and dropped, items 2 and 3 done; item 4 open. Follows [merged-smoothed-colors-gpu.md](merged-smoothed-colors-gpu.md) and
+Status: item 1 measured and dropped, items 2 and 3 done, item 4 deferred. Follows [merged-smoothed-colors-gpu.md](merged-smoothed-colors-gpu.md) and
 [merged-smoothed-layers-gpu.md](merged-smoothed-layers-gpu.md): the items of the efficiency review of that work not done
 yet. Done from it: a layer written once a geometry (`layersWritten`), a rebuild keeping the geometries, the regroup only
 where a layer may smooth, the layers' kernels alone prepared, a layer's input reused (`DataArray.spare`); not done: a
@@ -48,7 +48,7 @@ split's objects made again (measured: no time, `merging/assembly-gaussian-smooth
   slice). **Measured** (WebGPU): `merging/assembly-gaussian-smooth-layer-one` textures 75.6 to 72.1 MB, frames the same
   (2.9 ms); the merged colors 132 MB as before (colored by element, every instance reached: the region the whole grid).
 
-### 4. Data per vertex for every instance
+### 4. Data per vertex for every instance (deferred)
 
 - **What**: a smoothed layer's data per vertex and instance is `vertexCount × instanceCount` elements a segment, the
   unreached instances zeros in the data pages (a layer on one of 60 copies: a segment's 60 instances stored, one used,
@@ -63,4 +63,5 @@ split's objects made again (measured: no time, `merging/assembly-gaussian-smooth
 1. **Item 1** (dropped): measured, 5% of the frame.
 2. **Item 2** (done): the remap in the update.
 3. **Item 3** (done): the region-sized grid for the per-vertex sampling, 3.5 MB of a layer on one copy.
-4. **Item 4**: decided by the memory items 3 leaves (a layer on few copies of many measured), then designed in detail.
+4. **Item 4** (deferred): about 5 MB of a layer on one of 60 copies after item 3, not worth changing the merged
+   shaders' layer reads; designed in detail when a case of a layer on few copies of many needs the memory.

@@ -170,7 +170,7 @@ The merged path grew beside the per-group one instead of under it. Five choices 
    updatable from what it holds and a rebuild's current objects drawn. Tested: a throw mid-update, then the props it
    was made with again, drawn as made; a rebuild that throws keeps its objects; a backend switch alone checks each
    group against the new context; a builder's version moved with nothing else changed.
-4. **Every part merged** (done but smoothed layers): palettes; the vertex-instance index (colors, sizes, layers); smoothing as the vertex types
+4. **Every part merged** (done; smoothed layers in 4b): palettes; the vertex-instance index (colors, sizes, layers); smoothing as the vertex types
    for merged parts; parts by geometry type (`selectVisual`), GPU surfaces as plain objects on WebGL; one group merged
    as well. Then the representation's switch, the probe, the retry and `renderMerged` for units removed. Tests: images
    as unmerged for each case lifted (palette, `vertexInstance`, smoothed colors and layers), markers kept through a
