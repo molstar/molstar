@@ -316,7 +316,7 @@ to gain (their template and levels 67 pages, 9 MB; 85-98% needed once a copy is 
          5.0 ms and 15-18 (none). The JS heap at the end (ArrayBuffers not counted) 175 MiB against 148. Not
          measured: the CPU's ArrayBuffers (the tiles' loader 430 MiB, the template's page cache at most 256 MiB), a
          remote pack's latency, the template under a particle budget. The features only the tile view has: trajectory
-         frames, editing by slots and targets, targets on demand.
+         frames, editing by slots and targets, targets on demand.
          Then a budget (`maxParticles`, the representation's: `PagedCullView.maxInstances`): the copies' coarse pixels
          doubled a step of a bias, begun at the coarsest (no leaf page wanted before a read back), as many steps finer
          a read back as their growths keep within (eight a step, more where one was seen: the visible not scaling with
@@ -346,11 +346,15 @@ to gain (their template and levels 67 pages, 9 MB; 85-98% needed once a copy is 
 - **Predictive loading and release**: the wants are of the view a cull sees; what a view is about to see is guessed
   only by a page's padding (half its radius). Let go 10 s after the last want, the pages a rotation brings back are
   read and written again (a focused molecule's slab: about 1,000 pages let go, 28 back in view as it turned), their
-  near particles holes meanwhile (2d). Candidates: pages within the camera's orbit about its target wanted alone
+  near particles holes meanwhile (2d). And a zoom's: the first focus on a molecule (a click, the nested yeast) flies
+  from the whole view into pages never written, the view's wants known only as each frame's cull reaches them (the
+  leaves near arriving behind the camera, holes or the sample meanwhile); the transition's end view is known when it
+  starts (its target and radius). Candidates: pages within the camera's orbit about its target wanted alone
   (`min(radius, distance)` about the target: what turning about it reaches, never let go while there; a wheel zoom
-  without a focus keeps the whole scene's radius, so the distance bounds it); wants ahead of the camera's motion (its
-  velocity); release by reachability, not age alone. Measure: the pages written again a turn, the near holes' frames,
-  the value blocks held.
+  without a focus keeps the whole scene's radius, so the distance bounds it); a camera transition's end view wanted
+  at its start (its frustum at the target, the pages there written during the flight); wants ahead of the camera's
+  motion (its velocity); release by reachability, not age alone. Measure: the pages written again a turn, the near
+  holes' frames, the value blocks held, a first focus's frames till its view is whole.
 - **The budget**: the value blocks within the device's storage buffer limit (a lower share: the device's memory not
   known to WebGPU), an unwanted page let go 10 s after the last cull that wanted it or for room; a page's values on the
   CPU a 256 MB cache (a pack's, in the model); the values' buffer never shrunk.
