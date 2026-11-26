@@ -700,6 +700,48 @@ describe('the merged units visual', async () => {
     repr.destroy();
   });
 
+  it('writes a smoothed layer once a geometry: smoothed again with it, not again when set alike', async () => {
+    const graphics = { capabilities: { fragDepth: true } } as any;
+    const repr = UnitsRepresentation(
+      'surface',
+      { graphics, ...registries } as any,
+      () => MolecularSurfaceMeshParams,
+      (id) => MolecularSurfaceMeshVisual(id),
+    );
+    repr.setTheme(
+      Theme.create(
+        registries as any,
+        { structure },
+        { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'physical' } },
+      ),
+    );
+    const props = {
+      ...PD.getDefaultValues(MolecularSurfaceMeshParams),
+      resolution: 1,
+      smoothColors: { name: 'on', params: { resolutionFactor: 2, sampleStride: 3 } },
+    } as PD.Values<MolecularSurfaceMeshParams>;
+    await repr.createOrUpdate(props, structure).run();
+    const loci = unitLoci(protein);
+    const overpaint = (color: number) => Overpaint(loci.kind, [{ loci, color: Color(color), clear: false }]);
+    /** the layer cells' versions of every record */
+    const versions = () =>
+      repr.renderObjects.flatMap((o) =>
+        (o as MergedGraphicsRenderObject).merged.records.map((r) => r.tOverpaint.ref.version),
+      );
+    repr.setState({ overpaint: overpaint(0xff0000) });
+    // another geometry: the layer smoothed again with it (`resmooth`)
+    await repr.createOrUpdate({ ...props, resolution: 1.2 }, structure).run();
+    const written = versions();
+    expect(repr.renderObjects.some((o) => o.values.dOverpaint.ref.value)).toBe(true);
+    // set alike (a layer node recreated by the new geometry version): not written again
+    repr.setState({ overpaint: overpaint(0xff0000) });
+    expect(versions()).toEqual(written);
+    // another color: written
+    repr.setState({ overpaint: overpaint(0x0000ff) });
+    expect(versions()).not.toEqual(written);
+    repr.destroy();
+  });
+
   it('keeps the per-group visuals an update did not reach, where it ends early: destroyed with the representation', async () => {
     let fail = false;
     let updates = 0;

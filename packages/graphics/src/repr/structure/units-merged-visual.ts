@@ -47,6 +47,10 @@ import { prepareLayerSampling } from '@molstar/graphics/gl/compute/layer-samplin
 import { releaseGpuMeshVertices } from '@molstar/graphics/geo/geometry/mesh/gpu-vertices';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { Theme } from '@molstar/graphics/theme/theme';
+import { Overpaint } from '@molstar/graphics/theme/overpaint';
+import { Transparency } from '@molstar/graphics/theme/transparency';
+import { Emissive } from '@molstar/graphics/theme/emissive';
+import { Substance } from '@molstar/graphics/theme/substance';
 import type { LocationIterator } from '@molstar/graphics/geo/util/location-iterator';
 import { Visual, type VisualContext } from '../visual.js';
 import { type LocationCallback, VisualUpdateState } from '../util.js';
@@ -107,6 +111,14 @@ type LayerSetter = (
   clear: boolean,
   smoothing?: Visual.SmoothingContext,
 ) => void;
+/** whether two layers of a kind are alike (`Overpaint.areEqual`, ...) */
+const SmoothedLayerEquals = {
+  overpaint: Overpaint.areEqual,
+  transparency: Transparency.areEqual,
+  emissive: Emissive.areEqual,
+  substance: Substance.areEqual,
+} as unknown as { [K in SmoothedLayerKind]: (a: LayersOf, b: LayersOf) => boolean };
+
 const SmoothedLayerSetters = {
   overpaint: Visual.setOverpaint,
   transparency: Visual.setTransparency,
@@ -557,9 +569,18 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
    * other smoothed layers move to parts of their own (the most stay), each part's segments then writing the same types;
    * parts of one key after the writes joined (`regroupByKey`). Whether segments moved: the parts' objects then made again
    */
+  /**
+   * per kind the layer last written to every segment, and the geometry it was written for (`geometryVersion`): the same
+   * set again for that geometry not written again (`setState`). Why: a geometry made again smooths the layers again
+   * here (`resmooth`), then the layers' nodes, recreated by the new `geometryVersion`, set them alike (a trajectory
+   * frame, a surface's props: all units' layers twice, 33 ms on WebGPU, seconds on the CPU)
+   */
+  let layersWritten: { [K in SmoothedLayerKind]?: { readonly layer: LayersOf; readonly geometry: number } } = {};
+
   function writeLayers(layers: SmoothedLayers): boolean {
     const kinds = SmoothedLayerKinds.filter((k) => layers[k] !== undefined);
     if (kinds.length === 0 || segments.length === 0) return false;
+    for (const kind of kinds) layersWritten[kind] = { layer: layers[kind]!, geometry: geometryVersion };
     // smoothing per vertex: meshes alone (the surfaces merged on the CPU path)
     const flags = type === 'mesh' ? new Int32Array(segments.length) : undefined;
     let split = false;
@@ -777,6 +798,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     segments = [];
     byGroup = createSegmentMap<G>();
     byUnitId = undefined;
+    layersWritten = {};
     for (const part of parts) disposeObject(part);
     parts = [];
     renderObjects = [];
@@ -1236,7 +1258,17 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
         return;
       }
       // the layers smoothed on surfaces: segments by their layers' types (`writeLayers`), their parts' objects then
-      const regrouped = writeLayers({ overpaint, transparency, emissive, substance });
+      // a layer as written for this geometry left as it is (`layersWritten`)
+      const layers: SmoothedLayers = {};
+      for (const kind of SmoothedLayerKinds) {
+        const layer = next[kind];
+        if (layer === undefined) continue;
+        const written = layersWritten[kind];
+        if (written && written.geometry === geometryVersion && SmoothedLayerEquals[kind](written.layer, layer))
+          continue;
+        layers[kind] = layer;
+      }
+      const regrouped = writeLayers(layers);
       for (const [layer, set] of [
         [clipping, Visual.setClipping],
         [wiggle, Visual.setWiggle],

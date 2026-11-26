@@ -471,17 +471,13 @@ describe('layer updates and picking', async () => {
     repr.setState({ transparency: Transparency('element-loci', [{ loci: unitLoci(a), value: 0.5 }]) });
     const before = versions();
     const op = overpaints(repr);
-    // the same layers again: only the visuals of `a` are set again
+    // the same layers again (for the same geometry): no texture written again, the visuals of `a` neither
     repr.setState({ overpaint: Overpaint('element-loci', [{ loci: unitLoci(a), color: red, clear: false }]) });
     repr.setState({ transparency: Transparency('element-loci', [{ loci: unitLoci(a), value: 0.5 }]) });
-    const after = versions();
     const reached = members(repr).map((o) => !isZero(layerData(o.values.tOverpaint.ref.value.array)));
     expect(reached.some((r) => r)).toBe(true);
     expect(reached.some((r) => !r)).toBe(true);
-    for (let i = 0; i < before.length; ++i) {
-      if (reached[i]) expect(after[i]).not.toBe(before[i]);
-      else expect(after[i]).toBe(before[i]);
-    }
+    expect(versions()).toEqual(before);
     expect(overpaints(repr)).toEqual(op);
     // a layer on `b`: the visuals of `a` are cleared, those of `b` set
     repr.setState({ overpaint: Overpaint('element-loci', [{ loci: unitLoci(b), color: red, clear: false }]) });
