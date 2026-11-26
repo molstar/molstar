@@ -7,7 +7,9 @@
 /**
  * A smoothed layer's value per vertex and instance of a mesh (`vertexInstance`), sampled from its grid as the mesh
  * shaders sample a grid (`texture3dFrom2dLinear`, the texture's linear filter at the cells' corners), written into `outData` from element
- * `uOutOffset`: element `instance * uVertexCount + vertex`, instances not reached (`reached`) zero. `rgba8` one `u32`
+ * `uOutOffset`: element `instance * uVertexCount + vertex`, instances not reached (`reached`) zero. A point whose
+ * trilinear cells are not all in the grid reads 0 (a grid may be sized to where the layer is non-zero, a cell of zeros
+ * around it; another slice's cells otherwise). `rgba8` one `u32`
  * an element (`dItemSize_4`); `r8` four elements a `u32` (low byte first), a thread a word, the bytes of the words at
  * the range's ends outside it kept
  */
@@ -41,7 +43,11 @@ fn valueAt(element: u32) -> vec4<f32> {
     let local = vec3<f32>(positions[o], positions[o + 1u], positions[o + 2u]);
     let position = (transforms[u32(uParams.uInstanceOffset) + instance] * vec4<f32>(local, 1.0)).xyz;
     let t = uParams.uGridTransform;
-    return sampleGrid((t.w * (position - t.xyz)) / uParams.uGridDim);
+    let cell = t.w * (position - t.xyz);
+    if (any(cell < vec3<f32>(0.0)) || any(cell > uParams.uGridDim - 1.0)) {
+        return vec4<f32>(0.0);
+    }
+    return sampleGrid(cell / uParams.uGridDim);
 }
 
 @compute @workgroup_size(WorkgroupSizeX, WorkgroupSizeY, WorkgroupSizeZ)

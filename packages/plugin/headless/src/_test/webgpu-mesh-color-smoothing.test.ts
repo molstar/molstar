@@ -15,7 +15,11 @@ import { Structure, StructureElement } from '@molstar/model/model/structure';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 import { getInstanceMatrices } from '@molstar/graphics/geo/geometry/transform-data';
-import { applyMeshColorSmoothing, calcMeshColorSmoothing } from '@molstar/graphics/geo/geometry/mesh/color-smoothing';
+import {
+  applyMeshColorSmoothing,
+  applyMeshOverpaintSmoothing,
+  calcMeshColorSmoothing,
+} from '@molstar/graphics/geo/geometry/mesh/color-smoothing';
 import { type DataArray, readGpuDataArrays } from '@molstar/graphics/gl/renderable/util';
 import { getGpuMeshVertices, releaseGpuMeshVertices } from '@molstar/graphics/geo/geometry/mesh/gpu-vertices';
 import { Theme } from '@molstar/graphics/theme/theme';
@@ -100,7 +104,13 @@ async function meshValues(
 }
 
 /** `calcMeshColorSmoothing` of `layer` on the mesh of `values`, its grid read back (four bytes a texel) */
-async function grid(graphics: GraphicsContext, values: MeshValues, layer: 'overpaint' | 'transparency', gpu: boolean) {
+async function grid(
+  graphics: GraphicsContext,
+  values: MeshValues,
+  layer: 'overpaint' | 'transparency',
+  gpu: boolean,
+  regionGrid = false,
+) {
   const itemSize = layer === 'overpaint' ? 4 : 1;
   const result = calcMeshColorSmoothing(
     {
@@ -118,7 +128,7 @@ async function grid(graphics: GraphicsContext, values: MeshValues, layer: 'overp
       itemSize,
       gpuVertices: gpu ? getGpuMeshVertices(values, graphics.compute!) : undefined,
     },
-    { resolution: 1, stride: 3 },
+    { resolution: 1, stride: 3, regionGrid },
     graphics,
   );
   if (result.kind !== 'volume') throw new Error('expected a grid');
@@ -235,6 +245,81 @@ describe.skipIf(!WebGPU.module)('mesh color smoothing on the GPU (WebGPU)', () =
       }
       releaseGpuMeshVertices(values);
       repr.destroy();
+      expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
+  it("sizes a grid sampled per vertex to the splat's region: the same cells, the same values per vertex", async () => {
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      const { structure, registries, loci } = await setup(plugin);
+      const { repr, values } = await meshValues(graphics, registries, structure, loci);
+      for (const gpuSplat of [false, true]) {
+        const full = await grid(graphics, values, 'overpaint', gpuSplat);
+        const region = await grid(graphics, values, 'overpaint', gpuSplat, true);
+        // the copies 30 Å apart in x, the layer on the middle one: a third of the cells in x, at most
+        expect(region.gridDim[0]).toBeLessThan(full.gridDim[0] / 3);
+        expect(region.array.length).toBeLessThan(full.array.length / 3);
+        // its cells those of the full grid from its first one on (its corner a whole number of cells on)
+        const scale = full.gridTransform[3];
+        const offset = [0, 1, 2].map((k) => (region.gridTransform[k] - full.gridTransform[k]) * scale);
+        for (const o of offset) expect(Math.abs(o - Math.round(o))).toBeLessThan(1e-3);
+        const cell = (g: typeof full, x: number, y: number, z: number) => {
+          const [xn, yn] = g.gridDim;
+          const width = g.gridTexDim[0];
+          const column = Math.floor(((z * xn) % width) / xn);
+          const row = Math.floor((z * xn) / width);
+          return (row * yn * width + column * xn + y * width + x) * 4;
+        };
+        const [ox, oy, oz] = offset.map(Math.round);
+        let max = 0;
+        let nonZero = 0;
+        for (let z = 0; z < region.gridDim[2]; ++z) {
+          for (let y = 0; y < region.gridDim[1]; ++y) {
+            for (let x = 0; x < region.gridDim[0]; ++x) {
+              const a = cell(region, x, y, z);
+              const b = cell(full, x + ox, y + oy, z + oz);
+              for (let c = 0; c < 4; ++c) max = Math.max(max, Math.abs(region.array[a + c] - full.array[b + c]));
+              if (full.array[b] > 0) nonZero++;
+            }
+          }
+        }
+        expect(nonZero).toBeGreaterThan(100);
+        // a vertex on a cell's face may round to the next cell on another corner
+        expect(max).toBeLessThanOrEqual(gpuSplat ? 8 : 2);
+      }
+      releaseGpuMeshVertices(values);
+      repr.destroy();
+
+      // per vertex: on the GPU from the region's grid (`perVertexOnGpu`), on the CPU from the full grid (no context)
+      const cpu = await meshValues(graphics, registries, structure, loci);
+      const gpu = await meshValues(graphics, registries, structure, loci);
+      const options = { resolution: 1, stride: 3 };
+      applyMeshOverpaintSmoothing(cpu.values, options);
+      applyMeshOverpaintSmoothing(gpu.values, options, graphics, undefined, true);
+      expect((gpu.values.tOverpaint.ref.value as DataArray<Uint8Array>).gpu).toBeDefined();
+      const expected = (cpu.values.tOverpaint.ref.value as DataArray<Uint8Array>).array;
+      const count = (cpu.values.tOverpaint.ref.value as DataArray<Uint8Array>).count;
+      const read = ((await readGpuDataArrays(gpu.values)).tOverpaint.ref.value as DataArray<Uint8Array>).array;
+      let max = 0;
+      let off = 0;
+      let nonZero = 0;
+      for (let i = 0; i < count * 4; ++i) {
+        const d = Math.abs(read[i] - expected[i]);
+        max = Math.max(max, d);
+        if (d > 2) off++;
+        if (expected[i] > 0) nonZero++;
+      }
+      expect(nonZero).toBeGreaterThan(100);
+      expect(off).toBeLessThanOrEqual(Math.ceil((count * 4) / 1000));
+      expect(max).toBeLessThanOrEqual(8);
+      releaseGpuMeshVertices(gpu.values);
+      cpu.repr.destroy();
+      gpu.repr.destroy();
       expect(graphics.takeErrors?.() ?? []).toEqual([]);
     } finally {
       plugin.dispose();

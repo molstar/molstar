@@ -64,6 +64,12 @@ interface ColorSmoothingInput {
 export type ColorSmoothingOptions = {
   resolution: number;
   stride: number;
+  /**
+   * The grid sized to the splat's region (the reached instances' cells and one more each side), not to every instance:
+   * for a grid sampled per vertex on the GPU alone (`layer-sample-vertices`, which reads 0 outside a grid); the
+   * fragment shaders read a grid without a bounds check (`texture3dFrom2dLinear`), so theirs spans every instance
+   */
+  regionGrid?: boolean;
 };
 
 /**
@@ -183,6 +189,23 @@ function getInstanceCells(
     }
   }
   return cells;
+}
+
+/**
+ * The part of a grid of `gridDim` cells that holds `region` (`getSplatInstances`) and a cell beyond each side, within
+ * the grid: its first cell (`offset`) and its cells (`dim`). The cells outside it are 0, and a trilinear read outside it
+ * reads only such cells, so 0, as a read outside a grid (the sampling's bounds check). No region (nothing reached): 2
+ * cells per axis, all 0
+ */
+function getRegionGrid(region: Float64Array | undefined, gridDim: Vec3) {
+  const offset = Vec3();
+  const dim = Vec3.create(2, 2, 2);
+  if (!region) return { offset, dim };
+  for (let k = 0; k < 3; ++k) {
+    offset[k] = Math.max(0, region[k] - 1);
+    dim[k] = Math.max(2, Math.min(gridDim[k], region[3 + k] + 1) - offset[k]);
+  }
+  return { offset, dim };
 }
 
 /** Whether a vertex of a group in `groupBuffer` reads past the colors of its instance */
@@ -483,19 +506,13 @@ export function calcMeshColorSmoothing(
     const { maxTextureSize } = graphics.resources.limits;
     while (getTextureSide(getGrid(sphereBox, box, resolution).gridDim) > maxTextureSize) resolution *= 1.1;
   }
-  // the grid spans every instance, also where the layer is zero: the shaders read it without a bounds check
-  // (`texture3dFrom2dLinear` in WebGL and WebGPU), so a point beyond a smaller grid would read another slice
-  const { min, gridDim } = getGrid(sphereBox, box, resolution);
+  // the grid spans every instance, also where the layer is zero: the fragment shaders read it without a bounds check
+  // (`texture3dFrom2dLinear` in WebGL and WebGPU), so a point beyond a smaller grid would read another slice; sampled
+  // per vertex on the GPU alone (`regionGrid`), it is cut to the splat's region below
+  let { min, gridDim } = getGrid(sphereBox, box, resolution);
   const scaleFactor = 1 / resolution;
 
-  const { width, height } = getVolumeTexture2dLayout(gridDim);
-
-  const grid = new Uint8Array(width * height * itemSize);
-  const textureImage: TextureImage<Uint8Array> = { array: grid, width, height, filter: 'linear' };
-
   const colors = input.colorData.array;
-
-  const zOff = getSliceOffsets(gridDim, width);
 
   // the transforms by instance: a row is its instance (`getTransformsByInstance`)
   const instanceRow = (i: number) => i;
@@ -516,6 +533,25 @@ export function calcMeshColorSmoothing(
         true,
       )
     : undefined;
+
+  // the grid sized to the region: the same cells, from `offset` on; the region on it
+  let region = instances?.region;
+  if (options.regionGrid && vertexBox) {
+    const { offset, dim } = getRegionGrid(region, gridDim);
+    min = Vec3.scaleAndAdd(Vec3(), min, offset, resolution);
+    gridDim = dim;
+    if (region) {
+      const r = region;
+      region = new Float64Array([0, 1, 2, 3, 4, 5].map((k) => r[k] - offset[k % 3]));
+    }
+  }
+
+  const { width, height } = getVolumeTexture2dLayout(gridDim);
+
+  const grid = new Uint8Array(width * height * itemSize);
+  const textureImage: TextureImage<Uint8Array> = { array: grid, width, height, filter: 'linear' };
+
+  const zOff = getSliceOffsets(gridDim, width);
 
   // the splat on the GPU: the same grid, instances and region, the sums of the kernels (`computeMeshColorSmoothing`)
   const gpuVertices = input.gpuVertices;
@@ -575,7 +611,7 @@ export function calcMeshColorSmoothing(
         bboxMin: min,
         bboxSize: Vec3.scale(Vec3(), gridDim, resolution),
         resolution,
-        region: vertexBox && instances?.region ? instances.region : empty,
+        region: vertexBox && region ? region : empty,
       },
       texture,
     );
@@ -593,8 +629,8 @@ export function calcMeshColorSmoothing(
 
   /** the instances splatted (perf-audit 13/P1) */
   let splatCount = 0;
-  if (instances?.region) {
-    const { region, splat } = instances;
+  if (instances && region) {
+    const { splat } = instances;
     // the accumulators span the region only, x fastest
     const [rx0, ry0, rz0] = region;
     const rx = region[3] - rx0;
@@ -996,7 +1032,7 @@ export function applyMeshColorSmoothing(
       itemSize: 4,
       gpuVertices: gpuVerticesOf(values, context),
     },
-    options,
+    gpu ? { ...options, regionGrid: true } : options,
     context,
     gpu ? undefined : colorTexture,
   );
@@ -1054,7 +1090,7 @@ export function applyMeshOverpaintSmoothing(
       itemSize: 4,
       gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
-    options,
+    gpu ? { ...options, regionGrid: true } : options,
     gpu || !perVertexOnGpu ? graphics : undefined,
     gpu ? undefined : colorTexture,
   );
@@ -1109,7 +1145,7 @@ export function applyMeshTransparencySmoothing(
       itemSize: 1,
       gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
-    options,
+    gpu ? { ...options, regionGrid: true } : options,
     gpu || !perVertexOnGpu ? graphics : undefined,
     gpu ? undefined : colorTexture,
   );
@@ -1164,7 +1200,7 @@ export function applyMeshEmissiveSmoothing(
       itemSize: 1,
       gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
-    options,
+    gpu ? { ...options, regionGrid: true } : options,
     gpu || !perVertexOnGpu ? graphics : undefined,
     gpu ? undefined : colorTexture,
   );
@@ -1219,7 +1255,7 @@ export function applyMeshSubstanceSmoothing(
       itemSize: 4,
       gpuVertices: gpuVerticesOf(values, gpu || !perVertexOnGpu ? graphics : undefined),
     },
-    options,
+    gpu ? { ...options, regionGrid: true } : options,
     gpu || !perVertexOnGpu ? graphics : undefined,
     gpu ? undefined : colorTexture,
   );

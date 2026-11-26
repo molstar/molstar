@@ -48,5 +48,6 @@ surface's props, a trajectory frame. Per group the same smoothing costs about 7 
    against the CPU path's), read back by the export, a context restored.
 4. **Measured** (done): the merged build 2711 to 236 ms on WebGPU, as without smoothing (260) and per group (233);
    frames the same (1.9 to 2.7 ms). WebGL2 on the CPU path, 4171 ms. The textures 99 to 132 MB: each segment's writer
-   keeps its grid (for the data's writes again, as the layers'), beside the per-vertex data; the grids sized to all
-   instances, a smaller grid an open item (the layers' too).
+   keeps its grid (for the data's writes again, as the layers'), beside the per-vertex data; a grid sized to the
+   reached instances (`regionGrid`, [merged-smoothing-efficiency.md](merged-smoothing-efficiency.md)), which colors
+   by element or chain reach all of.

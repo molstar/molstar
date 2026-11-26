@@ -130,8 +130,16 @@ function setup(graphics: GraphicsContext & { compute: NonNullable<GraphicsContex
     const instance = Math.floor(element / VertexCount);
     return Vec3.add(Vec3(), Vec3.fromArray(Vec3(), local, (element % VertexCount) * 3), Translations[instance]);
   };
+  /** whether the point's trilinear cells are all in the grid: 0 read outside it */
+  const inGrid = (element: number) => {
+    const p = position(element);
+    return [0, 1, 2].every((k) => {
+      const cell = (p[k] - GridMin[k]) * GridTransform[3];
+      return cell >= 0 && cell <= GridDim[k] - 1;
+    });
+  };
   const reference = (element: number, c: number) =>
-    Math.floor(element / VertexCount) === 1 ? 0 : sampleReference(grid, position(element), c);
+    Math.floor(element / VertexCount) === 1 || !inGrid(element) ? 0 : sampleReference(grid, position(element), c);
   /**
    * before the grid's last cell in each axis, where the CPU path reads the same texels (the filter clamps at the atlas'
    * edge, the CPU path reads past it)
@@ -157,7 +165,7 @@ function setup(graphics: GraphicsContext & { compute: NonNullable<GraphicsContex
     outputStride: 4,
     instances: new Uint8Array([1, 0, 1]),
   }).array;
-  return { input, reference, cpu, inTile, destroy: () => [positions, transforms, reached].forEach((b) => b.destroy()) };
+  return { input, reference, cpu, inTile, inGrid, destroy: () => [positions, transforms, reached].forEach((b) => b.destroy()) };
 }
 
 /** the largest difference to the reference: the filter's weights of the hardware's precision, the bytes rounded */
@@ -171,8 +179,12 @@ describe.skipIf(!WebGPU.module)('layer sampling per vertex and instance (WebGPU 
       const graphics = plugin.canvas3d!.graphics;
       if (!isComputeLayerSamplingSupported(graphics)) throw new Error('expected layer sampling support');
       const { compute } = graphics;
-      const { input, reference, cpu, inTile, destroy } = setup(graphics);
+      const { input, reference, cpu, inTile, inGrid, destroy } = setup(graphics);
       const count = VertexCount * InstanceCount;
+      // some points reach past the grid's last cell: read as 0
+      let outside = 0;
+      for (let e = 0; e < count; ++e) if (Math.floor(e / VertexCount) !== 1 && !inGrid(e)) outside++;
+      expect(outside).toBeGreaterThan(0);
 
       // rgba8 from element 3: an element a word
       const rgba = compute.createBuffer((count + 3) * 4, 'test rgba8');
