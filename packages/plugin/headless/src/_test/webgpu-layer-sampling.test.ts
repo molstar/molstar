@@ -165,7 +165,14 @@ function setup(graphics: GraphicsContext & { compute: NonNullable<GraphicsContex
     outputStride: 4,
     instances: new Uint8Array([1, 0, 1]),
   }).array;
-  return { input, reference, cpu, inTile, inGrid, destroy: () => [positions, transforms, reached].forEach((b) => b.destroy()) };
+  return {
+    input,
+    reference,
+    cpu,
+    inTile,
+    inGrid,
+    destroy: () => [positions, transforms, reached].forEach((b) => b.destroy()),
+  };
 }
 
 /** the largest difference to the reference: the filter's weights of the hardware's precision, the bytes rounded */
