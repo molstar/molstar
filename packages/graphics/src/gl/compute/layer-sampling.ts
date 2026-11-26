@@ -71,6 +71,12 @@ export const MeshSmoothingKernels: readonly KernelRequest[] = [
 ];
 
 /**
+ * The splat's kernels of a smoothed layer (`groupInstance`: a layer's data by group and instance) alone: what a merged
+ * surface splats on the GPU (its colors smoothed on the CPU, per vertex)
+ */
+export const MeshLayerSmoothingKernels: readonly KernelRequest[] = getMeshColorSmoothingKernels('groupInstance');
+
+/**
  * Compiles the kernels of a smoothed layer on a CPU mesh in the background where they run and are not ready: the
  * sampling's (`computeLayerSampling`) and the splat's (`computeMeshColorSmoothing`); else the first smoothed layer
  * compiles them synchronously, blocking the queue. `undefined` where there is nothing to wait for
@@ -80,8 +86,8 @@ export function prepareLayerSampling(graphics: GraphicsContext): Promise<void> |
   if (isComputeLayerSamplingSupported(graphics) && !graphics.compute.hasKernels(LayerSamplingKernels)) {
     requests.push(...LayerSamplingKernels);
   }
-  if (isComputeMeshColorSmoothingSupported(graphics) && !graphics.compute.hasKernels(MeshSmoothingKernels)) {
-    requests.push(...MeshSmoothingKernels);
+  if (isComputeMeshColorSmoothingSupported(graphics) && !graphics.compute.hasKernels(MeshLayerSmoothingKernels)) {
+    requests.push(...MeshLayerSmoothingKernels);
   }
   if (requests.length === 0) return;
   return graphics.compute!.prepareKernels(requests);
