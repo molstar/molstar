@@ -93,9 +93,11 @@ const Targets = [
 
 async function createPlugin() {
   const spec = DefaultPluginSpec();
+  // a context of its own: what its frames compile after preparing read (`own`)
   const plugin = await createWebGPUPlugin(
     { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
     { width: 32, height: 32 },
+    { own: true },
   );
   await plugin.init();
   return plugin;

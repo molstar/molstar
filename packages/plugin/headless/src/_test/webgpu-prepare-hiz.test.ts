@@ -20,7 +20,8 @@ const readExample = (name: string) =>
 // frame drawn with those props
 describe.skipIf(!WebGPU.module)('Hi-Z prepared with given props on WebGPU', () => {
   it('compile the Hi-Z pyramid when preparing, nothing of it when drawing', async () => {
-    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 });
+    // a context of its own: what preparing compiles read (`own`)
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 64, height: 64 }, { own: true });
     try {
       await plugin.init();
       const data = await plugin.builders.data.rawData({ data: readExample('1cbs_updated.cif'), label: '1cbs' });

@@ -26,6 +26,7 @@ import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { createWebGPUPlugin } from './webgpu-plugin.js';
+// contexts of their own (`own`): a page store drawn before on a shared context changes their frames
 import { WebGPU } from './webgpu-module.js';
 
 // A list with templates' far copies (`ParticleNesting.getTemplateLevels`): a copy whose template's particles are a few
@@ -108,6 +109,7 @@ describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", (
     const plugin = await createWebGPUPlugin(
       { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
       { width: Size, height: Size },
+      { own: true },
     );
     if (typeof ImageData === 'undefined') {
       vi.stubGlobal(
@@ -214,6 +216,7 @@ describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", (
       const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
+        { own: true },
       );
       if (typeof ImageData === 'undefined') {
         vi.stubGlobal(
@@ -369,6 +372,7 @@ describe.skipIf(!WebGPU.module)("a list with templates' far copies on WebGPU", (
       const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
+        { own: true },
       );
       if (typeof ImageData === 'undefined') {
         vi.stubGlobal(

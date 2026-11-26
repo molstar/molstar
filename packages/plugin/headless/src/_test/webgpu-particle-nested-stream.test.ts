@@ -25,6 +25,7 @@ import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { createWebGPUPlugin } from './webgpu-plugin.js';
+// contexts of their own (`own`): a page store drawn before on a shared context changes their frames
 import { WebGPU } from './webgpu-module.js';
 
 // A nested pack read by range (`openParticleListFromPackStream`): its templates' particles read by page as the GPU's
@@ -118,6 +119,7 @@ describe.skipIf(!WebGPU.module)('a nested pack read by range on WebGPU', () => {
     const plugin = await createWebGPUPlugin(
       { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
       { width: size, height: size },
+      { own: true },
     );
     if (typeof ImageData === 'undefined') {
       vi.stubGlobal(
@@ -229,6 +231,7 @@ describe.skipIf(!WebGPU.module)('a nested pack read by range on WebGPU', () => {
       const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
+        { own: true },
       );
       // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
       if (typeof ImageData === 'undefined') {
