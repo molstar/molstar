@@ -20,7 +20,7 @@ import { SegmentedArray } from '@molstar/graphics/gl/segmented-array';
 import type { WebGPUContext } from '@molstar/graphics/gl/contexts/webgpu';
 import { asWebGPUStorageBuffer } from '@molstar/graphics/gl/webgpu/compute';
 import { KernelCode, type StorageBuffer, StorageBufferSpec } from '@molstar/graphics/gl/compute';
-import { LayerSamplingKernels, MeshSmoothingKernels } from '@molstar/graphics/gl/compute/layer-sampling';
+import { LayerSamplingKernels, MeshLayerSmoothingKernels } from '@molstar/graphics/gl/compute/layer-sampling';
 import { getGpuMeshVertices } from '@molstar/graphics/geo/geometry/mesh/gpu-vertices';
 import { UniformSpec } from '@molstar/graphics/gl/renderable/schema';
 import { ValueCell } from '@molstar/core/util';
@@ -214,7 +214,7 @@ describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', (
         await plugin.canvas3d!.graphics.resources.pending.whenReady();
         expect(plugin.canvas3d!.graphics.compute!.hasKernels(LayerSamplingKernels)).toBe(true);
         // and the splat's (its layers' grids on the GPU)
-        expect(plugin.canvas3d!.graphics.compute!.hasKernels(MeshSmoothingKernels)).toBe(true);
+        expect(plugin.canvas3d!.graphics.compute!.hasKernels(MeshLayerSmoothingKernels)).toBe(true);
         repr.setState({ overpaint });
         plugin.canvas3d!.update(repr);
         const before = (await plugin.getImageRaw({ width: Size, height: Size })).data;
@@ -351,6 +351,28 @@ describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', (
     expect(drawn!.some((b) => b > 0)).toBe(true);
   });
 
+  it("reuses a layer's input by group and instance on its next set (not allocated again)", async () => {
+    const plugin = await sharedPlugin();
+    const { structureCell, overpaint } = await setup(plugin);
+    const cell = await addSmoothedSurface(plugin, structureCell);
+    try {
+      const repr = cell!.obj!.data.repr;
+      const spare = async (color: Color) => {
+        const layers = overpaint.layers.map((l) => ({ ...l, color }));
+        repr.setState({ overpaint: { ...overpaint, layers } });
+        plugin.canvas3d!.update(repr);
+        await plugin.getImageRaw({ width: Size, height: Size });
+        const [member] = gpuMembers(repr);
+        return (member.values.tOverpaint.ref.value as DataArray<Uint8Array>).spare;
+      };
+      const first = await spare(Color(0xff0000));
+      expect(first).toBeDefined();
+      expect(await spare(Color(0x0000ff))).toBe(first);
+    } finally {
+      await plugin.build().delete(cell!).commit();
+    }
+  });
+
   it('keeps the vertices on the GPU across layers, released with the representation', async () => {
     const plugin = await sharedPlugin();
     const { structureCell, overpaint } = await setup(plugin);
@@ -425,10 +447,10 @@ describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', (
         // another context, nothing in its scene
         const other = b.canvas3d!.graphics.compute!;
         expect(other.hasKernels(LayerSamplingKernels)).toBe(false);
-        expect(other.hasKernels(MeshSmoothingKernels)).toBe(false);
+        expect(other.hasKernels(MeshLayerSmoothingKernels)).toBe(false);
         await b.canvas3d!.precompile(list);
         expect(other.hasKernels(LayerSamplingKernels)).toBe(true);
-        expect(other.hasKernels(MeshSmoothingKernels)).toBe(true);
+        expect(other.hasKernels(MeshLayerSmoothingKernels)).toBe(true);
       } finally {
         a.dispose();
         b.dispose();

@@ -72,6 +72,12 @@ export interface DataArray<T extends Uint8Array | Float32Array | Int16Array> {
    * `array` then zeros (`getSharedZeros`), the render item writing the elements by this where it draws them
    */
   readonly gpu?: GpuDataWriter;
+  /**
+   * an array of its own its producer may reuse for the next data of the same cell (`createDataArray`): with `gpu`, the
+   * input it was sampled from (a smoothed layer's by group and instance), `array` the shared zeros. Why: else every set
+   * of the layer allocates it again (groups times instances, a segment of 60 copies about 0.5 MB)
+   */
+  readonly spare?: T;
 }
 
 /** What writes a data array's elements on the GPU (`DataArray.gpu`) */
@@ -112,7 +118,7 @@ export function getSharedZeros<T extends Uint8Array | Float32Array | Int16Array>
   return new ctor(buffer, 0, words / bpe);
 }
 
-function isSharedZeros(array: ArrayBufferView) {
+export function isSharedZeros(array: ArrayBufferView) {
   return SharedZeroBufferSet.has(array.buffer as ArrayBuffer);
 }
 

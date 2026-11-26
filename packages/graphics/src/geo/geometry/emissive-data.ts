@@ -64,7 +64,7 @@ export function createEmissive(count: number, type: EmissiveType, emissiveData?:
     Uint8Array,
     // its array reused, not the empty one: shared by every object (one's layer another's)
     emissiveData && emissiveData.tEmissive.ref.value !== emptyEmissiveTexture
-      ? emissiveData.tEmissive.ref.value.array
+      ? (emissiveData.tEmissive.ref.value.spare ?? emissiveData.tEmissive.ref.value.array)
       : undefined,
   );
   if (emissiveData) {

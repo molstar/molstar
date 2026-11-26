@@ -17,6 +17,7 @@ import {
   type GpuDataWriter,
   getDataTextureImage,
   getSharedZeros,
+  isSharedZeros,
   type TextureImage,
 } from '@molstar/graphics/gl/renderable/util';
 import { computeLayerSampling, isComputeLayerSamplingSupported } from '@molstar/graphics/gl/compute/layer-sampling';
@@ -874,6 +875,8 @@ function createGpuLayerData(
   smoothing: { texture: Texture; gridDim: Vec3; gridTexDim: Vec2; gridTransform: Vec4; reached?: Uint8Array },
   itemSize: 1 | 4,
   graphics: GraphicsContext,
+  /** the layer's data it was sampled from: kept for its next set (`DataArray.spare`) */
+  source: DataArray<Uint8Array>,
 ): DataArray<Uint8Array> {
   const compute = graphics.compute!;
   const vertexCount = values.uVertexCount.ref.value;
@@ -937,7 +940,8 @@ function createGpuLayerData(
       smoothing.texture.destroy();
     },
   };
-  return { array: getSharedZeros(Uint8Array, byteLength), count, gpu: writer };
+  const spare = source.spare ?? (isSharedZeros(source.array) ? undefined : source.array);
+  return { array: getSharedZeros(Uint8Array, byteLength), count, gpu: writer, ...(spare ? { spare } : {}) };
 }
 
 /**
@@ -1031,7 +1035,10 @@ export function applyMeshOverpaintSmoothing(
   );
   if (gpu && smoothingData.kind === 'volume') {
     setOverpaintType(values, 'vertexInstance');
-    ValueCell.update(values.tOverpaint, createGpuLayerData(values, smoothingData, 4, graphics!));
+    ValueCell.update(
+      values.tOverpaint,
+      createGpuLayerData(values, smoothingData, 4, graphics!, values.tOverpaint.ref.value),
+    );
     return;
   }
   if (smoothingData.kind === 'volume') {
@@ -1083,7 +1090,10 @@ export function applyMeshTransparencySmoothing(
   );
   if (gpu && smoothingData.kind === 'volume') {
     setTransparencyType(values, 'vertexInstance');
-    ValueCell.update(values.tTransparency, createGpuLayerData(values, smoothingData, 1, graphics!));
+    ValueCell.update(
+      values.tTransparency,
+      createGpuLayerData(values, smoothingData, 1, graphics!, values.tTransparency.ref.value),
+    );
     return;
   }
   if (smoothingData.kind === 'volume') {
@@ -1135,7 +1145,10 @@ export function applyMeshEmissiveSmoothing(
   );
   if (gpu && smoothingData.kind === 'volume') {
     setEmissiveType(values, 'vertexInstance');
-    ValueCell.update(values.tEmissive, createGpuLayerData(values, smoothingData, 1, graphics!));
+    ValueCell.update(
+      values.tEmissive,
+      createGpuLayerData(values, smoothingData, 1, graphics!, values.tEmissive.ref.value),
+    );
     return;
   }
   if (smoothingData.kind === 'volume') {
@@ -1187,7 +1200,10 @@ export function applyMeshSubstanceSmoothing(
   );
   if (gpu && smoothingData.kind === 'volume') {
     setSubstanceType(values, 'vertexInstance');
-    ValueCell.update(values.tSubstance, createGpuLayerData(values, smoothingData, 4, graphics!));
+    ValueCell.update(
+      values.tSubstance,
+      createGpuLayerData(values, smoothingData, 4, graphics!, values.tSubstance.ref.value),
+    );
     return;
   }
   if (smoothingData.kind === 'volume') {

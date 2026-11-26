@@ -57,7 +57,7 @@ export function createSubstance(count: number, type: SubstanceType, substanceDat
     Uint8Array,
     // its array reused, not the empty one: shared by every object (one's layer another's)
     substanceData && substanceData.tSubstance.ref.value !== emptySubstanceTexture
-      ? substanceData.tSubstance.ref.value.array
+      ? (substanceData.tSubstance.ref.value.spare ?? substanceData.tSubstance.ref.value.array)
       : undefined,
   );
   if (substanceData) {

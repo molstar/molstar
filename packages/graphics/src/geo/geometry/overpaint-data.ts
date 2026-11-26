@@ -57,7 +57,7 @@ export function createOverpaint(count: number, type: OverpaintType, overpaintDat
     Uint8Array,
     // its array reused, not the empty one: shared by every object (one's layer another's)
     overpaintData && overpaintData.tOverpaint.ref.value !== emptyOverpaintTexture
-      ? overpaintData.tOverpaint.ref.value.array
+      ? (overpaintData.tOverpaint.ref.value.spare ?? overpaintData.tOverpaint.ref.value.array)
       : undefined,
   );
   if (overpaintData) {

@@ -79,7 +79,7 @@ export function createTransparency(
     Uint8Array,
     // its array reused, not the empty one: shared by every object (one's layer another's)
     transparencyData && transparencyData.tTransparency.ref.value !== emptyTransparencyTexture
-      ? transparencyData.tTransparency.ref.value.array
+      ? (transparencyData.tTransparency.ref.value.spare ?? transparencyData.tTransparency.ref.value.array)
       : undefined,
   );
   if (transparencyData) {
