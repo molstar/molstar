@@ -962,14 +962,24 @@ function isSupportedColorType(x: string): x is 'group' | 'groupInstance' {
   return x === 'group' || x === 'groupInstance';
 }
 
+/**
+ * The colors of `values` smoothed: into a grid with `graphics` (sampled by the fragments), per vertex without (the CPU's
+ * interpolation); `perVertexOnGpu` (a merged surface's: a grid per object does not merge), per vertex sampled on the GPU
+ * where it computes (the layers' path: `vertex` or `vertexInstance` data written there, `DataArray.gpu`), else on the
+ * CPU
+ */
 export function applyMeshColorSmoothing(
   values: MeshValues,
   options: ColorSmoothingOptions,
   graphics?: GraphicsContext,
   colorTexture?: Texture,
+  perVertexOnGpu?: boolean,
 ) {
   if (!isSupportedColorType(values.colorType.ref.value)) return;
 
+  const gpu = !!perVertexOnGpu && !!graphics && isComputeLayerSamplingSupported(graphics);
+  // per vertex on the CPU where asked for without the GPU's sampling (no context given it)
+  const context = gpu || !perVertexOnGpu ? graphics : undefined;
   const smoothingData = calcMeshColorSmoothing(
     {
       vertexCount: values.uVertexCount.ref.value,
@@ -984,13 +994,23 @@ export function applyMeshColorSmoothing(
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
       itemSize: 4,
-      gpuVertices: gpuVerticesOf(values, graphics),
+      gpuVertices: gpuVerticesOf(values, context),
     },
     options,
-    graphics,
-    colorTexture,
+    context,
+    gpu ? undefined : colorTexture,
   );
 
+  if (gpu && smoothingData.kind === 'volume') {
+    // colors by group the instances alike: data per vertex alone; by instance per vertex and instance
+    const perInstance = smoothingData.type === 'volumeInstance';
+    setColorType(values, perInstance ? 'vertexInstance' : 'vertex');
+    ValueCell.update(
+      values.tColor,
+      createGpuLayerData(values, smoothingData, 4, graphics!, values.tColor.ref.value, perInstance),
+    );
+    return;
+  }
   if (smoothingData.kind === 'volume') {
     setColorType(values, smoothingData.type);
     ValueCell.update(values.tColorGrid, smoothingData.texture);

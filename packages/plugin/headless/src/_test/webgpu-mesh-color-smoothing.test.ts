@@ -15,7 +15,8 @@ import { Structure, StructureElement } from '@molstar/model/model/structure';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 import { getInstanceMatrices } from '@molstar/graphics/geo/geometry/transform-data';
-import { calcMeshColorSmoothing } from '@molstar/graphics/geo/geometry/mesh/color-smoothing';
+import { applyMeshColorSmoothing, calcMeshColorSmoothing } from '@molstar/graphics/geo/geometry/mesh/color-smoothing';
+import { type DataArray, readGpuDataArrays } from '@molstar/graphics/gl/renderable/util';
 import { getGpuMeshVertices, releaseGpuMeshVertices } from '@molstar/graphics/geo/geometry/mesh/gpu-vertices';
 import { Theme } from '@molstar/graphics/theme/theme';
 import { UnitsRepresentation } from '@molstar/graphics/repr/structure/units-representation';
@@ -126,7 +127,74 @@ async function grid(graphics: GraphicsContext, values: MeshValues, layer: 'overp
   return { ...result, array: array as Uint8Array };
 }
 
+/**
+ * A per-group surface of `structure` colored by `colorTheme`, its colors not smoothed: the input
+ * `applyMeshColorSmoothing` takes (by group or by group and instance)
+ */
+async function colorValues(graphics: GraphicsContext, registries: any, structure: Structure, colorTheme: string) {
+  const visualCtor = (materialId: number) =>
+    new Proxy(GaussianSurfaceMeshVisual(materialId), {
+      get: (t, k) => (k === 'builder' ? undefined : Reflect.get(t, k)),
+    });
+  const repr = UnitsRepresentation(
+    'test',
+    { graphics, ...registries },
+    () => GaussianSurfaceMeshParams as any,
+    visualCtor as any,
+  );
+  repr.setTheme(
+    Theme.create(registries, { structure }, { colorTheme: { name: colorTheme }, sizeTheme: { name: 'uniform' } }),
+  );
+  const props = { ...PD.getDefaultValues(GaussianSurfaceMeshParams), resolution: 0.5, smoothColors: { name: 'off' } };
+  await repr.createOrUpdate(props as any, structure).run();
+  return { repr, values: repr.renderObjects[0].values as unknown as MeshValues };
+}
+
 describe.skipIf(!WebGPU.module)('mesh color smoothing on the GPU (WebGPU)', () => {
+  it('smooths colors per vertex on the GPU as the CPU does, by group and by group and instance', async () => {
+    const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
+    try {
+      await plugin.init();
+      const graphics = plugin.canvas3d!.graphics;
+      const { structure, registries } = await setup(plugin);
+      for (const [theme, input, output] of [
+        ['sequence-id', 'group', 'vertex'],
+        ['element-index', 'groupInstance', 'vertexInstance'],
+      ] as const) {
+        const cpu = await colorValues(graphics, registries, structure, theme);
+        const gpu = await colorValues(graphics, registries, structure, theme);
+        expect(cpu.values.colorType.ref.value, theme).toBe(input);
+        const options = { resolution: 1, stride: 3 };
+        // per vertex on the CPU (no context: a merged surface's before), on the GPU (`perVertexOnGpu`)
+        applyMeshColorSmoothing(cpu.values, options);
+        applyMeshColorSmoothing(gpu.values, options, graphics, undefined, true);
+        expect(cpu.values.colorType.ref.value, theme).toBe(output);
+        expect(gpu.values.colorType.ref.value, theme).toBe(output);
+        const data = gpu.values.tColor.ref.value as DataArray<Uint8Array>;
+        expect(data.gpu, theme).toBeDefined();
+        const expected = (cpu.values.tColor.ref.value as DataArray<Uint8Array>).array;
+        const count = (cpu.values.tColor.ref.value as DataArray<Uint8Array>).count;
+        expect(data.count, theme).toBe(count);
+        const read = ((await readGpuDataArrays(gpu.values)).tColor.ref.value as DataArray<Uint8Array>).array;
+        // within a byte but where a cell's weight is near zero (the GPU's fixed point a part of it): a few components
+        let max = 0;
+        let off = 0;
+        for (let i = 0; i < count * 4; ++i) {
+          const d = Math.abs(read[i] - expected[i]);
+          max = Math.max(max, d);
+          if (d > 2) off++;
+        }
+        expect(new Set(expected.subarray(0, count * 4)).size, theme).toBeGreaterThan(4);
+        expect(off, theme).toBeLessThanOrEqual(Math.ceil((count * 4) / 1000));
+        expect(max, theme).toBeLessThanOrEqual(8);
+        cpu.repr.destroy();
+        gpu.repr.destroy();
+      }
+    } finally {
+      plugin.dispose();
+    }
+  }, 60_000);
+
   it('splats a layer into the grid the CPU splats, rgba8 and r8, only the reached region', async () => {
     const plugin = await createWebGPUPlugin(DefaultPluginSpec(), { width: 16, height: 16 });
     try {

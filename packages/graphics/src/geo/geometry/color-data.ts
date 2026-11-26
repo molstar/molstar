@@ -7,7 +7,12 @@
  */
 
 import { ValueCell } from '@molstar/core/util';
-import { type DataArray, type TextureImage, createDataArray } from '@molstar/graphics/gl/renderable/util';
+import {
+  type DataArray,
+  type TextureImage,
+  createDataArray,
+  releaseGpuData,
+} from '@molstar/graphics/gl/renderable/util';
 import { Color } from '@molstar/core/util/color';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import type { LocationIterator } from '../util/location-iterator.js';
@@ -187,8 +192,19 @@ function updatePaletteTexture(palette: ColorTheme.Palette, cell: ValueCell<Textu
 
 //
 
+/** the array `colorData`'s colors may be made in again: its kept input where written on the GPU (`DataArray.spare`) */
+function reusableArray(colorData: ColorData | undefined) {
+  const data = colorData?.tColor.ref.value;
+  return data && (data.spare ?? data.array);
+}
+
 export function createValueColor(value: Color, colorData?: ColorData): ColorData {
   if (colorData) {
+    // colors written on the GPU (smoothed per vertex) released: not drawn by a uniform color
+    if (colorData.tColor.ref.value.gpu) {
+      releaseGpuData(colorData.tColor.ref.value);
+      ValueCell.update(colorData.tColor, { array: new Uint8Array(4), count: 1 });
+    }
     ValueCell.update(colorData.uColor, Color.toVec3Normalized(colorData.uColor.ref.value, value));
     setColorType(colorData, 'uniform');
     return colorData;
@@ -220,6 +236,8 @@ function createUniformColor(locationIt: LocationIterator, color: LocationColor, 
 
 export function createTextureColor(colors: DataArray<Uint8Array>, type: ColorType, colorData?: ColorData): ColorData {
   if (colorData) {
+    // what wrote the previous colors on the GPU (`DataArray.gpu`) released
+    if (colorData.tColor.ref.value !== colors) releaseGpuData(colorData.tColor.ref.value);
     ValueCell.update(colorData.tColor, colors);
     setColorType(colorData, type);
     return colorData;
@@ -252,7 +270,7 @@ function setColor(array: Uint8Array, offset: number, color: Color) {
  * read by the segment), and a texture's color blends with others in the vertex stage (spheres' `dSiteColor`)
  */
 export function createObjectColor(color: Color, colorData?: ColorData): ColorData {
-  const colors = createDataArray(1, 4, Uint8Array, colorData && colorData.tColor.ref.value.array);
+  const colors = createDataArray(1, 4, Uint8Array, reusableArray(colorData));
   setColor(colors.array, 0, color);
   return createTextureColor(colors, 'object', colorData);
 }
@@ -260,12 +278,7 @@ export function createObjectColor(color: Color, colorData?: ColorData): ColorDat
 /** Creates color texture with color for each instance */
 function createInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
   const { instanceCount } = locationIt;
-  const colors = createDataArray(
-    Math.max(1, instanceCount),
-    4,
-    Uint8Array,
-    colorData && colorData.tColor.ref.value.array,
-  );
+  const colors = createDataArray(Math.max(1, instanceCount), 4, Uint8Array, reusableArray(colorData));
   // by index, not by `move`: a location per instance (its first group's), no iterator state to keep per step (large
   // models: millions of instances); reset as for the loop it replaces (no instances voided)
   locationIt.reset();
@@ -284,7 +297,7 @@ function createGroupColor(locationIt: LocationIterator, color: LocationColor, co
     Math.max(1, groupCount * (hasLocation2 ? 2 : 1)),
     4,
     Uint8Array,
-    colorData && colorData.tColor.ref.value.array,
+    reusableArray(colorData),
   );
   locationIt.reset();
   const indexMultiplier = hasLocation2 ? 8 : 4;
@@ -304,7 +317,7 @@ function createGroupInstanceColor(
 ): ColorData {
   const { groupCount, instanceCount, hasLocation2 } = locationIt;
   const count = instanceCount * groupCount * (hasLocation2 ? 2 : 1);
-  const colors = createDataArray(Math.max(1, count), 4, Uint8Array, colorData && colorData.tColor.ref.value.array);
+  const colors = createDataArray(Math.max(1, count), 4, Uint8Array, reusableArray(colorData));
   locationIt.reset();
   const indexMultiplier = hasLocation2 ? 8 : 4;
   while (locationIt.hasNext) {
@@ -318,7 +331,7 @@ function createGroupInstanceColor(
 /** Creates color texture with color for each vertex (i.e. shared across instances) */
 function createVertexColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
   const { groupCount, stride } = locationIt;
-  const colors = createDataArray(Math.max(1, groupCount), 4, Uint8Array, colorData && colorData.tColor.ref.value.array);
+  const colors = createDataArray(Math.max(1, groupCount), 4, Uint8Array, reusableArray(colorData));
   locationIt.reset();
   locationIt.voidInstances();
   while (locationIt.hasNext && !locationIt.isNextNewInstance) {
@@ -339,7 +352,7 @@ function createVertexInstanceColor(
 ): ColorData {
   const { groupCount, instanceCount, stride } = locationIt;
   const count = instanceCount * groupCount;
-  const colors = createDataArray(Math.max(1, count), 4, Uint8Array, colorData && colorData.tColor.ref.value.array);
+  const colors = createDataArray(Math.max(1, count), 4, Uint8Array, reusableArray(colorData));
   locationIt.reset();
   while (locationIt.hasNext) {
     const { location, isSecondary, index } = locationIt.move();
