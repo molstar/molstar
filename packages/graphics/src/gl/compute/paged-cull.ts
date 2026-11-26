@@ -140,13 +140,14 @@ export const PagedLeafReleaseMs = 10_000;
 export const PagedWantsReadMs = 250;
 /**
  * a leaf page wanted where its sphere, grown by this share of its radius, is in view (written before it is), its copy
- * held coarse where it is in view itself
+ * lacking it where it is in view itself (`paged-cull-select`: the copy split near and far, or held coarse)
  */
 export const PagedLeafPagePadding = 0.5;
 /**
  * a wanted leaf block's pages written at most this many bytes a cull (their positions and rotations), the view culled
- * again till all are, its copies drawn at their first coarse level meanwhile (`copyLeastLevel`); resident once all are.
- * Why: written in one cull, the yeast cell's leaves (576 MB) a frame of about a second as a zoom came near
+ * again till all are; meanwhile a copy lacking a page in view split at level 0 (its written leaves near, the sample
+ * beyond: `paged-cull-select`), else drawn at its first coarse level; resident once all are. Why: written in one cull,
+ * the yeast cell's leaves (576 MB) a frame of about a second as a zoom came near
  */
 export const PagedLeafUploadBytes = 32 * 1024 * 1024;
 /**
@@ -248,6 +249,11 @@ const PagedCullUniforms = {
   uCoarseScale: UniformSpec('f'),
   uCoarseOrtho: UniformSpec('i'),
   uCoarsePixels: UniformSpec('f'),
+  /**
+   * 1: a copy lacking a leaf page in view split at level 0 (`paged-cull-select`); 0 while wanted pages find no room in
+   * the value blocks (they may not come: held coarse, no holes that stay)
+   */
+  uSplitNear: UniformSpec('i'),
   /**
    * the frame's slots of a copy's visible instances (their poses composed by the cull: the copy's and its template
    * particle's), from slot `uFrameBase` (the persistent slots' room), `uFrameRoom` of them (past it not drawn); their
@@ -423,8 +429,12 @@ export const PagedCullSelectSchema = {
   uValueBlocksBase: UniformSpec('i'),
   tables: StorageBufferSpec('vec4<u32>', 'read-write'),
   selectArgs: StorageBufferSpec('atomic<u32>', 'read-write'),
-  /** per copy group whether it lacks a leaf page in view (`paged-cull-wants`): held at its first coarse level */
+  /**
+   * per copy group whether it lacks a leaf page in view (`paged-cull-wants`): split at level 0 (its leaves near, its
+   * sample beyond), else held at its first coarse level
+   */
   lacking: StorageBufferSpec('u32', 'read'),
+  uSplitNear: UniformSpec('i'),
   /** the fallback's (1): a dropped copy group's entries alone, a level coarser (`dropped`, from `uDroppedBase`) */
   uFallback: UniformSpec('i'),
   /**
@@ -795,6 +805,7 @@ export function createPagedCuller(
     uCoarseScale: ValueCell.create(0),
     uCoarseOrtho: ValueCell.create(0),
     uCoarsePixels: ValueCell.create(0),
+    uSplitNear: ValueCell.create(1),
     uFrameBase: ValueCell.create(0),
     uFrameRoom: ValueCell.create(0),
     uFrameCursor: ValueCell.create(0),
@@ -887,6 +898,7 @@ export function createPagedCuller(
     selectArgs,
     uValueBlocksBase: uniforms.uValueBlocksBase,
     lacking,
+    uSplitNear: uniforms.uSplitNear,
     uFallback: uniforms.uFallback,
     uDroppedBase: uniforms.uDroppedBase,
     marks: occludedBits,
@@ -1889,6 +1901,8 @@ export function createPagedCuller(
     );
     return true;
   }
+  /** wanted pages found no room at the last residency update (`uSplitNear`) */
+  let starved = false;
   function updateResidency() {
     const src = source;
     if (!src) return false;
@@ -1896,6 +1910,7 @@ export function createPagedCuller(
     let changed = false;
     const pageBytes = valueBytes();
     const toWrite: number[] = [];
+    starved = false;
     // a template drawn whole (no coarse level: not a leaf block) of a deferred list: its pages not read wanted
     if (src.requestValues) {
       for (const t of src.templates ?? []) {
@@ -1924,6 +1939,8 @@ export function createPagedCuller(
         if (released > 0) changed = true;
       }
       const count = Math.max(0, Math.min(upload, room));
+      // wanted pages past the room (not the upload's limit): no split while they wait (`uSplitNear`)
+      starved = count < Math.min(upload, toWrite.length);
       // every wanted page's block within the budget made room for at once (one growth, not one a cull)
       reserveBlocks(Math.min(toWrite.length, Math.max(0, room)));
       for (let i = 0; i < count; ++i) {
@@ -2146,6 +2163,7 @@ export function createPagedCuller(
       // made resident (its pyramid of the copies drawn coarse, a sample's gaps hiding little: the yeast's first near
       // cull 27.6 M frame slots, 1.5 M after, its rooms and the raster's chunks grown to it), culled again instead
       residencyChanged = updateResidency();
+      ValueCell.updateIfChanged(uniforms.uSplitNear, starved ? 0 : 1);
       if (residencyChanged && source) {
         forceSync = true;
         this.sync(source, NoChanges, syncedReaches);

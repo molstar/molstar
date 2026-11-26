@@ -130,12 +130,12 @@ const placement: StorePlacement = {
 };
 
 /**
- * a camera at `eye` looking at `target`, a narrow frustum (`t`, its half width at its near plane 1 away): its planes,
- * its camera plane, two levels by distance
+ * a camera at `eye` looking at `target`, a narrow frustum (`t`, its half width at its near plane 1 away; its far plane
+ * `far` away): its planes, its camera plane, two levels by distance
  */
-function createView(eye: Vec3, target: Vec3, t = 0.08) {
+function createView(eye: Vec3, target: Vec3, t = 0.08, far = 400) {
   const view = Mat4.lookAt(Mat4(), eye, target, Vec3.create(0, 1, 0));
-  const proj = Mat4.perspective(Mat4(), -t, t, t, -t, 1, 400);
+  const proj = Mat4.perspective(Mat4(), -t, t, t, -t, 1, far);
   const frustum = Frustum3D.fromProjectionMatrix(Frustum3D(), Mat4.mul(Mat4(), proj, view));
   const dir = Vec3.normalize(Vec3(), Vec3.sub(Vec3(), target, eye));
   const cameraPlane = Plane3D.create(dir, -Vec3.dot(dir, eye));
@@ -1067,7 +1067,7 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
     culler.destroy();
   }, 120_000);
 
-  it("writes a template's leaf pages where the cull wants them (read back), its copies coarse meanwhile, kept", async () => {
+  it("writes a template's leaf pages where the cull wants them (read back), none near meanwhile, kept", async () => {
     const graphics = plugin.canvas3d!.graphics;
     const store = new ParticlePageStore();
     // a template of 300 particles and its coarse level of 40, placed by three copies
@@ -1101,8 +1101,9 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
     const leafPages = store.getBlock(-1)!.pages.length;
     expect(culler.deferredPages).toBe(leafPages);
     // every copy in view; far (a unit's pixels at a distance of 1: the spacing of 5 about 0.02 px at 260): its coarse
-    // level drawn, the leaves not wanted; near (a thousand times): the leaves wanted, the copies coarse (lacking
-    // them), written by the cull after the wants are read back, drawn there
+    // level drawn, the leaves not wanted; near (a thousand times): the leaves wanted, the copies split (lacking them:
+    // their leaves near, none written, the sample beyond, none so far), written by the cull after the wants are read
+    // back, drawn there
     const wide = createView(Vec3.create(130, 130, 300), Vec3.create(130, 130, 0), 1.2);
     const at = (scale: number) => ({ ...wide, coarse: { scale, ortho: false, pixels: 4 } });
     culler.cull(at(1));
@@ -1113,7 +1114,7 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
     expect(culler.valueBlocks).toBe(levelPages);
     const version = culler.frameVersion;
     culler.cull(at(1000));
-    expect((await readRegions(culler, culler.counts)).total).toBe(3 * 40);
+    expect((await readRegions(culler, culler.counts)).total).toBe(0);
     expect(await advancedPast(culler, version)).toBe(true);
     culler.cull(at(1000));
     expect(culler.deferredPages).toBe(0);
@@ -1199,7 +1200,7 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
     culler.destroy();
   }, 120_000);
 
-  it('writes a wanted leaf block within a budget a cull, its copies drawn coarse till all its pages are', async () => {
+  it('writes a wanted leaf block within a budget a cull, its copies split till all its pages are', async () => {
     const graphics = plugin.canvas3d!.graphics;
     const store = new ParticlePageStore();
     // a template of three pages (20,000 particles) and its coarse level of 40, placed by three copies
@@ -1240,26 +1241,10 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
     culler.sync(store, store.takeChanges(), [2, 3, 1.5, 4]);
     const wide = createView(Vec3.create(130, 130, 300), Vec3.create(130, 130, 0), 1.2);
     const near = { ...wide, coarse: { scale: 1000, ortho: false, pixels: 4 } };
-    // near, every copy at level 0 and every page in view: wanted (the copies coarse), read back; then two culls a page
-    // each, the copies at their coarse level meanwhile (a page in view not written), another cull asked for; the
-    // third the last page: the leaves drawn
-    const wanted = culler.frameVersion;
-    culler.cull(near);
-    expect((await readRegions(culler, culler.counts)).total).toBe(3 * 40);
-    expect(await advancedPast(culler, wanted)).toBe(true);
-    for (let i = 0; i < 2; ++i) {
-      const version = culler.frameVersion;
-      culler.cull(near);
-      expect(culler.deferredPages).toBe(leafPages - i - 1);
-      expect((await readRegions(culler, culler.counts)).total).toBe(3 * 40);
-      expect(culler.frameVersion).toBeGreaterThan(version);
-    }
-    /** the culler's frame version advanced past `v` (its readback, not tracked itself, resolved) */
-    const advanced = (v: number) => advancedPast(culler, v);
-    // the cull making it resident past the frame's room (the phases' 875, the fallback's 125): a cull asked for, the
-    // room not grown by its counts (its pyramid's not of these pages); the copies past it dropped, each drawn at its
-    // coarse level into the fallback's (no holes: 875 leaves and the coarse level's 3 x 40); the next's grown, the one
-    // after it every leaf
+    // near, every copy at level 0 and every page in view: wanted (the copies split, their leaves near, none written:
+    // none drawn), read back; then two culls a page each, another cull asked for: the written pages' leaves past the
+    // frame's room (the phases' 875, the fallback's 125), the copies past it dropped, each drawn at its coarse level
+    // into the fallback's; the third the last page: the leaves drawn
     const levelPages = new Set(store.getBlock(-2)!.pages);
     const fallen = async () => {
       const d = await readRegions(culler, culler.counts);
@@ -1269,6 +1254,22 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
       }
       return { total: d.total, coarse };
     };
+    const wanted = culler.frameVersion;
+    culler.cull(near);
+    expect((await readRegions(culler, culler.counts)).total).toBe(0);
+    expect(await advancedPast(culler, wanted)).toBe(true);
+    for (let i = 0; i < 2; ++i) {
+      const version = culler.frameVersion;
+      culler.cull(near);
+      expect(culler.deferredPages).toBe(leafPages - i - 1);
+      expect(await fallen()).toEqual({ total: 875 + 3 * 40, coarse: 3 * 40 });
+      expect(culler.frameVersion).toBeGreaterThan(version);
+    }
+    /** the culler's frame version advanced past `v` (its readback, not tracked itself, resolved) */
+    const advanced = (v: number) => advancedPast(culler, v);
+    // the cull making it resident past the frame's room: a cull asked for, the room not grown by its counts (its
+    // pyramid's not of these pages); the copies past it dropped, drawn coarse into the fallback's (no holes: 875 leaves
+    // and the coarse level's 3 x 40); the next's grown, the one after it every leaf
     let version = culler.frameVersion;
     culler.cull(near);
     expect(culler.deferredPages).toBe(0);
@@ -1331,7 +1332,6 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
         for (const slots of regions) for (const k of slots) out.add(p[k * PagedPoseWords + 6] >> StorePageBits);
         return out;
       };
-      const levelPage = store.getBlock(-2)!.pages[0];
       /** a cull of `view`, its wants read back, a cull again: what it then draws */
       const settle = async (view: ReturnType<typeof at>) => {
         const v = culler.frameVersion;
@@ -1340,9 +1340,10 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
         if (await advancedPast(culler, v)) culler.cull(view);
         return drawnPages();
       };
-      // the first page in view: wanted, the copy coarse meanwhile; it alone written, the copy's leaves drawn from it
+      // the first page in view: wanted, the copy split meanwhile (near: its leaves, none written, none drawn); it alone
+      // written, the copy's leaves drawn from it
       culler.cull(at(0));
-      expect([...(await drawnPages())]).toEqual([levelPage]);
+      expect([...(await drawnPages())]).toEqual([]);
       expect([...(await settle(at(0)))]).toEqual([pages[0]]);
       expect(culler.deferredPages).toBe(2);
       // the third: written too, drawn
@@ -1358,6 +1359,80 @@ describe.skipIf(!WebGPU.module)('a page store culled on the GPU', () => {
     } finally {
       vi.restoreAllMocks();
     }
+  }, 120_000);
+
+  it('splits a copy missing a few of its leaf pages in view: its leaves near, its sample beyond, none enlarged near', async () => {
+    const graphics = plugin.canvas3d!.graphics;
+    const store = new ParticlePageStore();
+    // a template of three pages apart along x (a page's particles 300 Å from the next's) and its coarse level of 40
+    // spread over the three alike
+    const template = createList(3 * 8192, () => 1, false);
+    const xyz = template.coordinates as Float32Array;
+    for (let i = 0; i < template.count; ++i) xyz[i * 3] = Math.floor(i / 8192) * 300 + (i % 100);
+    store.add(-1, { ...template, coordinates: GridPositions.fromFloat(xyz) }, 0, placement, undefined, true);
+    const sample = createList(40, () => 1, false);
+    const sampleXyz = sample.coordinates as Float32Array;
+    for (let i = 0; i < sample.count; ++i) sampleXyz[i * 3] = (i % 3) * 300 + ((i * 37) % 100);
+    store.add(-2, { ...sample, coordinates: GridPositions.fromFloat(sampleXyz) }, 0, placement, undefined, true);
+    const center = Vec3.create(350, 50, 45);
+    const poses = new Float32Array(CopyPoseFloats);
+    writeCopyPose(poses, 0, Vec3.create(350, 50, 45), Quat.identity(), center);
+    const of = { tops: Int32Array.of(5), poses, levels: 1, center, spacing: 5, radius: 400 };
+    store.setCopies(-1, { ...of, level: 0 });
+    store.setCopies(-2, { ...of, level: 1 });
+    const pages = store.getBlock(-1)!.pages;
+    const levelPage = store.getBlock(-2)!.pages[0];
+    const culler = createPagedCuller(graphics.compute!, graphics.resources, { ...FullRooms, wantsReadMs: 0 });
+    culler.sync(store, store.takeChanges(), [2, 3, 1.5, 4]);
+    // looking along x from 100 Å before the first page (a page's depths 100 to 200, 400 to 500, 700 to 800); the
+    // template's spacing of 5 at 4 px from a depth of 600 (480 px a unit at 1): the copy at level 0 (its center at
+    // 450), its first two pages near, the third's beyond; `far` the far plane
+    const at = (far: number) => ({
+      ...createView(Vec3.create(-100, 50, 45), Vec3.create(350, 50, 45), 0.6, far),
+      coarse: { scale: 480, ortho: false, pixels: 4 },
+    });
+    /** the store pages drawn, and the x of the coarse level's poses drawn */
+    const drawn = async () => {
+      const { regions, poses: p } = await readRegions(culler, culler.counts);
+      const f = new Float32Array(p.buffer, p.byteOffset, p.length);
+      const out = new Map<number, number>();
+      const sampleX: number[] = [];
+      for (const slots of regions) {
+        for (const k of slots) {
+          const page = p[k * PagedPoseWords + 6] >> StorePageBits;
+          out.set(page, (out.get(page) ?? 0) + 1);
+          if (page === levelPage) sampleX.push(f[k * PagedPoseWords]);
+        }
+      }
+      return { pages: out, sampleX };
+    };
+    const settle = async (view: ReturnType<typeof at>) => {
+      const v = culler.frameVersion;
+      culler.cull(view);
+      await readRegions(culler, culler.counts);
+      if (await advancedPast(culler, v)) culler.cull(view);
+      return drawn();
+    };
+    // the first two pages in view (the third past the far plane, its padded sphere too): written, drawn whole
+    const first = await settle(at(560));
+    expect([...first.pages.keys()].sort()).toEqual([pages[0], pages[1]].sort());
+    expect(culler.deferredPages).toBe(1);
+    // the third in view, not written (one missing of three): split, not held coarse whole; the two pages' leaves all
+    // drawn (near), of the sample its particles beyond 600 alone (the third page's: x from 600), none near enlarged
+    culler.cull(at(1000));
+    const split = await drawn();
+    expect(split.pages.get(pages[0])).toBe(8192);
+    expect(split.pages.get(pages[1])).toBe(8192);
+    expect(split.pages.has(pages[2])).toBe(false);
+    const beyond = Array.from({ length: 40 }, (_, i) => i).filter((i) => i % 3 === 2).length;
+    expect(split.sampleX.length).toBe(beyond);
+    for (const x of split.sampleX) expect(x).toBeGreaterThanOrEqual(600);
+    // the third written: the leaves alone
+    const all = await settle(at(1000));
+    expect([...all.pages.keys()].sort()).toEqual([...pages].sort());
+    expect(culler.deferredPages).toBe(0);
+    expect(graphics.takeErrors?.() ?? []).toEqual([]);
+    culler.destroy();
   }, 120_000);
 
   it('keeps its value blocks within a budget: the leaf pages the last wants did not want let go for room', async () => {

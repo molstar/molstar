@@ -147,17 +147,25 @@ to gain (their template and levels 67 pages, 9 MB; 85-98% needed once a copy is 
      yeast's a quarter 187 MB, wrong). The leaf pages' entries active again; a thread an entry of a copy at level 0
      whose page is not written (its value block none): its record's box placed by the copy, padded, in the frustum its
      page wanted and its copy's group (`copyGroup`: its top particle's copies across the template's blocks) lacking it,
-     held at its first coarse level by the select in the same cull (no holes, no readback's wait), grown by half its
-     radius wanted alone (written before it is in view); the select draws no page not written. The wants read back
+     split by the select in the same cull (no readback's wait) where the copy is at level 0: both levels selected, a
+     particle of its written leaves drawn where the template's spacing at its own depth is at least the coarse pixels
+     (`isNear`), the first coarse level's sample beyond; else held at its first coarse level. Not split while wanted
+     pages find no room (`uSplitNear`: they may never come). Grown by half its radius wanted alone (written before it
+     is in view); the select draws no page not written. Why split, not held coarse whole (as first): a sample's
+     particle is drawn larger about its center, so a loaded copy a few pages made coarse drew its near particles
+     enlarged; a molecule focused and turned about (its slab's other pages let go after 10 s, back in view as it
+     turned) jumped about 3 times larger for the frames its pages took, as if zoomed into. Near, a missing page's
+     particles none till written (a hole, a few frames; a view come near an unloaded copy too); beyond, the sample as
+     before. The cost only while a copy lacks pages: its leaves culled as when loaded, the sample's eighth more. The wants read back
      (one read at a time), written by the next culls within the budget, let go 10 s after the last want (a cull to
      run: a still view's skipped). Tried and not kept: the wants by the pyramid too: a page's sphere hid little (the
      yeast 2x2, each view culled a frame, tile-ordered: a quarter 539 MB either way, inside a copy 192 and 193, at its
      surface 420 and 515), and a copy held coarse drew a pyramid of a sample's gaps (more wanted, written, let go:
      a feedback). By the frustum, tile-ordered against by target: a quarter 539 and 542 MB, a copy filling the view
      344 and 476, at its surface 515 and 541, inside it 193 and 421; whole and half 72 MB. Tests:
-     `webgpu-paged-cull.test.ts` (the copies coarse while their pages are wanted, written by the cull after the read;
+     `webgpu-paged-cull.test.ts` (the copies split while their pages are wanted, written by the cull after the read;
      a page a cull within the budget; the pages apart: the one in view written, another as the view moves, the first
-     let go).
+     let go; a copy lacking a page in view: its written leaves near, the sample beyond its near distance alone).
 3. **Templates tile-ordered** (done; the load's cost and the fallback by region open). Done: the writer's tile order
    for a template (`templateTiles`, `templateTilesOf`: a tile about a store page's particles, 16 an axis the yeast
    cell's; a tile's by target, each target's in its sample order; its density grid kept: without it computed where
@@ -333,7 +341,16 @@ to gain (their template and levels 67 pages, 9 MB; 85-98% needed once a copy is 
   the region coarse meanwhile; the browser's limits on reads in flight); a page drawable once its targets' members exist
   (new members rebuild the object); the wants' occlusion (the occluder grid's threshold leaves gaps inside); WebGL on
   the same pack (its CPU pick and expanded copies).
-- **The fallback**: by copy (step 2) or by region (step 3, a tile order's).
+- **The fallback**: by copy, split near and far (step 2d), or by region (step 4c, a tile order's: then coarse only
+  where a node lacks pages, not past a distance).
+- **Predictive loading and release**: the wants are of the view a cull sees; what a view is about to see is guessed
+  only by a page's padding (half its radius). Let go 10 s after the last want, the pages a rotation brings back are
+  read and written again (a focused molecule's slab: about 1,000 pages let go, 28 back in view as it turned), their
+  near particles holes meanwhile (2d). Candidates: pages within the camera's orbit about its target wanted alone
+  (`min(radius, distance)` about the target: what turning about it reaches, never let go while there; a wheel zoom
+  without a focus keeps the whole scene's radius, so the distance bounds it); wants ahead of the camera's motion (its
+  velocity); release by reachability, not age alone. Measure: the pages written again a turn, the near holes' frames,
+  the value blocks held.
 - **The budget**: the value blocks within the device's storage buffer limit (a lower share: the device's memory not
   known to WebGPU), an unwanted page let go 10 s after the last cull that wanted it or for room; a page's values on the
   CPU a 256 MB cache (a pack's, in the model); the values' buffer never shrunk.
