@@ -45,4 +45,27 @@ describe('Visual.setTransform', () => {
     expect(translation(0)).toEqual([1, 0, 0]);
     expect(translation(1)).toEqual([0, 2, 0]);
   });
+
+  it('clears the extra transforms with null, keeps them without', () => {
+    const ro = renderObject(2);
+    const extra = new Float32Array(32);
+    Mat4.toArray(Mat4.fromTranslation(Mat4(), Vec3.create(1, 0, 0)), extra, 0);
+    Mat4.toArray(Mat4.fromTranslation(Mat4(), Vec3.create(0, 2, 0)), extra, 16);
+    Visual.setTransform(ro, undefined, extra);
+    const moved = Array.from(ro.values.aTransform.ref.value);
+
+    // neither given: nothing changes
+    Visual.setTransform(ro, undefined, undefined);
+    expect(ro.values.hasExtraTransform.ref.value).toBe(true);
+    expect(Array.from(ro.values.aTransform.ref.value)).toEqual(moved);
+
+    // null: the instances back at their own transforms (the identity), the bounds with them
+    Visual.setTransform(ro, undefined, null);
+    expect(ro.values.hasExtraTransform.ref.value).toBe(false);
+    const { aTransform } = ro.values;
+    for (let i = 0; i < 2; ++i) {
+      expect(Array.from(aTransform.ref.value.subarray(i * 16 + 12, i * 16 + 15))).toEqual([0, 0, 0]);
+    }
+    expect(Array.from(ro.values.boundingSphere.ref.value.center)).toEqual([0, 0, 0]);
+  });
 });

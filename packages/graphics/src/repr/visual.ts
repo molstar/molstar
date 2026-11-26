@@ -898,7 +898,8 @@ namespace Visual {
     transform?: Mat4,
     instanceTransforms?: Float32Array | null,
   ) {
-    if (!renderObject || (!transform && !instanceTransforms)) return;
+    // `null` clears the instance transforms (`undefined` keeps them)
+    if (!renderObject || (!transform && instanceTransforms === undefined)) return;
 
     const { values } = renderObject;
     if (transform) {
