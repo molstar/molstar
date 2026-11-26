@@ -129,8 +129,8 @@ interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
   ) => void;
   mustRecreate?: (structureGroup: StructureGroup, props: PD.Values<P>) => boolean;
   /**
-   * The values after they are written (color smoothing); `graphics` none in a merged visual (`UnitsMergedVisual`):
-   * smoothing on the CPU into data per vertex (a grid per object does not merge)
+   * The values after they are written (color smoothing). `perVertexOnGpu`: a merged visual's (`UnitsMergedVisual`, a
+   * grid per object does not merge), data per vertex: sampled on the GPU where `graphics` computes, else on the CPU
    */
   processValues?: (
     values: RenderObjectValues<G['kind']>,
@@ -138,6 +138,7 @@ interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
     props: PD.Values<P>,
     theme: Theme,
     graphics?: GraphicsContext,
+    perVertexOnGpu?: boolean,
   ) => void;
   dispose?: (geometry: G) => void;
 }

@@ -1,6 +1,6 @@
 # Smoothed colors sampled on the GPU (merged surfaces)
 
-Status: planned. Follows [merged-smoothed-layers-gpu.md](merged-smoothed-layers-gpu.md), whose path it gives the color
+Status: done (WebGPU; WebGL keeps the CPU path). Follows [merged-smoothed-layers-gpu.md](merged-smoothed-layers-gpu.md), whose path it gives the color
 theme's smoothing.
 
 ## Why
@@ -46,4 +46,7 @@ surface's props, a trajectory frame. Per group the same smoothing costs about 7 
 3. **The merged visual**: `processValues` with the context and `perVertexOnGpu` where it makes and updates a segment;
    `tColor`'s writer released with the segment; tested: a merged surface's smoothed colors drawn as before (an image
    against the CPU path's), read back by the export, a context restored.
-4. **Measured**: `merging/assembly-gaussian-smooth-merged` against `-per-group` and `-merged-off`, WebGPU and WebGL2.
+4. **Measured** (done): the merged build 2711 to 236 ms on WebGPU, as without smoothing (260) and per group (233);
+   frames the same (1.9 to 2.7 ms). WebGL2 on the CPU path, 4171 ms. The textures 99 to 132 MB: each segment's writer
+   keeps its grid (for the data's writes again, as the layers'), beside the per-vertex data; the grids sized to all
+   instances, a smaller grid an open item (the layers' too).

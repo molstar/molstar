@@ -20,3 +20,6 @@
 - On WebGPU the smoothed colors and layers of CPU meshes (Gaussian and molecular surfaces built on the CPU) are
   splatted into their grid by compute kernels, over the cells of the instances they reach: 60 copies of 7qpd, a layer
   set on all 420 units 1.9 s to 20 ms a frame per unit and to 33 ms merged, on one unit 13 ms to 2–3 ms.
+- On WebGPU merged surfaces smooth their colors on the GPU too (splatted and sampled per vertex, as their layers): 60
+  copies of 7qpd colored by element-index, the surfaces built in 2.7 s to 0.24 s (as without smoothing); WebGL as
+  before.

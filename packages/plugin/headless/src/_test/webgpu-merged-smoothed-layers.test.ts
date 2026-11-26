@@ -140,6 +140,45 @@ describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', (
     60_000,
   );
 
+  it("draws a merged surface's colors smoothed on the GPU as the per-group grids, read back as drawn", async () => {
+    const plugin = await sharedPlugin();
+    const graphics = plugin.canvas3d!.graphics;
+    const { structure, registries } = await setup(plugin);
+    const none = { kind: 'empty-loci', layers: [] };
+    const colorTheme = 'sequence-id';
+    let readBack: Uint8Array | undefined;
+    let drawn: Uint8Array | undefined;
+    const merged = await image(graphics, registries, structure, 'merged', none, {
+      colorTheme,
+      inspect: async (repr, scene) => {
+        const object = repr.renderObjects.find((o: any) => isMergedRenderObject(o));
+        const member = getMergedMembers(object).find(
+          (m) => !!(m.values.tColor.ref.value as DataArray<Uint8Array>).gpu,
+        )!;
+        // by group: data per vertex alone (the copies alike), written on the GPU
+        expect(member.values.colorType.ref.value).toBe('vertex');
+        const values = await readGpuDataArrays(member.values);
+        readBack = (values.tColor.ref.value as DataArray<Uint8Array>).array;
+        const layer = scene.get(object)!.renderItem.getDataLayer!('tColor')!;
+        const array = (object.values.tColor.ref.value as DataArray<any>).array as SegmentedArray;
+        const part = array.parts.find((p) => !!p.gpu)!;
+        drawn = await readPage(graphics, layer.buffer, layer.offset + part.offset / 4, part.count / 4);
+      },
+    });
+    const perGroup = await image(graphics, registries, structure, 'per-group', none, { colorTheme });
+    const plain = await image(graphics, registries, structure, 'merged', none, {
+      colorTheme,
+      smoothColors: { name: 'off', params: {} },
+    });
+    // the export's colors those drawn
+    expect(Array.from(readBack!)).toEqual(Array.from(drawn!));
+    expect(readBack!.some((b) => b > 0)).toBe(true);
+    const toPerGroup = differing(merged.pixels, perGroup.pixels);
+    const plainToPerGroup = differing(plain.pixels, perGroup.pixels);
+    expect(toPerGroup).toBeLessThan(plainToPerGroup / 4);
+    expect(graphics.takeErrors?.() ?? []).toEqual([]);
+  }, 60_000);
+
   it('draws an overpaint on one chain as the per-group visuals do', async () => {
     const plugin = await sharedPlugin();
     const graphics = plugin.canvas3d!.graphics;
@@ -235,6 +274,14 @@ describe.skipIf(!WebGPU.module)('smoothed layers on merged surfaces (WebGPU)', (
         const next = plugin.canvas3d!.graphics;
         const [member] = gpuMembers(repr);
         expect((member.values.tOverpaint.ref.value as DataArray<Uint8Array>).gpu!.compute).toBe(next.compute);
+        // its colors (smoothed per vertex) as well
+        const colored = repr.renderObjects
+          .filter((o: any) => isMergedRenderObject(o))
+          .flatMap((o: any) => getMergedMembers(o))
+          .map((m: any) => (m.values.tColor.ref.value as DataArray<Uint8Array>).gpu)
+          .filter((w: any) => !!w);
+        expect(colored.length).toBeGreaterThan(0);
+        expect(colored.every((w: any) => w.compute === next.compute)).toBe(true);
       } finally {
         plugin.dispose();
       }
@@ -518,6 +565,8 @@ async function image(
   options: {
     smoothColors?: any;
     resolution?: number;
+    /** the color theme, uniform by default */
+    colorTheme?: string;
     after?: (repr: any, props: any) => Promise<void>;
     inspect?: (repr: any, scene: Scene) => Promise<void>;
   } = {},
@@ -535,7 +584,11 @@ async function image(
     visualCtor as any,
   );
   repr.setTheme(
-    Theme.create(registries, { structure }, { colorTheme: { name: 'uniform' }, sizeTheme: { name: 'physical' } }),
+    Theme.create(
+      registries,
+      { structure },
+      { colorTheme: { name: options.colorTheme ?? 'uniform' }, sizeTheme: { name: 'physical' } },
+    ),
   );
   const props = {
     ...PD.getDefaultValues(GaussianSurfaceMeshParams),

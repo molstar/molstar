@@ -345,6 +345,8 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     }
     const values = seg.values as unknown as { [k: string]: ValueCell<DataArray<any>> | undefined };
     for (const kind of SmoothedLayerKinds) releaseGpuData(values[SmoothedLayerTextures[kind]]?.ref.value);
+    // its colors smoothed on the GPU (`processValues` per vertex) as the layers
+    releaseGpuData(values.tColor?.ref.value);
   }
 
   /** `seg` as the render object the writers take (`Visual.mark`, the layer setters): its values its record */
@@ -481,8 +483,8 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       props.batchSize,
     );
     const values = utils.createValues(geometry, transform, locationIt, theme, props) as unknown as MergeableValues;
-    // no context: smoothing per vertex, merged (`UnitsVisualGeometryBuilder.processValues`)
-    builder.processValues?.(values as any, geometry, props, theme, undefined);
+    // smoothing per vertex, merged (`UnitsVisualGeometryBuilder.processValues`): sampled on the GPU where it computes
+    builder.processValues?.(values as any, geometry, props, theme, ctx.graphics, true);
     // the kept state on its values before its part is picked: their layers' defines as its part's (one made with them),
     // its merge key that of the segments made before it
     const place: SegmentPlace = {
@@ -821,7 +823,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       }
       seg.groupCount = its.locationIt.groupCount;
       seg.instanceCount = its.locationIt.instanceCount;
-      builder.processValues?.(values, seg.geometry, props, theme, undefined);
+      builder.processValues?.(values, seg.geometry, props, theme, ctx.graphics, true);
     };
     if (updateState.createGeometry) {
       const geometry = createGeometry(ctx, structureGroup, props, theme, seg.geometry);

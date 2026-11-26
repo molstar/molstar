@@ -134,11 +134,12 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
         props: PD.Values<MolecularSurfaceMeshParams>,
         theme: Theme,
         graphics?: GraphicsContext,
+        perVertexOnGpu?: boolean,
       ) => {
         const { resolution, colorTexture } = geometry.meta as MolecularSurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
         if (csp) {
-          applyMeshColorSmoothing(values, csp, graphics, colorTexture);
+          applyMeshColorSmoothing(values, csp, graphics, colorTexture, perVertexOnGpu);
           (geometry.meta as MolecularSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
         }
       },
