@@ -25,7 +25,6 @@ import { ParticlesRegistry } from '@molstar/plugin/particles-registry';
 import { PluginStateTransform, PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { ParticlesRepresentation3D } from '@molstar/plugin/state/transforms/particles/representation';
 import { createWebGPUPlugin } from './webgpu-plugin.js';
-// contexts of their own (`own`): a page store drawn before on a shared context changes their frames
 import { WebGPU } from './webgpu-module.js';
 
 // A nested pack read by range (`openParticleListFromPackStream`): its templates' particles read by page as the GPU's
@@ -119,7 +118,6 @@ describe.skipIf(!WebGPU.module)('a nested pack read by range on WebGPU', () => {
     const plugin = await createWebGPUPlugin(
       { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
       { width: size, height: size },
-      { own: true },
     );
     if (typeof ImageData === 'undefined') {
       vi.stubGlobal(
@@ -231,7 +229,6 @@ describe.skipIf(!WebGPU.module)('a nested pack read by range on WebGPU', () => {
       const plugin = await createWebGPUPlugin(
         { ...spec, registry: [...(spec.registry ?? []), ...ParticlesRegistry] },
         { width: Size, height: Size },
-        { own: true },
       );
       // Node has no `ImageData` (`readDrawingBuffer` returns one); the setup restores stubbed globals after the file
       if (typeof ImageData === 'undefined') {
@@ -292,12 +289,15 @@ describe.skipIf(!WebGPU.module)('a nested pack read by range on WebGPU', () => {
         };
         // far: both copies whole; near: a corner of the first copy, the pages there alone
         const far: [Vec3, number] = [Vec3.create(358, 158, 62), 480];
-        const near: [Vec3, number] = [Vec3.create(20, 20, 124), 14];
+        // the copy's particles about its center (within 158 Å in x and y, 62 in z): a corner of its top
+        const near: [Vec3, number] = [Vec3.create(-130, -130, 62), 14];
 
         const bytes = writeParticlePack(createNested());
         const whole = await draw(createParticleListFromPack(readParticlePack(bytes)));
         const wholeFar = await frame(...far);
         const wholeNear = await frame(...near);
+        // the corner drawn (not an empty view, which every page set draws alike)
+        expect(new Set(wholeNear).size).toBeGreaterThan(3);
         await plugin.build().delete(whole.ref).commit();
 
         // by range, the bytes read counted

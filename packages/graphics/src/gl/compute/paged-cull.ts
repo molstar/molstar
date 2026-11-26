@@ -1060,6 +1060,14 @@ export function createPagedCuller(
   let wantsRead = false;
   let wantsReadAt = Number.NEGATIVE_INFINITY;
   /**
+   * a cull whose wants were not read (one on its way, or read lately): the view culled again once a read can be
+   * (`wantsAgain`). Why: a view held still after it culls no more (its culls skipped), so its wants would never be read,
+   * its copies drawn coarse (a zoom ending within `PagedWantsReadMs` of the last read)
+   */
+  let wantsMissed = false;
+  let wantsAgainTimer: ReturnType<typeof setTimeout> | undefined;
+  let disposed = false;
+  /**
    * the wants read back so far, and per leaf page the last read that wanted it: a page let go where reads since did
    * not want it, not by the time alone (a still view's culls none, its pages' wants not read: kept)
    */
@@ -1712,11 +1720,28 @@ export function createPagedCuller(
    * culled again)
    */
   const readWants = () => {
-    if (wantsRead || !source?.templates?.some(isLeafBlock)) return;
+    if (!source?.templates?.some(isLeafBlock)) return;
     // every cull while wanted pages are not written yet, else a few times a second (the written ones' wants kept up
     // for their release, a page wanted anew found): not a submit and a read a frame
     const now = performance.now();
-    if (pendingWants.size === 0 && now - wantsReadAt < (options.wantsReadMs ?? PagedWantsReadMs)) return;
+    const wait = (options.wantsReadMs ?? PagedWantsReadMs) - (now - wantsReadAt);
+    if (wantsRead || (pendingWants.size === 0 && wait > 0)) {
+      wantsMissed = true;
+      if (!wantsRead && wantsAgainTimer === undefined) {
+        const again = new Promise<void>((resolve) => {
+          wantsAgainTimer = setTimeout(() => {
+            wantsAgainTimer = undefined;
+            wantsAgain();
+            resolve();
+          }, wait);
+        });
+        // not keeping Node (headless rendering, tests) alive: its timers are objects, browsers' numbers
+        if (typeof wantsAgainTimer === 'object') (wantsAgainTimer as { unref?: () => void }).unref?.();
+        void resources.pending.track(again, 'paged cull: wants read again');
+      }
+      return;
+    }
+    wantsMissed = false;
     wantsReadAt = now;
     wantsRead = true;
     const pageWords = Math.max(1, Math.ceil(Math.max(1, source.pageCapacity) / 32));
@@ -1725,6 +1750,7 @@ export function createPagedCuller(
     Promise.all([wanted.ref.value.readAsync(0, pageWords * 4), lacking.ref.value.readAsync(0, groups * 4)])
       .then(([w, l]) => {
         wantsRead = false;
+        wantsAgain();
         const bits = new Uint32Array(w);
         const at = performance.now();
         let added = false;
@@ -1754,6 +1780,13 @@ export function createPagedCuller(
       .catch(() => {
         wantsRead = false;
       });
+  };
+  /** a cull's wants not read (`wantsMissed`): the view culled again, its wants read then */
+  const wantsAgain = () => {
+    if (!wantsMissed || disposed) return;
+    wantsMissed = false;
+    frameVersion += 1;
+    void resources.pending.track(Promise.resolve(), 'paged cull: the view culled again for its wants');
   };
   const leafUploadBytes = options.leafUploadBytes ?? PagedLeafUploadBytes;
   /** a page's bytes in the values' buffer: its positions, then its rotations */
@@ -2367,6 +2400,9 @@ export function createPagedCuller(
       return culled;
     },
     destroy() {
+      disposed = true;
+      clearTimeout(wantsAgainTimer);
+      wantsAgainTimer = undefined;
       composeKernel?.destroy();
       selectKernel?.destroy();
       selectArgsKernel?.destroy();
