@@ -106,6 +106,12 @@ async function createRepr(
   return repr;
 }
 
+/**
+ * whether `values` are a segment's as made (`processValues` of a new segment, a rebuild's: plain values), not a record
+ * of one updated (its part's shared values its prototype)
+ */
+const isMade = (values: object) => Object.getPrototypeOf(values) === Object.prototype;
+
 /** each values' color type before `setUnmergeable` first changed it */
 const colorTypes = new WeakMap<object, string>();
 /** `values` made not to merge (`canMergeValues`: a color type the merged object lacks, the grid's), or back */
@@ -555,9 +561,10 @@ describe('the merged units visual', async () => {
     const base = splitBuilder();
     const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
       ...base,
-      createGeometry: (...args) => {
-        if (fail) throw new Error('aborted');
-        return base.createGeometry(...args);
+      // a segment the rebuild makes (its geometry kept: not made again)
+      processValues: (values: any, ...rest: any[]) => {
+        if (fail && isMade(values)) throw new Error('aborted');
+        return (base.processValues as any)(values, ...rest);
       },
     };
     const repr = await createRepr(structure, true, {}, builder);
@@ -622,14 +629,14 @@ describe('the merged units visual', async () => {
     const base = MolecularSurfaceMeshVisual(-1).builder as UnitsVisualGeometryBuilder<MolecularSurfaceMeshParams, any>;
     const builder: UnitsVisualGeometryBuilder<MolecularSurfaceMeshParams, any> = {
       ...base,
-      createGeometry: (...args) => {
-        // the second group's: the first's segment made by then
-        if (during && ++made === 2) {
+      // the second segment the rebuild makes (their geometries kept): the first's made by then
+      processValues: (values: any, ...rest: any[]) => {
+        if (during && isMade(values) && ++made === 2) {
           const set = during;
           during = undefined;
           set();
         }
-        return base.createGeometry(...args);
+        return (base.processValues as any)?.(values, ...rest);
       },
     };
     const graphics = { capabilities: { fragDepth: true } } as any;
@@ -934,17 +941,51 @@ describe('the merged units visual', async () => {
     fresh.destroy();
   });
 
+  it('keeps its geometries through a rebuild that leaves them (another instance granularity), each disposed once', async () => {
+    const base = splitBuilder();
+    let created = 0;
+    let fail = false;
+    const disposed = new Map<Spheres, number>();
+    const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
+      ...base,
+      createGeometry: (...args) => {
+        created += 1;
+        return base.createGeometry(...args);
+      },
+      processValues: (values: any, ...rest: any[]) => {
+        if (fail && isMade(values)) throw new Error('aborted');
+        return (base.processValues as any)(values, ...rest);
+      },
+      dispose: (geometry) => {
+        disposed.set(geometry, (disposed.get(geometry) ?? 0) + 1);
+      },
+    };
+    const repr = await createRepr(structure, true, {}, builder);
+    const made = created;
+    const records = recordCount(repr);
+    // a rebuild that fails: the geometries the old segments' still
+    fail = true;
+    await expect(repr.createOrUpdate({ instanceGranularity: 'groupInstance' } as any).run()).rejects.toThrow('aborted');
+    fail = false;
+    expect(disposed.size).toBe(0);
+    // one that ends: no geometry made again, every group drawn, the old segments' geometries not disposed (kept)
+    await repr.createOrUpdate({ instanceGranularity: 'groupInstance' } as any).run();
+    expect(created).toBe(made);
+    expect(recordCount(repr)).toBe(records);
+    expect(disposed.size).toBe(0);
+    repr.destroy();
+    expect(disposed.size).toBe(made);
+    expect([...disposed.values()].every((n) => n === 1)).toBe(true);
+  });
+
   it('makes its parts again at the next update where that rebuild failed', async () => {
     let fail = false;
     const plain = ElementSphereImpostorVisual(-1).builder as UnitsVisualGeometryBuilder<ElementSphereParams, Spheres>;
     const builder: UnitsVisualGeometryBuilder<ElementSphereParams, Spheres> = {
       ...plain,
-      // the rebuild makes the geometries again (a theme change alone does not)
-      createGeometry: (...args) => {
-        if (fail) throw new Error('aborted');
-        return plain.createGeometry(...args);
-      },
       processValues: (values: any, geometry: Spheres, _props, theme) => {
+        // a segment the key split's rebuild makes (the theme's update before it updates them)
+        if (fail && isMade(values)) throw new Error('aborted');
         const split = theme.color.factory === BuiltInColorThemes['element-symbol'].factory;
         ValueCell.updateIfChanged(values.dIgnoreLight, split && geometry.sphereCount > 500);
       },

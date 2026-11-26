@@ -336,9 +336,13 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
 
   /** `seg` dropped: its geometry, and what writes its layers on the GPU (`DataArray.gpu`) */
   function disposeSegment(seg: Segment<G>) {
-    builder.dispose?.(seg.geometry);
-    // its mesh's vertices on the GPU (the smoothed layers' sampling), kept by its position cell across layers
-    releaseGpuMeshVertices(seg.values);
+    if (keptGeometries.delete(seg.geometry)) {
+      // its geometry another segment's now (a rebuild's, `keepGeometry`): its vertices on the GPU with it
+    } else {
+      builder.dispose?.(seg.geometry);
+      // its mesh's vertices on the GPU (the smoothed layers' sampling), kept by its position cell across layers
+      releaseGpuMeshVertices(seg.values);
+    }
     const values = seg.values as unknown as { [k: string]: ValueCell<DataArray<any>> | undefined };
     for (const kind of SmoothedLayerKinds) releaseGpuData(values[SmoothedLayerTextures[kind]]?.ref.value);
   }
@@ -385,6 +389,46 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     return includesUnitKind(props.unitKinds, unit)
       ? builder.createGeometry(ctx, unit, structureGroup.structure, theme, props, geometry)
       : utils.createEmpty(geometry);
+  }
+
+  /**
+   * the geometries a rebuild's segments took from the segments they replace (`keepGeometry`): disposed with neither,
+   * the other one's then (the old segments' once the rebuild ends, the made ones' where it fails)
+   */
+  const keptGeometries = new Set<G>();
+
+  /**
+   * `old`'s geometry for a rebuild's segment of `structureGroup` where an update of `old` would not make it again (its
+   * props, theme, structure and context as `setUnitsUpdateState` reads them): an instance granularity or a key split
+   * remakes the parts, not the surfaces; another context the ones that depend on it
+   */
+  function keepGeometry(
+    ctx: VisualContext,
+    old: Segment<G> | undefined,
+    structureGroup: StructureGroup,
+    props: PD.Values<P>,
+    theme: Theme,
+  ): G | undefined {
+    if (!old || keptGeometries.has(old.geometry)) return;
+    VisualUpdateState.reset(updateState);
+    updateState.info = old.info;
+    setUnitsUpdateState(
+      updateState,
+      builder,
+      old.record as any,
+      old.geometry,
+      props,
+      old.props as PD.Values<P>,
+      theme,
+      old.theme,
+      structureGroup,
+      { group: old.group, structure: old.structure },
+      ctx.graphics,
+      false,
+    );
+    if (updateState.createGeometry) return;
+    keptGeometries.add(old.geometry);
+    return old.geometry;
   }
 
   /** The part of `values`' merge key, a new one (`values` its shared values) where there is none */
@@ -969,6 +1013,8 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     // the same groups (a theme or props update): the segments in their order, not looked up by group
     const sameGroups = !rebuild && groups === currentGroups && segments.length === groups.length;
     const previous = rebuild ? createSegmentMap<G>() : byGroup;
+    /** the segments a rebuild replaces, by group (their geometries kept where they stand, `keepGeometry`) */
+    const oldByGroup = byGroup;
     const next = sameGroups ? byGroup : createSegmentMap<G>();
     const nextSegments: Segment<G>[] = sameGroups ? segments : [];
     // the fast paths, not a segment's update state each, where the last update ended (its segments written with
@@ -1073,7 +1119,9 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
             if ((seg.record.lodLevels?.ref.version ?? -1) !== lodVersion) levelsChanged = true;
           }
         } else {
-          const geometry = createGeometry(ctx, structureGroup, props, theme);
+          // a rebuild's: the replaced segment's geometry where it stands (a new one not made)
+          const kept = rebuild ? keepGeometry(ctx, oldByGroup.get(group), structureGroup, props, theme) : undefined;
+          const geometry = kept ?? createGeometry(ctx, structureGroup, props, theme);
           let segment: Segment<G> | undefined;
           const preparing = Visual.withPreparedGeometry(geometry, utils, theme, graphics, (g) => {
             segment = createSegment(ctx, structureGroup, g, props, theme);
@@ -1081,7 +1129,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
           if (isPromiseLike(preparing)) await preparing;
           seg = segment!;
           made.push(seg);
-          geometryVersion += 1;
+          if (!kept) geometryVersion += 1;
           // a new segment of a marked representation: its markers as made, clear (as a new units visual's)
         }
         if (!merges(seg)) {
@@ -1101,6 +1149,8 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
       if (!completed) {
         if (rebuildAsked) rebuildNext = true;
         for (const seg of made) disposeSegment(seg);
+        // the geometries kept for segments not made (the update ended before them) the old segments' alone
+        keptGeometries.clear();
         // the parts made for them alone: no object yet (made with the render objects), dropped; a rebuild's the
         // current ones again
         parts = rebuild ? oldParts : parts.filter((part) => partsBefore.has(part));
@@ -1117,6 +1167,7 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     if (written) recordsWritten();
     if (rebuild) {
       for (const seg of oldSegments) disposeSegment(seg);
+      keptGeometries.clear();
       for (const part of oldParts) disposeObject(part);
     }
     if (!sameGroups) {
@@ -1152,16 +1203,18 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
     if (type === 'mesh' && graphics && hasColorSmoothingProp(props) && props.smoothColors.name !== 'off') {
       prepareLayerSampling(graphics);
     }
+    if (keySplit) {
+      // a part's segments of other keys: made again, each in the part of its own (their geometries kept), the
+      // layers and the objects by that rebuild alone (not smoothed and listed here first, then thrown away)
+      rebuildNext = true;
+      await visual.createOrUpdate(ctx, theme, props, structure, groups);
+      return;
+    }
     if (resmooth) {
       writeLayers(smoothedLayers!);
       recordsWritten();
     }
     listObjects(props, graphics);
-    if (keySplit) {
-      // a part's segments of other keys: made again, each in the part of its own
-      rebuildNext = true;
-      await visual.createOrUpdate(ctx, theme, props, structure, groups);
-    }
   }
 
   const visual: UnitsMergedVisual<P> = {
