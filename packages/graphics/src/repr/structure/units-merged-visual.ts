@@ -597,6 +597,17 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
    * Whether `layers` smooth on `seg`: a mesh of a surface's resolution, `smoothColors` resolving on (`Visual.setOverpaint`
    * and the others: per vertex and instance), by group (not instance) and reached; else they are its plain type
    */
+  /** whether a layer may smooth on a segment (`smoothsOn`: the props' smoothing), or one is smoothed (per vertex) */
+  function maySmooth() {
+    if (currentProps && hasColorSmoothingProp(currentProps as PD.Values<any>)) return true;
+    for (const seg of segments) {
+      const values = seg.values as unknown as { [k: string]: ValueCell<string> };
+      for (const kind of SmoothedLayerKinds)
+        if (values[SmoothedLayerDefines[kind]].ref.value === 'vertexInstance') return true;
+    }
+    return false;
+  }
+
   function smoothsOn(seg: Segment<G>, layers: LayersOf) {
     if (layers.layers.length === 0 || seg.geometry.kind !== 'mesh') return false;
     const props = seg.props as PD.Values<any>;
@@ -608,12 +619,6 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
   }
 
   /**
-   * Writes `layers` (the kinds given; the others kept) into every segment, smoothed where they smooth on it
-   * (`smoothsOn`). The parts first: a part's layer types are its shared cells (in its merge key), so its segments of
-   * other smoothed layers move to parts of their own (the most stay), each part's segments then writing the same types;
-   * parts of one key after the writes joined (`regroupByKey`). Whether segments moved: the parts' objects then made again
-   */
-  /**
    * per kind the layer last written to every segment, and the geometry it was written for (`geometryVersion`): the same
    * set again for that geometry not written again (`setState`). Why: a geometry made again smooths the layers again
    * here (`resmooth`), then the layers' nodes, recreated by the new `geometryVersion`, set them alike (a trajectory
@@ -621,12 +626,19 @@ export function UnitsMergedVisual<G extends Geometry, P extends StructureParams 
    */
   let layersWritten: { [K in SmoothedLayerKind]?: { readonly layer: LayersOf; readonly geometry: number } } = {};
 
+  /**
+   * Writes `layers` (the kinds given; the others kept) into every segment, smoothed where they smooth on it
+   * (`smoothsOn`). The parts first: a part's layer types are its shared cells (in its merge key), so its segments of
+   * other smoothed layers move to parts of their own (the most stay), each part's segments then writing the same types;
+   * parts of one key after the writes joined (`regroupByKey`). Whether segments moved: the parts' objects then made again
+   */
   function writeLayers(layers: SmoothedLayers): boolean {
     const kinds = SmoothedLayerKinds.filter((k) => layers[k] !== undefined);
     if (kinds.length === 0 || segments.length === 0) return false;
     for (const kind of kinds) layersWritten[kind] = { layer: layers[kind]!, geometry: geometryVersion };
-    // smoothing per vertex: meshes alone (the surfaces merged on the CPU path)
-    const flags = type === 'mesh' ? new Int32Array(segments.length) : undefined;
+    // smoothing per vertex: meshes alone (the surfaces merged on the CPU path), where a layer may smooth or a segment's
+    // did (its types back); else not grouped and regrouped by it (a cartoon's every layer change: a pass over its segments)
+    const flags = type === 'mesh' && maySmooth() ? new Int32Array(segments.length) : undefined;
     let split = false;
     if (flags) {
       const byPart = new Map<Part<G>, Map<number, Segment<G>[]>>();
